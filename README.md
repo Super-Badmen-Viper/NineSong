@@ -1,7 +1,33 @@
-# NineSong Music-Server
-The goal of NSMusicS is to achieve internationalization+cloud native+streaming music services+professional audio+cross platform data interoperability, and integrate all well-known streaming media servers into NSMusicS to embrace the future of cloud native music and become a representative work in the Github cloud native music field
+# NineSong Server
+NineSong Goal is to achieve various application scenarios (such as music, videos, movies, notes, photo albums, documents, books, etc.), and provide internationalization, cloud native deployment, streaming services, fine metadata management, and cross platform data management for various application scenarios, becoming a representative work in the Github cloud native field
 
 A Go (Golang) Backend Clean Architecture project with Gin, MongoDB, JWT Authentication Middleware, Test, and Docker.
+
+## New Function
+The NineSong Server will be released in June this year, and NSMusicS will be able to deploy Docker and integrate NineSong streaming services by default.  
+Compared to other music servers (Navidrome, Jellyfin, Emby, Plex, Subsonic, Gonic),
+It has better functions, as follows:
+- More detailed music library managementand support for remote upload, synchronization, and download of music libraries
+- More detailed music metadata TAG management, supporting remote TAG upload and synchronous modification
+- - Add TAG settings (singer avatar, singer photo (multiple choices), album cover, song sound quality version (multiple choices), song lyrics version (multiple choices))
+- - Added adaptation to the free music TAG API, allowing users to obtain the online TAG of their songs and choose whether to synchronize TAG data。https://musicbrainz.org/、https://www.theaudiodb.com/
+- More detailed music recommendations tailored to your playback data
+- - Add tag word cloud for users to recommend interests
+- More detailed music playback experience, with a variety of playback modes available
+- It can be used through a web browser to automatically respond to changes in the layout of computer and mobile applications based on screen ratio
+
+## NineSong | NineSong Multimedia(Server) : 九歌多媒体
+- [ ] Compatible with streaming media servers (Jellyfin、Emby、Navidrome、Plex)
+- [ ] General file library management(Audio、Video、Image、Text、Document、Archive、Executable、Database、Unknown)
+- [ ] Scene of Streaming Music and Karaoke
+- [ ] Scene of AI-Models deploy
+- [ ] Scene of Intelligent Gallery album
+- [ ] Scene of Film and Television Center
+- [ ] Scene of Online Notes
+- [ ] Scene of Document Workbench
+- [ ] Scene of E-book reader
+- [ ] Knowledge graph Recommendation system
+- [ ] Internationalization
 
 ```sh
 HTTP请求 → Controller → Usecase（业务逻辑） → Repository（数据操作） → MongoDB  
