@@ -1,0 +1,2512 @@
+{
+	"info": {
+		"_postman_id": "3898670c-d843-4992-8a2f-43bc75d35d42",
+		"name": "NineSong API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "40279808"
+	},
+	"item": [
+		{
+			"name": "App",
+			"item": [
+				{
+					"name": "Config",
+					"item": [
+						{
+							"name": "Base",
+							"item": [
+								{
+									"name": "App Config",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/app/config",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"app",
+												"config"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "App Config",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "[\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b1e\",\r\n        \"ConfigKey\": \"theme\",\r\n        \"ConfigValue\": \"lightTheme\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b1f\",\r\n        \"ConfigKey\": \"lang\",\r\n        \"ConfigValue\": \"zhHans\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b20\",\r\n        \"ConfigKey\": \"router_name\",\r\n        \"ConfigValue\": \"home\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b21\",\r\n        \"ConfigKey\": \"menuOptions_selectd_model_1\",\r\n        \"ConfigValue\": \"false\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b22\",\r\n        \"ConfigKey\": \"menuOptions_selectd_model_2\",\r\n        \"ConfigValue\": \"false\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b23\",\r\n        \"ConfigKey\": \"menuOptions_selectd_model_3\",\r\n        \"ConfigValue\": \"false\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b24\",\r\n        \"ConfigKey\": \"menuOptions_selectd_model_4\",\r\n        \"ConfigValue\": \"false\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b25\",\r\n        \"ConfigKey\": \"app_view_left_menu_select_activeKey\",\r\n        \"ConfigValue\": \"home\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b26\",\r\n        \"ConfigKey\": \"app_view_left_menu_collapsed\",\r\n        \"ConfigValue\": \"true\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b27\",\r\n        \"ConfigKey\": \"model_select\",\r\n        \"ConfigValue\": \"server\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b28\",\r\n        \"ConfigKey\": \"server_select\",\r\n        \"ConfigValue\": \"2b876e61-a2a7-4ebc-97d1-b9bbd7a9592c\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b29\",\r\n        \"ConfigKey\": \"server_select_kind\",\r\n        \"ConfigValue\": \"navidrome\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b2a\",\r\n        \"ConfigKey\": \"username\",\r\n        \"ConfigValue\": \"mozhi\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b2b\",\r\n        \"ConfigKey\": \"password\",\r\n        \"ConfigValue\": \"qwer1234\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b2c\",\r\n        \"ConfigKey\": \"play_order\",\r\n        \"ConfigValue\": \"playback-2\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b2d\",\r\n        \"ConfigKey\": \"play_volume\",\r\n        \"ConfigValue\": \"100\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b2e\",\r\n        \"ConfigKey\": \"model_server_type_of_web\",\r\n        \"ConfigValue\": \"true\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b2f\",\r\n        \"ConfigKey\": \"model_server_type_of_local\",\r\n        \"ConfigValue\": \"false\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b30\",\r\n        \"ConfigKey\": \"model_server_type_of_local_server_download\",\r\n        \"ConfigValue\": \"false\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b31\",\r\n        \"ConfigKey\": \"authorization_of_nd\",\r\n        \"ConfigValue\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhZG0iOnRydWUsImV4cCI6MTc0MjM1NDkwOCwiaWF0IjoxNzQyMjY4NTA4LCJpc3MiOiJORCIsInN1YiI6Im1vemhpIiwidWlkIjoiN2Y2ZjZkODctZGRmMC00MjlkLTllMjEtMjU3NGJiYTY3OTRkIn0.QFXT2ZNGLPT1XxFzzrjm6CbUnG9P61weqmEN0c8ZaKo\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b32\",\r\n        \"ConfigKey\": \"client_unique_id\",\r\n        \"ConfigValue\": \"7f6f6d87-ddf0-429d-9e21-2574bba6794d\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b33\",\r\n        \"ConfigKey\": \"media_page_sizes\",\r\n        \"ConfigValue\": \"15\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b34\",\r\n        \"ConfigKey\": \"album_page_sizes\",\r\n        \"ConfigValue\": \"15\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b35\",\r\n        \"ConfigKey\": \"artist_page_sizes\",\r\n        \"ConfigValue\": \"15\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b36\",\r\n        \"ConfigKey\": \"clear_Memory_Model\",\r\n        \"ConfigValue\": \"false\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b37\",\r\n        \"ConfigKey\": \"clear_Equilibrium_Model\",\r\n        \"ConfigValue\": \"false\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b38\",\r\n        \"ConfigKey\": \"clear_UserExperience_Model\",\r\n        \"ConfigValue\": \"true\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b39\",\r\n        \"ConfigKey\": \"theme_auto_system\",\r\n        \"ConfigValue\": \"false\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b3a\",\r\n        \"ConfigKey\": \"page_songlists_filter_year\",\r\n        \"ConfigValue\": \"0\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b3b\",\r\n        \"ConfigKey\": \"player_select\",\r\n        \"ConfigValue\": \"mpv\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b3c\",\r\n        \"ConfigKey\": \"player_fade_value\",\r\n        \"ConfigValue\": \"2000\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b3d\",\r\n        \"ConfigKey\": \"player_dolby\",\r\n        \"ConfigValue\": \"false\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b3e\",\r\n        \"ConfigKey\": \"player_samp_value\",\r\n        \"ConfigValue\": \"48000\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b3f\",\r\n        \"ConfigKey\": \"player_gaplessAudio\",\r\n        \"ConfigValue\": \"weak\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b40\",\r\n        \"ConfigKey\": \"player_audioExclusiveMode\",\r\n        \"ConfigValue\": \"false\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b41\",\r\n        \"ConfigKey\": \"player_replayGainMode\",\r\n        \"ConfigValue\": \"no\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b42\",\r\n        \"ConfigKey\": \"player_replayGainPreamp\",\r\n        \"ConfigValue\": \"0\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b43\",\r\n        \"ConfigKey\": \"player_replayGainClip\",\r\n        \"ConfigValue\": \"false\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b44\",\r\n        \"ConfigKey\": \"player_replayGainFallback\",\r\n        \"ConfigValue\": \"0\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b45\",\r\n        \"ConfigKey\": \"player_mpvExtraParameters\",\r\n        \"ConfigValue\": \"\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b46\",\r\n        \"ConfigKey\": \"player_audio_channel\",\r\n        \"ConfigValue\": \"\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b47\",\r\n        \"ConfigKey\": \"player_device_select\",\r\n        \"ConfigValue\": \"default\"\r\n    }\r\n]",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/app/config",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"app",
+												"config"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Library",
+							"item": [
+								{
+									"name": "Library Config",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/app/library",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"app",
+												"library"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Library Config",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "[\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b48\",\r\n        \"ConfigKey\": \"0_Music\",\r\n        \"ConfigValue\": \"E:\\\\0_Music\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b49\",\r\n        \"ConfigKey\": \"Music\",\r\n        \"ConfigValue\": \"C:\\\\Users\\\\17741\\\\Music\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b4a\",\r\n        \"ConfigKey\": \"iTunes\",\r\n        \"ConfigValue\": \"C:\\\\Users\\\\17741\\\\Music\\\\iTunes\"\r\n    }\r\n]",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/app/library",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"app",
+												"library"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Audio",
+							"item": [
+								{
+									"name": "Audio Config",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/app/audio",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"app",
+												"audio"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Audio Config",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "[\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b4b\",\r\n        \"ConfigKey\": \"this_audio_file_path\",\r\n        \"ConfigValue\": \"http://localhost:4533/rest/stream?u=mozhi&t=be470bc4c1556004e26c4780c0121030&s=9V8he3&v=1.12.0&c=nsmusics&f=json&id=588a1fac45fd3f65c2dae2a13ced3655\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b4c\",\r\n        \"ConfigKey\": \"this_audio_file_medium_image_url\",\r\n        \"ConfigValue\": \"http://localhost:4533/rest/getCoverArt?u=mozhi&t=be470bc4c1556004e26c4780c0121030&s=9V8he3&v=1.12.0&c=nsmusics&f=json&id=588a1fac45fd3f65c2dae2a13ced3655\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b4d\",\r\n        \"ConfigKey\": \"this_audio_file_lyric\",\r\n        \"ConfigValue\": \"[00:00.00]History (Korean Version) - EXO-K (엑소케이)\\n[00:10.39]Listen' 느낄 수 있니\\n[00:13.89]내 심장이 뛰지를 않아\\n[00:17.19]My heart be breakin'\\n[00:18.40]분한 마음에 울어도 보고\\n[00:22.71]소리 질러 하 외쳐도 봤어\\n[00:26.14]My pain be creepin'\\n[00:27.79]흑과 백 아직 남과 북\\n[00:29.55]끝이 나지 않는 전쟁 scene\\n[00:31.65]둘로 나뉜 태양의 절망\\n[00:35.61]멀리 돌고 돌아서\\n[00:37.75]다시 시작하는 곳에 다 왔어\\n[00:41.42]오류투성이지만\\n[00:42.65]배워가며 강해질 수 있는 나\\n[00:44.50]저 태양처럼\\n[00:45.93]거대한 하나란 걸 아는 날\\n[00:50.53]오 오 모두 함께 가는 우리 미래로\\n[00:53.52]I need you and you want me\\n[00:55.74]지구란 이 별에서 오 오\\n[01:02.41]Every every everyday\\n[01:04.29]내가 만든 history\\n[01:06.26]Break it 욕망의 반칙\\n[01:10.72]Move it 파괴란 미덕\\n[01:13.94]No more shakin' like that\\n[01:15.31]Magic 시간이 가면\\n[01:18.53]또 씻은 듯이 다시 재생 돼\\n[01:23.70]시공간을 뛰어 넘어서\\n[01:25.58]에덴의 아침을 꿈꾸고 있어\\n[01:27.82]가자 우린 그런 존재\\n[01:32.08]멀리 돌고 돌아서\\n[01:34.02]다시 시작하는 곳에 다 왔어\\n[01:37.48]오류투성이지만\\n[01:38.83]배워가며 강해질 수 있는 나\\n[01:40.91]저 태양처럼\\n[01:42.27]거대한 하나란 걸 아는 날\\n[01:46.64]오 오 모두 함께 가는 우리 미래로\\n[01:49.53]I need you and you want me\\n[01:51.95]지구란 이 별에서 오 오\\n[01:58.69]꿈을 잉태 하는 날\\n[02:00.75]우린 다시 일어나\\n[02:03.58]일어나 일어나 일어나 turn it on\\n[02:05.98]일어나 일어나 일어나\\n[02:06.90]영원할거라 믿고 싶을 때\\n[02:11.64]언젠가 할 거 라고 망설일 때\\n[02:15.74]내일이 바로 끝인지도 몰라\\n[02:19.89]후회 같은 건 잊어버려 두려워마\\n[02:26.14]제발 사랑해 사랑해 사랑해\\n[02:30.63]조화로울수록 완벽하잖아\\n[02:34.84]모든 슬픔이 기쁨이 여기에\\n[02:39.30]나와 너는 한 생명인 걸\\n[02:41.81]Ya 우리가 원래\\n[02:42.75]하나로 태어났던 순간\\n[02:43.99]갈수록 소모적인\\n[02:44.91]이 세계를 만난 순간\\n[02:46.08]우린 점점점 멀어져가 점점\\n[02:47.73]둘로 깨져버린 채\\n[02:49.26]힘을 잃어버린 태양\\n[02:50.30]갈수록 갈수록 갈수록 갈수록 더\\n[02:52.64]간절했던 꿈의 세계를\\n[02:53.74]다시 마주하는 순간\\n[02:54.76]내 가슴이 뛴다 마구 뛴다\\n[02:56.75]둥 둥 둥 둥 둥 둥\\n[02:59.27]돌고 돌아서\\n[03:00.71]다시 시작하는 곳에 다 왔어\\n[03:03.87]Yeah  EXO-M  EXO-K\\n[03:05.77]우리가 시작하는 미래 history\\n[03:07.63]저 태양처럼\\n[03:08.83]거대한 하나란 걸 아는 날\\n[03:12.66]Oh 하나의 심장에 태양에\\n[03:14.62]끝없이 우린\\n[03:15.35]하나로 강해지고 있어\\n[03:16.81]I need you and you want me\\n[03:18.87]지구란 이 별에서 오 오\\n[03:25.32]Every every everyday\\n[03:27.24]내가 만든 history\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b4e\",\r\n        \"ConfigKey\": \"this_audio_artist_name\",\r\n        \"ConfigValue\": \"EXO-K\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b4f\",\r\n        \"ConfigKey\": \"this_audio_artist_id\",\r\n        \"ConfigValue\": \"fae206703a55e4c4b51c2dfff8ab21ba\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b50\",\r\n        \"ConfigKey\": \"this_audio_song_name\",\r\n        \"ConfigValue\": \"History (Korean Version)\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b51\",\r\n        \"ConfigKey\": \"this_audio_song_id\",\r\n        \"ConfigValue\": \"588a1fac45fd3f65c2dae2a13ced3655\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b52\",\r\n        \"ConfigKey\": \"this_audio_song_rating\",\r\n        \"ConfigValue\": \"0\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b53\",\r\n        \"ConfigKey\": \"this_audio_song_favorite\",\r\n        \"ConfigValue\": \"false\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b54\",\r\n        \"ConfigKey\": \"this_audio_album_name\",\r\n        \"ConfigValue\": \"'HISTORY' EXO-K 프롤로그 싱글 2nd\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b55\",\r\n        \"ConfigKey\": \"this_audio_album_id\",\r\n        \"ConfigValue\": \"311fa207db8a6edaa8a0677f9a2b565c\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b56\",\r\n        \"ConfigKey\": \"this_audio_Index_of_play_list\",\r\n        \"ConfigValue\": \"29\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b57\",\r\n        \"ConfigKey\": \"page_top_album_image_url\",\r\n        \"ConfigValue\": \"blob:file:///36af3979-c512-40f0-a2d0-9c798180d492\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b58\",\r\n        \"ConfigKey\": \"page_top_album_id\",\r\n        \"ConfigValue\": \"311fa207db8a6edaa8a0677f9a2b565c\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b59\",\r\n        \"ConfigKey\": \"page_top_album_name\",\r\n        \"ConfigValue\": \"'HISTORY' EXO-K 프롤로그 싱글 2nd\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b5a\",\r\n        \"ConfigKey\": \"slider_singleValue\",\r\n        \"ConfigValue\": \"28.77\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b5b\",\r\n        \"ConfigKey\": \"playlist_artist_id\",\r\n        \"ConfigValue\": \"\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b5c\",\r\n        \"ConfigKey\": \"playlist_album_id\",\r\n        \"ConfigValue\": \"\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b5d\",\r\n        \"ConfigKey\": \"playlist_album_artist_id\",\r\n        \"ConfigValue\": \"\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b5e\",\r\n        \"ConfigKey\": \"page_songlists_selected\",\r\n        \"ConfigValue\": \"song_list_love\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b5f\",\r\n        \"ConfigKey\": \"player_mode_of_lock_playlist\",\r\n        \"ConfigValue\": \"true\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b60\",\r\n        \"ConfigKey\": \"player_mode_of_medialist_from_external_import\",\r\n        \"ConfigValue\": \"false\"\r\n    }\r\n]",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/app/audio",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"app",
+												"audio"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Playlist ID",
+							"item": [
+								{
+									"name": "Playlist ID Config",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/app/playlist",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"app",
+												"playlist"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Playlist ID Config",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "[\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b6e\",\r\n        \"ConfigKey\": \"001dbc8a0d6d4f32b43d8a1abf732213\",\r\n        \"ConfigValue\": \"1\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b6f\",\r\n        \"ConfigKey\": \"0020641d4ba044b092b12ecc87a7bb08\",\r\n        \"ConfigValue\": \"2\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b70\",\r\n        \"ConfigKey\": \"003b46b572c14fbdb970b2dd8bd12b55\",\r\n        \"ConfigValue\": \"3\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b71\",\r\n        \"ConfigKey\": \"006a84ee61454a1487b8c3b9c2ed015f\",\r\n        \"ConfigValue\": \"4\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b72\",\r\n        \"ConfigKey\": \"0077a778a90a4e12b42256e4b44d567e\",\r\n        \"ConfigValue\": \"5\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b73\",\r\n        \"ConfigKey\": \"00800c7db99543c9ab90774cf969947e\",\r\n        \"ConfigValue\": \"6\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b74\",\r\n        \"ConfigKey\": \"00855b44ebca43708ccac91e074cc6bb\",\r\n        \"ConfigValue\": \"7\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b75\",\r\n        \"ConfigKey\": \"0087a1303c854e09b992f73dfae08493\",\r\n        \"ConfigValue\": \"8\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b76\",\r\n        \"ConfigKey\": \"0090344272a44e6088d030d6717e8a82\",\r\n        \"ConfigValue\": \"9\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b77\",\r\n        \"ConfigKey\": \"00989e7b826d4e0e8e8c3bc7dafe972a\",\r\n        \"ConfigValue\": \"10\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b78\",\r\n        \"ConfigKey\": \"00a673d2005f4210b7f44152eaf073fa\",\r\n        \"ConfigValue\": \"11\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b79\",\r\n        \"ConfigKey\": \"00b9becc259d4fd291f68fb62670cf9b\",\r\n        \"ConfigValue\": \"12\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b7a\",\r\n        \"ConfigKey\": \"00c6d1acd86a42849cebd279d3db24bc\",\r\n        \"ConfigValue\": \"13\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b7b\",\r\n        \"ConfigKey\": \"00c8f0edf1a24471b4910d921ed55cfb\",\r\n        \"ConfigValue\": \"14\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b7c\",\r\n        \"ConfigKey\": \"0105aa09be1b48139252f9fb0b22dd98\",\r\n        \"ConfigValue\": \"15\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b7d\",\r\n        \"ConfigKey\": \"010bf9eb4d1a4258b0c9cf0f5a942765\",\r\n        \"ConfigValue\": \"16\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b7e\",\r\n        \"ConfigKey\": \"0115a248456d4dc8a2aa26e43378ee97\",\r\n        \"ConfigValue\": \"17\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b7f\",\r\n        \"ConfigKey\": \"0116a3aeb9d74946826b492c85905f71\",\r\n        \"ConfigValue\": \"18\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b80\",\r\n        \"ConfigKey\": \"012e4bc0065043d5a4a6711ee7dba2f7\",\r\n        \"ConfigValue\": \"19\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b81\",\r\n        \"ConfigKey\": \"014a9356aa6140aa8bef387800353046\",\r\n        \"ConfigValue\": \"20\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b82\",\r\n        \"ConfigKey\": \"014b6219aa314ddabc33e49cc903c70f\",\r\n        \"ConfigValue\": \"21\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b83\",\r\n        \"ConfigKey\": \"0152e6bd233e4d98ac0829eaf7ae0a58\",\r\n        \"ConfigValue\": \"22\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b84\",\r\n        \"ConfigKey\": \"016086c1b60f4bdab1874fadf022869b\",\r\n        \"ConfigValue\": \"23\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b85\",\r\n        \"ConfigKey\": \"016697b9467b473ead2c6658a8d59316\",\r\n        \"ConfigValue\": \"24\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b86\",\r\n        \"ConfigKey\": \"0167609486474e7c930c42b9997721ec\",\r\n        \"ConfigValue\": \"25\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b87\",\r\n        \"ConfigKey\": \"016acc51bb3a4c78ab450587a9141e17\",\r\n        \"ConfigValue\": \"26\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b88\",\r\n        \"ConfigKey\": \"016b4bcb9f9443b6b39e69ba3d3fe839\",\r\n        \"ConfigValue\": \"27\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b89\",\r\n        \"ConfigKey\": \"017bb5e548d04bb0ac7bbf66382f5416\",\r\n        \"ConfigValue\": \"28\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b8a\",\r\n        \"ConfigKey\": \"0187f0489c56416fa11c007f8a868daf\",\r\n        \"ConfigValue\": \"29\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b8b\",\r\n        \"ConfigKey\": \"01938fb466454c8c86014df174be5924\",\r\n        \"ConfigValue\": \"30\"\r\n    }\r\n]",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/app/playlist",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"app",
+												"playlist"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "UI",
+							"item": [
+								{
+									"name": "UI Config",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/app/ui",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"app",
+												"ui"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "UI Config",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "[\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b61\",\r\n        \"ConfigKey\": \"player_collapsed_album\",\r\n        \"ConfigValue\": \"false\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b62\",\r\n        \"ConfigKey\": \"player_collapsed_skin\",\r\n        \"ConfigValue\": \"true\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b63\",\r\n        \"ConfigKey\": \"player_lyric_fontSize\",\r\n        \"ConfigValue\": \"30px\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b64\",\r\n        \"ConfigKey\": \"player_lyric_fontWeight\",\r\n        \"ConfigValue\": \"600\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b65\",\r\n        \"ConfigKey\": \"player_lyric_color\",\r\n        \"ConfigValue\": \"#FAFAFB60\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b66\",\r\n        \"ConfigKey\": \"player_theme_Styles_Selected\",\r\n        \"ConfigValue\": \"0\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b67\",\r\n        \"ConfigKey\": \"player_background_model_num\",\r\n        \"ConfigValue\": \"0\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b68\",\r\n        \"ConfigKey\": \"player_use_lottie_animation\",\r\n        \"ConfigValue\": \"true\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b69\",\r\n        \"ConfigKey\": \"player_use_lyric_skip_forward\",\r\n        \"ConfigValue\": \"true\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b6a\",\r\n        \"ConfigKey\": \"player_use_background_filter_blur\",\r\n        \"ConfigValue\": \"true\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b6b\",\r\n        \"ConfigKey\": \"player_use_background_automatic_rotation\",\r\n        \"ConfigValue\": \"true\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b6c\",\r\n        \"ConfigKey\": \"player_use_background_repeat_fill\",\r\n        \"ConfigValue\": \"false\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b6d\",\r\n        \"ConfigKey\": \"player_use_playbar_auto_hide\",\r\n        \"ConfigValue\": \"true\"\r\n    }\r\n]",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/app/ui",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"app",
+												"ui"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Server",
+							"item": [
+								{
+									"name": "Server Config",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/app/server",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"app",
+												"server"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Server Config",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"id\": \"67dcdae5c51665e7dfc95b8c\",\r\n    \"serverName\": \"mozhi\",\r\n    \"url\": \"http://localhost:4533\",\r\n    \"userName\": \"mozhi\",\r\n    \"password\": \"qwer1234\",\r\n    \"lastLoginAt\": \"2025-03-14T12:00:26Z\",\r\n    \"type\": \"navidrome\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/app/server",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"app",
+												"server"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Server Config",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "DELETE",
+										"header": [],
+										"body": {
+											"mode": "urlencoded",
+											"urlencoded": []
+										},
+										"url": {
+											"raw": "{{baseUrl}}/app/server?id=6819bada8cbc752dc42f9f9f",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"app",
+												"server"
+											],
+											"query": [
+												{
+													"key": "id",
+													"value": "6819bada8cbc752dc42f9f9f"
+												}
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Library",
+					"item": [
+						{
+							"name": "Media File",
+							"item": [
+								{
+									"name": "Media File Library",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/app/media",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"app",
+												"media"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Media File Library",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "[\r\n    {\r\n        \"ID\": \"67dd4914b814d81c66643aad\",\r\n        \"Path\": \"http://localhost:4533/rest/stream?u=mozhi&t=be470bc4c1556004e26c4780c0121030&s=9V8he3&v=1.12.0&c=nsmusics&f=json&id=0b628ce5477583033eb1e08a35aefa34\",\r\n        \"Title\": \"唯一 (Live)\",\r\n        \"Album\": \"2008 Music-Man 世界巡回演唱会\",\r\n        \"Artist\": \"王力宏\",\r\n        \"ArtistID\": \"869567954cf38a7308a21cec4d0d8f59\",\r\n        \"AlbumArtist\": \"王力宏\",\r\n        \"AlbumID\": \"36271841356aac2d7ae276672de2d44e\",\r\n        \"HasCoverArt\": false,\r\n        \"TrackNumber\": 0,\r\n        \"DiscNumber\": 0,\r\n        \"Year\": 2009,\r\n        \"Size\": 55186948,\r\n        \"Suffix\": \"flac\",\r\n        \"Duration\": 282.39,\r\n        \"BitRate\": 1557,\r\n        \"Genre\": \"\",\r\n        \"Compilation\": false,\r\n        \"CreatedAt\": \"0001-01-01T00:00:00Z\",\r\n        \"UpdatedAt\": \"0001-01-01T00:00:00Z\",\r\n        \"FullText\": \"\",\r\n        \"AlbumArtistID\": \"\",\r\n        \"OrderAlbumName\": \"\",\r\n        \"OrderAlbumArtistName\": \"\",\r\n        \"OrderArtistName\": \"\",\r\n        \"SortAlbumName\": \"\",\r\n        \"SortArtistName\": \"\",\r\n        \"SortAlbumArtistName\": \"\",\r\n        \"SortTitle\": \"\",\r\n        \"DiscSubtitle\": \"\",\r\n        \"MBZTrackID\": \"\",\r\n        \"MBZAlbumID\": \"\",\r\n        \"MBZArtistID\": \"\",\r\n        \"MBZAlbumArtistID\": \"\",\r\n        \"MBZAlbumType\": \"\",\r\n        \"MBZAlbumComment\": \"\",\r\n        \"CatalogNum\": \"\",\r\n        \"Comment\": \"\",\r\n        \"Lyrics\": \"[00:00.00]唯一 (Live) - 王力宏 (Leehom Wang)\\n[00:11.02]词：王力宏\\n[00:22.05]曲：王力宏\\n[00:33.08]我的天空多么的清晰\\n[00:38.79]透明的承诺是过去的空气\\n[00:48.26]牵着我的手是你\\n[00:53.18]但你的笑容 却看不清\\n[01:03.43]是否一颗星星变了心\\n[01:09.13]从前的愿望\\n[01:11.96]也全都被抛弃\\n[01:19.01]最近我无法呼吸\\n[01:23.20]连自己的影子\\n[01:27.42]都想逃避\\n[01:31.15]Baby 你就是我的唯一\\n[01:36.89]两个世界都变形\\n[01:41.70]回去谈何容易\\n[01:46.60]确定 你就是我的唯一\\n[01:52.21]独自对着电话说我爱你\\n[01:57.70]我真的爱你\\n[02:01.61]Baby 我已不能多爱你一些\\n[02:12.29]是否一颗星星变了心\\n[02:18.04]从前的愿望\\n[02:20.72]也全都被抛弃\\n[02:27.51]最近我无法呼吸\\n[02:31.54]连自己的影子\\n[02:36.13]都想逃避逃避\\n[02:43.56]Baby 你就是我的唯一\\n[02:49.75]两个世界都变形\\n[02:54.58]回去谈何容易\\n[02:59.40]确定 你就是我的唯一\\n[03:05.05]独自对着电话说我爱你\\n[03:10.82]我真的爱你\\n[03:15.16]Baby 我已不能多爱你一些\\n[03:22.41]其实早已超过了爱的极限\\n[03:46.34]Baby 你就是我的唯一\\n[03:51.19]两个世界都变形\\n[03:55.88]回去谈何容易\\n[04:00.60]确定 你就是我的唯一\\n[04:06.49]独自对着电话说我爱你\\n[04:12.29]我真的爱你\\n[04:16.07]Baby 我已不能多爱你一些\",\r\n        \"BPM\": 0,\r\n        \"Channels\": 0,\r\n        \"OrderTitle\": \"\",\r\n        \"MBZReleaseTrackID\": \"\",\r\n        \"RgAlbumGain\": 0,\r\n        \"RgAlbumPeak\": 0,\r\n        \"RgTrackGain\": 0,\r\n        \"RgTrackPeak\": 0,\r\n        \"MediumImageURL\": \"http://localhost:4533/rest/getCoverArt?u=mozhi&t=be470bc4c1556004e26c4780c0121030&s=9V8he3&v=1.12.0&c=nsmusics&f=json&id=0b628ce5477583033eb1e08a35aefa34\"\r\n    },\r\n    {\r\n        \"ID\": \"67dd4914b814d81c66643aae\",\r\n        \"Path\": \"http://localhost:4533/rest/stream?u=mozhi&t=be470bc4c1556004e26c4780c0121030&s=9V8he3&v=1.12.0&c=nsmusics&f=json&id=0e35256b982149fef4f2d8da22e2c215\",\r\n        \"Title\": \"恶作剧\",\r\n        \"Album\": \"恶作剧之吻 电视剧原声带\",\r\n        \"Artist\": \"王蓝茵\",\r\n        \"ArtistID\": \"22d68ecf93771267f5d6891809539a68\",\r\n        \"AlbumArtist\": \"王蓝茵\",\r\n        \"AlbumID\": \"3972db8a900cb5e0ce87142c1cfbd724\",\r\n        \"HasCoverArt\": false,\r\n        \"TrackNumber\": 0,\r\n        \"DiscNumber\": 0,\r\n        \"Year\": 2005,\r\n        \"Size\": 3713585,\r\n        \"Suffix\": \"mp3\",\r\n        \"Duration\": 226.82,\r\n        \"BitRate\": 128,\r\n        \"Genre\": \"\",\r\n        \"Compilation\": false,\r\n        \"CreatedAt\": \"0001-01-01T00:00:00Z\",\r\n        \"UpdatedAt\": \"0001-01-01T00:00:00Z\",\r\n        \"FullText\": \"\",\r\n        \"AlbumArtistID\": \"\",\r\n        \"OrderAlbumName\": \"\",\r\n        \"OrderAlbumArtistName\": \"\",\r\n        \"OrderArtistName\": \"\",\r\n        \"SortAlbumName\": \"\",\r\n        \"SortArtistName\": \"\",\r\n        \"SortAlbumArtistName\": \"\",\r\n        \"SortTitle\": \"\",\r\n        \"DiscSubtitle\": \"\",\r\n        \"MBZTrackID\": \"\",\r\n        \"MBZAlbumID\": \"\",\r\n        \"MBZArtistID\": \"\",\r\n        \"MBZAlbumArtistID\": \"\",\r\n        \"MBZAlbumType\": \"\",\r\n        \"MBZAlbumComment\": \"\",\r\n        \"CatalogNum\": \"\",\r\n        \"Comment\": \"\",\r\n        \"Lyrics\": \"[00:00.00]恶作剧 - 王蓝茵 (Tangerine Wang)\\n[00:06.16]词：王蓝茵\\n[00:12.32]曲：王蓝茵\\n[00:18.48]编曲：吴薇薇\\n[00:24.64]制作人：吴薇薇/林迈可\\n[00:30.81]我找不到很好的原因\\n[00:34.27]去阻挡这一切的亲密\\n[00:38.00]这感觉太奇异\\n[00:39.75]我抱歉不能说明\\n[00:44.89]我相信这爱情的定义\\n[00:48.36]奇迹会发生也不一定\\n[00:52.17]风温柔的清晰\\n[00:53.94]也许飘来好消息\\n[00:58.95]一切新鲜 有点冒险\\n[01:02.43]请告诉我怎么走到终点\\n[01:05.93]没有人了解\\n[01:07.57]没有人像我和陌生人的爱恋\\n[01:13.02]我想我会开始想念你\\n[01:16.54]可是我刚刚才遇见了你\\n[01:20.84]我怀疑这奇遇只是个恶作剧\\n[01:27.15]我想我已慢慢喜欢你\\n[01:30.63]因为我拥有爱情的勇气\\n[01:34.86]我任性投入你给的恶作剧\\n[01:40.22]你给的恶作剧\\n[02:06.03]我找不到很好的原因\\n[02:09.57]去阻挡这一切的亲密\\n[02:13.34]这感觉太奇异\\n[02:15.09]我抱歉不能说明\\n[02:20.08]我相信这爱情的定义\\n[02:23.65]奇迹会发生也不一定\\n[02:27.46]风温柔的清晰\\n[02:29.19]也许飘来好消息\\n[02:34.19]我才发现 你很耀眼\\n[02:37.75]请让我再瞧瞧你的双眼\\n[02:41.26]没有人了解\\n[02:42.84]没有人像我和陌生人的爱恋\\n[02:50.17]我想我会开始想念你\\n[02:53.64]可是我刚刚才遇见了你\\n[02:57.82]我怀疑这奇遇只是个恶作剧\\n[03:04.19]我想我已慢慢喜欢你\\n[03:07.77]因为我拥有爱情的勇气\\n[03:11.98]我任性投入你给的恶作剧\\n[03:17.29]你给的恶作剧\",\r\n        \"BPM\": 0,\r\n        \"Channels\": 0,\r\n        \"OrderTitle\": \"\",\r\n        \"MBZReleaseTrackID\": \"\",\r\n        \"RgAlbumGain\": 0,\r\n        \"RgAlbumPeak\": 0,\r\n        \"RgTrackGain\": 0,\r\n        \"RgTrackPeak\": 0,\r\n        \"MediumImageURL\": \"http://localhost:4533/rest/getCoverArt?u=mozhi&t=be470bc4c1556004e26c4780c0121030&s=9V8he3&v=1.12.0&c=nsmusics&f=json&id=0e35256b982149fef4f2d8da22e2c215\"\r\n    },\r\n    {\r\n        \"ID\": \"67dd4914b814d81c66643aaf\",\r\n        \"Path\": \"http://localhost:4533/rest/stream?u=mozhi&t=be470bc4c1556004e26c4780c0121030&s=9V8he3&v=1.12.0&c=nsmusics&f=json&id=134d47460ed29e6df249df31ff55240c\",\r\n        \"Title\": \"BANG BANG BANG+FANTASTIC BABY (2024 MAMA日本场DAY2)\",\r\n        \"Album\": \"SPECIAL FINAL IN DOME MEMORIAL COLLECTION\",\r\n        \"Artist\": \"BIGBANG\",\r\n        \"ArtistID\": \"f447df8362a4d0d9f5142f563595684b\",\r\n        \"AlbumArtist\": \"BIGBANG\",\r\n        \"AlbumID\": \"e54218a2075604a8b735088ed34bb93a\",\r\n        \"HasCoverArt\": false,\r\n        \"TrackNumber\": 0,\r\n        \"DiscNumber\": 0,\r\n        \"Year\": 2012,\r\n        \"Size\": 4123294,\r\n        \"Suffix\": \"mp3\",\r\n        \"Duration\": 252.94,\r\n        \"BitRate\": 128,\r\n        \"Genre\": \"\",\r\n        \"Compilation\": false,\r\n        \"CreatedAt\": \"0001-01-01T00:00:00Z\",\r\n        \"UpdatedAt\": \"0001-01-01T00:00:00Z\",\r\n        \"FullText\": \"\",\r\n        \"AlbumArtistID\": \"\",\r\n        \"OrderAlbumName\": \"\",\r\n        \"OrderAlbumArtistName\": \"\",\r\n        \"OrderArtistName\": \"\",\r\n        \"SortAlbumName\": \"\",\r\n        \"SortArtistName\": \"\",\r\n        \"SortAlbumArtistName\": \"\",\r\n        \"SortTitle\": \"\",\r\n        \"DiscSubtitle\": \"\",\r\n        \"MBZTrackID\": \"\",\r\n        \"MBZAlbumID\": \"\",\r\n        \"MBZArtistID\": \"\",\r\n        \"MBZAlbumArtistID\": \"\",\r\n        \"MBZAlbumType\": \"\",\r\n        \"MBZAlbumComment\": \"\",\r\n        \"CatalogNum\": \"\",\r\n        \"Comment\": \"\",\r\n        \"Lyrics\": \"[00:00.10]FANTASTIC BABY (Bonus Track) - BIGBANG (빅뱅)\\n[00:00.20]词：G-DRAGON/T.O.P/VERBAL\\n[00:00.30]曲：TEDDY/G-DRAGON\\n[00:00.31]夜が来た 目覚ましな\\n[00:04.39]We Gon Party Like\\n[00:05.83]Li Li Li La La La\\n[00:08.10]集まりな\\n[00:09.92]このPartyは\\n[00:11.78]これからさ\\n[00:13.20]Li Li Li La La La\\n[00:15.20]瞬間でキャッチした\\n[00:17.32]その目はまだ\\n[00:18.93]遊び足りてない\\n[00:21.00]Alright\\n[00:22.61]半分でも興味あるならば\\n[00:25.61]We Go\\n[00:26.29]さぁ行こう 好きに騒ごう\\n[00:29.79]Nah Na Na Nah Nah\\n[00:31.57]Nah Na Na Nah Nah\\n[00:33.41]Wow Fantastic Baby\\n[00:35.29]Dance\\n[00:38.28]I Wanna Dan Dan Dan Dan Dance\\n[00:41.53]Fantastic Baby\\n[00:42.65]Dance\\n[00:45.68]I Wanna Dan Dan Dan Dan Dance\\n[00:48.23]Wow Fantastic Baby\\n[00:50.38]いかがかね?\\n[00:52.09]僕ちゃんはパーフェクト\\n[00:54.04]弱点探すのなんて\\n[00:55.91]100年早い\\n[00:57.05]Baby\\n[00:57.67]真っ赤な太陽よりも\\n[01:00.19]Fire\\n[01:01.33]直視すれば\\n[01:02.55]Burn Dah Na Na Nah Nah\\n[01:04.61]まだずっと凝り固まってる\\n[01:06.20]みなさん単純に\\n[01:08.04]これからJumpって言ったら\\n[01:09.50]飛び跳ねな\\n[01:10.25]On 1, 2, 3\\n[01:11.77]高く空中に\\n[01:13.62]オレは操縦士さ\\n[01:15.81]初めてなら今から\\n[01:16.86]連れて行こうか\\n[01:17.86]宇宙に\\n[01:19.43]Danger!\\n[01:20.52]鳴らせサイレン\\n[01:22.39]君はターゲット\\n[01:24.26]僕のターゲット\\n[01:25.93]走れ\\n[01:27.00]I Can't Baby Don't Stop This\\n[01:29.56]終わらせないで この未体験な\\n[01:33.21]サウンドを\\n[01:39.91]Wow Fantastic Baby\\n[01:41.76]Dance\\n[01:44.79]I Wanna Dan Dan Dan Dan Dance\\n[01:47.89]Fantastic Baby\\n[01:49.05]Dance\\n[01:52.11]I Wanna Dan Dan Dan Dan Dance\\n[01:54.69]Wow Fantastic Baby\\n[01:56.56]Boom Shaka Laka\\n[01:58.36]Boom Shaka Laka\\n[02:00.22]Boom Shaka Laka\\n[02:02.06]Dan Dan Dan Dan Dance\\n[02:03.89]Boom Shaka Laka\\n[02:05.78]Boom Shaka Laka\\n[02:07.61]Boom Shaka Laka\\n[02:09.43]Dan Dan Dance\\n[02:10.97]なんだかジャンク好きだから\\n[02:13.86]なんでも来い今夜は\\n[02:15.75]特に拒まない\\n[02:17.32]Digi-Dum-Dum\\n[02:18.76]Mama Just Let Me Be Your Lover\\n[02:21.25]今すぐ出ようか かかかか\\n[02:24.25]Nah Na Na Nah Nah\\n[02:25.96]ノリだけなら昔からテキトー\\n[02:29.63]目が合うだけで彼女アプローチ\\n[02:32.98]勘ぐるはずまずマーク\\n[02:35.35]狙い定めたら\\n[02:37.11]バキュン バキュン バキュン\\n[02:38.64]Hold Up\\n[02:39.10]Nah Na Na Nah Nah\\n[02:40.80]Danger!\\n[02:41.79]鳴らせサイレン\\n[02:43.62]君はターゲット\\n[02:45.59]僕のターゲット\\n[02:47.17]走れ\\n[02:48.21]I Can't Baby Don't Stop This\\n[02:50.77]終わらせないで\\n[02:52.65]この未体験な\\n[02:54.42]サウンドを\\n[03:01.08]Wow Fantastic Baby\\n[03:02.96]Dance\\n[03:05.95]I Wanna Dan Dan Dan Dan Dance\\n[03:09.18]Fantastic Baby\\n[03:10.31]Dance\\n[03:13.37]I Wanna Dan Dan Dan Dan Dance\\n[03:15.92]Wow Fantastic Baby\\n[03:17.72]Boom Shaka Laka\\n[03:19.55]Boom Shaka Laka\\n[03:21.40]Boom Shaka Laka\\n[03:23.27]Dan Dan Dan Dan Dance\\n[03:25.15]Boom Shaka Laka\\n[03:27.00]Boom Shaka Laka\\n[03:28.81]Boom Shaka Laka\\n[03:30.62]Dan-Dan-Dan Dan Dance\\n[03:32.52]さぁ選ぼうか\\n[03:34.80]Yeh Yeh Yeh\\n[03:36.21]敗者か勝者\\n[03:38.50]Yeh Yeh Yeh\\n[03:39.88]僕なら後者\\n[03:42.18]Yeh Yeh Yeh\\n[03:43.58]君とは今夜\\n[03:45.38]Wow Fantastic Baby\",\r\n        \"BPM\": 0,\r\n        \"Channels\": 0,\r\n        \"OrderTitle\": \"\",\r\n        \"MBZReleaseTrackID\": \"\",\r\n        \"RgAlbumGain\": 0,\r\n        \"RgAlbumPeak\": 0,\r\n        \"RgTrackGain\": 0,\r\n        \"RgTrackPeak\": 0,\r\n        \"MediumImageURL\": \"http://localhost:4533/rest/getCoverArt?u=mozhi&t=be470bc4c1556004e26c4780c0121030&s=9V8he3&v=1.12.0&c=nsmusics&f=json&id=134d47460ed29e6df249df31ff55240c\"\r\n    }\r\n]",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/app/media",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"app",
+												"media"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						}
+					],
+					"description": "仅用于前端App启动时，向服务端响应恢复上次前端App退出前正在播放的播放列表"
+				}
+			]
+		},
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Auth Token",
+					"item": [
+						{
+							"name": "Signup",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{accessToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "email",
+											"value": "test@gmail.com",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "test123",
+											"type": "text"
+										},
+										{
+											"key": "name",
+											"value": "TestName",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/user/signup",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"user",
+										"signup"
+									]
+								},
+								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/signup](http://localhost:8082/signup)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+							},
+							"response": []
+						},
+						{
+							"name": "Login",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "email",
+											"value": "test@gmail.com",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "test123",
+											"type": "text"
+										},
+										{
+											"key": "name",
+											"value": "TestName",
+											"type": "text",
+											"disabled": true
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/user/login",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"user",
+										"login"
+									]
+								},
+								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+							},
+							"response": []
+						},
+						{
+							"name": "Refresh",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{accessToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "refreshToken",
+											"value": "{{refreshToken}}",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/user/refresh",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"user",
+										"refresh"
+									]
+								},
+								"description": "Generated from cURL: curl --request POST \\\n  --url http://localhost:8082/refresh \\\n  --header 'content-type: application/x-www-form-urlencoded' \\\n  --data refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3MzZhZjY5NTZkNDM3MjVhNjM5NzcyNCIsImV4cCI6MTczMjI0MTg5N30.GW-qQbzm0fJMRX1sQIbpC8Ts4I8RLaTy1oWh0w82pnk"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Auth Info",
+					"item": [
+						{
+							"name": "Profile",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{accessToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/user/profile",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"user",
+										"profile"
+									]
+								},
+								"description": "Generated from cURL: curl --request GET \\\n  --url http://localhost:8082/profile \\\n  --header 'Authorization: Bearer {{accessToken}}'"
+							},
+							"response": []
+						},
+						{
+							"name": "Username",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{accessToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "name",
+											"value": "666",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/user/username",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"user",
+										"username"
+									]
+								},
+								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+							},
+							"response": []
+						},
+						{
+							"name": "Email",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{accessToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "email",
+											"value": "666qqq@gmail.com",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/user/email",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"user",
+										"email"
+									]
+								},
+								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+							},
+							"response": []
+						},
+						{
+							"name": "Password",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{accessToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "old_password",
+											"value": "qwer1234",
+											"type": "text"
+										},
+										{
+											"key": "new_password",
+											"value": "666qwer",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/user/password",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"user",
+										"password"
+									]
+								},
+								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Task",
+					"item": [
+						{
+							"name": "Task",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{accessToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "title",
+											"value": "Test Another Task",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/user/task",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"user",
+										"task"
+									]
+								},
+								"description": "Generated from cURL: curl --request POST \\\n  --url http://localhost:8082/task \\\n  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiVGVzdCBOYW1lIiwiaWQiOiI2NzM2YWY2OTU2ZDQzNzI1YTYzOTc3MjQiLCJleHAiOjE3MzE2NDQzMjh9._Ix6avAv3lZUJMlfR9BeMGsLh8M5yAlM5_r74Guk9Cg' \\\n  --header 'content-type: application/x-www-form-urlencoded' \\\n  --data 'title=Test Another Task'"
+							},
+							"response": []
+						},
+						{
+							"name": "Task",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{accessToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": []
+								},
+								"url": {
+									"raw": "{{baseUrl}}/user/task",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"user",
+										"task"
+									]
+								},
+								"description": "Generated from cURL: curl --request GET \\\n  --url http://localhost:8082/task \\\n  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiVGVzdCBOYW1lIiwiaWQiOiI2NzM2YWY2OTU2ZDQzNzI1YTYzOTc3MjQiLCJleHAiOjE3MzE5MjY2MDR9.pSFwFTCl9v_hfDsOQyh8AKVp2QfUfggggyoveElh4EQ' \\\n  --header 'content-type: application/x-www-form-urlencoded' \\\n  --data ="
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "System",
+			"item": [
+				{
+					"name": "Ping",
+					"item": []
+				},
+				{
+					"name": "Logs",
+					"item": []
+				},
+				{
+					"name": "Info",
+					"item": [
+						{
+							"name": "Info",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{accessToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/system/info",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"system",
+										"info"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Info",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{accessToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"id\": \"67dcdae5c51665e7dfc95b1d\",\r\n    \"operatingSystemDisplayName\": \"\",\r\n    \"hasPendingRestart\": false,\r\n    \"isShuttingDown\": false,\r\n    \"supportsLibraryMonitor\": true,\r\n    \"webSocketPortNumber\": 8096,\r\n    \"completedInstallations\": [],\r\n    \"canSelfRestart\": true,\r\n    \"canLaunchWebBrowser\": false,\r\n    \"programDataPath\": \"C:\\\\ProgramData\\\\Jellyfin\\\\Server\",\r\n    \"webPath\": \"E:\\\\0_Jellyfin\\\\Server\\\\jellyfin-web\",\r\n    \"itemsByNamePath\": \"C:\\\\ProgramData\\\\Jellyfin\\\\Server\\\\metadata\",\r\n    \"cachePath\": \"C:\\\\ProgramData\\\\Jellyfin\\\\Server\\\\cache\",\r\n    \"logPath\": \"C:\\\\ProgramData\\\\Jellyfin\\\\Server\\\\log\",\r\n    \"internalMetadataPath\": \"C:\\\\ProgramData\\\\Jellyfin\\\\Server\\\\metadata\",\r\n    \"transcodingTempPath\": \"C:\\\\ProgramData\\\\Jellyfin\\\\Server\\\\cache\\\\transcodes\",\r\n    \"hasUpdateAvailable\": false,\r\n    \"encoderLocation\": \"System\",\r\n    \"systemArchitecture\": \"X64\",\r\n    \"localAddress\": \"http://127.0.0.1:8096\",\r\n    \"serverName\": \"XIANGCHENG007\",\r\n    \"version\": \"10.10.5\",\r\n    \"operatingSystem\": \"\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/system/info",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"system",
+										"info"
+									]
+								},
+								"description": "Generated from cURL: curl -X PUT -H \"Content-Type: application/json\" -d '{\r\n    \"serverName\": \"XIANGCHENG007\",\r\n    \"version\": \"10.10.6\",\r\n    \"webSocketPortNumber\": 8097,\r\n    \"programDataPath\": \"D:\\\\Jellyfin\\\\Server\",\r\n    \"supportsLibraryMonitor\": true\r\n}' http://localhost:8082/server-info"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Configuration",
+					"item": [
+						{
+							"name": "Config",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{accessToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/system/config",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"system",
+										"config"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Config",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{accessToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"ID\": \"67dcdae5c51665e7dfc95b1d\",\r\n    \"CachePath\": \"\",\r\n    \"PreviousVersion\": \"\",\r\n    \"PreviousVersionStr\": \"\",\r\n    \"EnableMetrics\": false,\r\n    \"EnableNormalizedItemByNameIds\": true,\r\n    \"IsPortAuthorized\": true,\r\n    \"QuickConnectAvailable\": true,\r\n    \"EnableCaseSensitiveItemIds\": true,\r\n    \"DisableLiveTvChannelUserDataName\": true,\r\n    \"MetadataPath\": \"\",\r\n    \"PreferredMetadataLanguage\": \"zh\",\r\n    \"MetadataCountryCode\": \"US\",\r\n    \"SortReplaceCharacters\": [\r\n        \".\",\r\n        \"+\",\r\n        \"%\"\r\n    ],\r\n    \"SortRemoveCharacters\": [\r\n        \",\",\r\n        \"&\",\r\n        \"-\",\r\n        \"{\",\r\n        \"}\",\r\n        \"'\"\r\n    ],\r\n    \"SortRemoveWords\": [\r\n        \"the\",\r\n        \"a\",\r\n        \"an\"\r\n    ],\r\n    \"MinResumePct\": 5,\r\n    \"MaxResumePct\": 90,\r\n    \"MinResumeDurationSeconds\": 300,\r\n    \"MinAudiobookResume\": 5,\r\n    \"MaxAudiobookResume\": 5,\r\n    \"InactiveSessionThreshold\": 0,\r\n    \"LibraryMonitorDelay\": 60,\r\n    \"LibraryUpdateDuration\": 30,\r\n    \"ImageSavingConvention\": \"Legacy\",\r\n    \"MetadataOptions\": [\r\n        {\r\n            \"ItemType\": \"Book\",\r\n            \"DisabledMetadataSavers\": [],\r\n            \"LocalMetadataReaderOrder\": [],\r\n            \"DisabledMetadataFetchers\": [],\r\n            \"MetadataFetcherOrder\": [],\r\n            \"DisabledImageFetchers\": [],\r\n            \"ImageFetcherOrder\": []\r\n        },\r\n        {\r\n            \"ItemType\": \"Movie\",\r\n            \"DisabledMetadataSavers\": [],\r\n            \"LocalMetadataReaderOrder\": [],\r\n            \"DisabledMetadataFetchers\": [],\r\n            \"MetadataFetcherOrder\": [],\r\n            \"DisabledImageFetchers\": [],\r\n            \"ImageFetcherOrder\": []\r\n        },\r\n        {\r\n            \"ItemType\": \"MusicVideo\",\r\n            \"DisabledMetadataSavers\": [],\r\n            \"LocalMetadataReaderOrder\": [],\r\n            \"DisabledMetadataFetchers\": [\r\n                \"The Open Movie Database\"\r\n            ],\r\n            \"MetadataFetcherOrder\": [],\r\n            \"DisabledImageFetchers\": [\r\n                \"The Open Movie Database\"\r\n            ],\r\n            \"ImageFetcherOrder\": []\r\n        },\r\n        {\r\n            \"ItemType\": \"Series\",\r\n            \"DisabledMetadataSavers\": [],\r\n            \"LocalMetadataReaderOrder\": [],\r\n            \"DisabledMetadataFetchers\": [],\r\n            \"MetadataFetcherOrder\": [],\r\n            \"DisabledImageFetchers\": [],\r\n            \"ImageFetcherOrder\": []\r\n        },\r\n        {\r\n            \"ItemType\": \"MusicAlbum\",\r\n            \"DisabledMetadataSavers\": [],\r\n            \"LocalMetadataReaderOrder\": [],\r\n            \"DisabledMetadataFetchers\": [\r\n                \"TheAudioDB\"\r\n            ],\r\n            \"MetadataFetcherOrder\": [],\r\n            \"DisabledImageFetchers\": [],\r\n            \"ImageFetcherOrder\": []\r\n        },\r\n        {\r\n            \"ItemType\": \"MusicArtist\",\r\n            \"DisabledMetadataSavers\": [],\r\n            \"LocalMetadataReaderOrder\": [],\r\n            \"DisabledMetadataFetchers\": [\r\n                \"TheAudioDB\"\r\n            ],\r\n            \"MetadataFetcherOrder\": [],\r\n            \"DisabledImageFetchers\": [],\r\n            \"ImageFetcherOrder\": []\r\n        },\r\n        {\r\n            \"ItemType\": \"BoxSet\",\r\n            \"DisabledMetadataSavers\": [],\r\n            \"LocalMetadataReaderOrder\": [],\r\n            \"DisabledMetadataFetchers\": [],\r\n            \"MetadataFetcherOrder\": [],\r\n            \"DisabledImageFetchers\": [],\r\n            \"ImageFetcherOrder\": []\r\n        },\r\n        {\r\n            \"ItemType\": \"Season\",\r\n            \"DisabledMetadataSavers\": [],\r\n            \"LocalMetadataReaderOrder\": [],\r\n            \"DisabledMetadataFetchers\": [],\r\n            \"MetadataFetcherOrder\": [],\r\n            \"DisabledImageFetchers\": [],\r\n            \"ImageFetcherOrder\": []\r\n        },\r\n        {\r\n            \"ItemType\": \"Episode\",\r\n            \"DisabledMetadataSavers\": [],\r\n            \"LocalMetadataReaderOrder\": [],\r\n            \"DisabledMetadataFetchers\": [],\r\n            \"MetadataFetcherOrder\": [],\r\n            \"DisabledImageFetchers\": [],\r\n            \"ImageFetcherOrder\": []\r\n        }\r\n    ],\r\n    \"SkipDeserializationForBasicTypes\": true,\r\n    \"ServerName\": \"\",\r\n    \"UICulture\": \"zh-CN\",\r\n    \"SaveMetadataHidden\": false,\r\n    \"ContentTypes\": null,\r\n    \"RemoteClientBitrateLimit\": 0,\r\n    \"EnableFolderView\": false,\r\n    \"EnableGroupingIntoCollections\": false,\r\n    \"DisplaySpecialsWithinSeasons\": true,\r\n    \"CodecsUsed\": [],\r\n    \"PluginRepositories\": [\r\n        {\r\n            \"Name\": \"Jellyfin Stable\",\r\n            \"Url\": \"https://repo.jellyfin.org/files/plugin/manifest.json\",\r\n            \"Enabled\": true\r\n        }\r\n    ],\r\n    \"EnableExternalContentInSuggestions\": true,\r\n    \"ImageExtractionTimeoutMs\": 0,\r\n    \"PathSubstitutions\": null,\r\n    \"EnableSlowResponseWarning\": true,\r\n    \"SlowResponseThresholdMs\": 500,\r\n    \"CorsHosts\": [\r\n        \"*\"\r\n    ],\r\n    \"ActivityLogRetentionDays\": 30,\r\n    \"LibraryScanFanoutConcurrency\": 0,\r\n    \"LibraryMetadataRefreshConcurrency\": 0,\r\n    \"RemoveOldPlugins\": false,\r\n    \"AllowClientLogUpload\": true,\r\n    \"DummyChapterDuration\": 0,\r\n    \"ChapterImageResolution\": \"MatchSource\",\r\n    \"ParallelImageEncodingLimit\": 0,\r\n    \"CastReceiverApplications\": [\r\n        {\r\n            \"Id\": \"F007D354\",\r\n            \"Name\": \"Stable\"\r\n        },\r\n        {\r\n            \"Id\": \"6F511C87\",\r\n            \"Name\": \"Unstable\"\r\n        }\r\n    ],\r\n    \"TrickplayOptions\": {\r\n        \"EnableHwAcceleration\": true,\r\n        \"EnableHwEncoding\": true,\r\n        \"EnableKeyFrameOnlyExtraction\": false,\r\n        \"ScanBehavior\": \"NonBlocking\",\r\n        \"ProcessPriority\": \"BelowNormal\",\r\n        \"Interval\": 10000,\r\n        \"WidthResolutions\": [\r\n            320\r\n        ],\r\n        \"TileWidth\": 10,\r\n        \"TileHeight\": 10,\r\n        \"Qscale\": 4,\r\n        \"JpegQuality\": 90,\r\n        \"ProcessThreads\": 1\r\n    },\r\n    \"LogFileRetentionDays\": 3,\r\n    \"IsStartupWizardCompleted\": true\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/system/config",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"system",
+										"config"
+									]
+								},
+								"description": "Generated from cURL: curl -X PUT -H \"Content-Type: application/json\" -d '{\r\n    \"serverName\": \"XIANGCHENG007\",\r\n    \"version\": \"10.10.6\",\r\n    \"webSocketPortNumber\": 8097,\r\n    \"programDataPath\": \"D:\\\\Jellyfin\\\\Server\",\r\n    \"supportsLibraryMonitor\": true\r\n}' http://localhost:8082/server-info"
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "File Entity",
+			"item": [
+				{
+					"name": "Scan Folders",
+					"item": [
+						{
+							"name": "Scan",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{accessToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"folder_path\": \"e:/0_Music\",\r\n  \"file_types\": [1] \r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/scan",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"scan"
+									]
+								},
+								"description": "Generated from cURL: curl -X PUT -H \"Content-Type: application/json\" -d '{\r\n    \"serverName\": \"XIANGCHENG007\",\r\n    \"version\": \"10.10.6\",\r\n    \"webSocketPortNumber\": 8097,\r\n    \"programDataPath\": \"D:\\\\Jellyfin\\\\Server\",\r\n    \"supportsLibraryMonitor\": true\r\n}' http://localhost:8082/server-info"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "FFmepg",
+					"item": [
+						{
+							"name": "Status",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{accessToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "",
+											"value": "",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/ffmpeg/status",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"ffmpeg",
+										"status"
+									]
+								},
+								"description": "Generated from cURL: curl --request GET \\\n  --url http://localhost:8082/task \\\n  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiVGVzdCBOYW1lIiwiaWQiOiI2NzM2YWY2OTU2ZDQzNzI1YTYzOTc3MjQiLCJleHAiOjE3MzE5MjY2MDR9.pSFwFTCl9v_hfDsOQyh8AKVp2QfUfggggyoveElh4EQ' \\\n  --header 'content-type: application/x-www-form-urlencoded' \\\n  --data ="
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Scene",
+			"item": [
+				{
+					"name": "Music",
+					"item": [
+						{
+							"name": "Artists",
+							"item": [
+								{
+									"name": "Artists",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/artists?start=0&end=20&sort=song_count&order=desc",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"artists"
+											],
+											"query": [
+												{
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "20"
+												},
+												{
+													"key": "sort",
+													"value": "song_count"
+												},
+												{
+													"key": "order",
+													"value": "desc"
+												},
+												{
+													"key": "starred",
+													"value": "false",
+													"disabled": true
+												},
+												{
+													"key": "search",
+													"value": "王",
+													"disabled": true
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Artists Count",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/artists/filter_counts",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"artists",
+												"filter_counts"
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Albums",
+							"item": [
+								{
+									"name": "Albums",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/albums?start=0&end=20&sort=song_count&order=desc",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"albums"
+											],
+											"query": [
+												{
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "20"
+												},
+												{
+													"key": "sort",
+													"value": "song_count"
+												},
+												{
+													"key": "order",
+													"value": "desc"
+												},
+												{
+													"key": "starred",
+													"value": "false",
+													"disabled": true
+												},
+												{
+													"key": "search",
+													"value": "火力全开",
+													"disabled": true
+												},
+												{
+													"key": "min_year",
+													"value": "2011",
+													"disabled": true
+												},
+												{
+													"key": "max_year",
+													"value": "2011",
+													"disabled": true
+												},
+												{
+													"key": "artist_id",
+													"value": "816e6214dd9b821b32ad65b6",
+													"disabled": true
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Albums Count",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/albums/filter_counts",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"albums",
+												"filter_counts"
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Media Files",
+							"item": [
+								{
+									"name": "Medias",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/medias?start=0&end=20&search=心跳",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"medias"
+											],
+											"query": [
+												{
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "20"
+												},
+												{
+													"key": "sort",
+													"value": "play_date",
+													"disabled": true
+												},
+												{
+													"key": "order",
+													"value": "desc",
+													"disabled": true
+												},
+												{
+													"key": "starred",
+													"value": "false",
+													"disabled": true
+												},
+												{
+													"key": "search",
+													"value": "心跳"
+												},
+												{
+													"key": "year",
+													"value": "2015",
+													"disabled": true
+												},
+												{
+													"key": "album_id",
+													"value": "27bb7a2525af6ec7e1d5c4b8",
+													"disabled": true
+												},
+												{
+													"key": "artist_id",
+													"value": "8e8465680c603c710351902e",
+													"disabled": true
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Medias Count",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/medias/filter_counts",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"medias",
+												"filter_counts"
+											],
+											"query": [
+												{
+													"key": "starred",
+													"value": "true",
+													"disabled": true
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Annotation",
+							"item": [
+								{
+									"name": "Star",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "urlencoded",
+											"urlencoded": [
+												{
+													"key": "item_id",
+													"value": "8e8465680c603c710351902e",
+													"type": "text"
+												},
+												{
+													"key": "item_type",
+													"value": "artist",
+													"type": "text"
+												}
+											]
+										},
+										"url": {
+											"raw": "{{baseUrl}}/annotations/star",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"annotations",
+												"star"
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Unstar",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "urlencoded",
+											"urlencoded": [
+												{
+													"key": "item_id",
+													"value": "680f1f0aa5f8700ec384d795",
+													"type": "text"
+												},
+												{
+													"key": "item_type",
+													"value": "media",
+													"type": "text"
+												}
+											]
+										},
+										"url": {
+											"raw": "{{baseUrl}}/annotations/unstar",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"annotations",
+												"unstar"
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Rating",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "urlencoded",
+											"urlencoded": [
+												{
+													"key": "item_id",
+													"value": "680f1f0aa5f8700ec384d795",
+													"type": "text"
+												},
+												{
+													"key": "item_type",
+													"value": "media",
+													"type": "text"
+												},
+												{
+													"key": "rating",
+													"value": "5",
+													"type": "text"
+												}
+											]
+										},
+										"url": {
+											"raw": "{{baseUrl}}/annotations/rating",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"annotations",
+												"rating"
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Scrobble",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "urlencoded",
+											"urlencoded": [
+												{
+													"key": "item_id",
+													"value": "8e8465680c603c710351902e",
+													"type": "text"
+												},
+												{
+													"key": "item_type",
+													"value": "artist",
+													"type": "text"
+												}
+											]
+										},
+										"url": {
+											"raw": "{{baseUrl}}/annotations/scrobble",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"annotations",
+												"scrobble"
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Playlist",
+							"item": [
+								{
+									"name": "GetPlaylists",
+									"protocolProfileBehavior": {
+										"disableBodyPruning": true
+									},
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"body": {
+											"mode": "urlencoded",
+											"urlencoded": []
+										},
+										"url": {
+											"raw": "{{baseUrl}}/playlists",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"playlists"
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "CreatePlaylist",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "urlencoded",
+											"urlencoded": [
+												{
+													"key": "name",
+													"value": "ddd",
+													"type": "text"
+												},
+												{
+													"key": "comment",
+													"value": "ddd",
+													"type": "text"
+												},
+												{
+													"key": "public",
+													"value": "true",
+													"type": "text",
+													"disabled": true
+												}
+											]
+										},
+										"url": {
+											"raw": "{{baseUrl}}/playlists",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"playlists"
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'"
+									},
+									"response": []
+								},
+								{
+									"name": "GetPlaylist ID",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/playlists/detail?id=6810b6f60b6ac9ea59499348",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"playlists",
+												"detail"
+											],
+											"query": [
+												{
+													"key": "id",
+													"value": "6810b6f60b6ac9ea59499348"
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'"
+									},
+									"response": []
+								},
+								{
+									"name": "GetPlaylistTracks",
+									"protocolProfileBehavior": {
+										"disableBodyPruning": true
+									},
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"body": {
+											"mode": "urlencoded",
+											"urlencoded": []
+										},
+										"url": {
+											"raw": "{{baseUrl}}/playlists/tracks?start=0&end=10&sort=_id&order=asc&playlistId=682da9132ec736d27d0c768c",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"playlists",
+												"tracks"
+											],
+											"query": [
+												{
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "10"
+												},
+												{
+													"key": "sort",
+													"value": "_id"
+												},
+												{
+													"key": "order",
+													"value": "asc"
+												},
+												{
+													"key": "search",
+													"value": "",
+													"disabled": true
+												},
+												{
+													"key": "starred",
+													"value": "",
+													"disabled": true
+												},
+												{
+													"key": "albumId",
+													"value": "27bb7a2525af6ec7e1d5c4b8",
+													"disabled": true
+												},
+												{
+													"key": "artistId",
+													"value": "8e8465680c603c710351902e",
+													"disabled": true
+												},
+												{
+													"key": "year",
+													"value": "2015",
+													"disabled": true
+												},
+												{
+													"key": "playlistId",
+													"value": "682da9132ec736d27d0c768c"
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "GetPlaylistTracks Count",
+									"protocolProfileBehavior": {
+										"disableBodyPruning": true
+									},
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"body": {
+											"mode": "urlencoded",
+											"urlencoded": []
+										},
+										"url": {
+											"raw": "{{baseUrl}}/playlists/tracks/filter_counts",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"playlists",
+												"tracks",
+												"filter_counts"
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "UpdatePlaylist",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "urlencoded",
+											"urlencoded": [
+												{
+													"key": "id",
+													"value": "6810b6f60b6ac9ea59499348",
+													"type": "text"
+												},
+												{
+													"key": "name",
+													"value": "aaa",
+													"type": "text"
+												},
+												{
+													"key": "comment",
+													"value": "aaa",
+													"type": "text"
+												}
+											]
+										},
+										"url": {
+											"raw": "{{baseUrl}}/playlists",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"playlists"
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'"
+									},
+									"response": []
+								},
+								{
+									"name": "DeletePlaylist",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "DELETE",
+										"header": [],
+										"body": {
+											"mode": "urlencoded",
+											"urlencoded": []
+										},
+										"url": {
+											"raw": "{{baseUrl}}/playlists?id=6810b95ecd2c75939e7162d8",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"playlists"
+											],
+											"query": [
+												{
+													"key": "id",
+													"value": "6810b95ecd2c75939e7162d8"
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'"
+									},
+									"response": []
+								},
+								{
+									"name": "AddMediaFiles",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "urlencoded",
+											"urlencoded": [
+												{
+													"key": "playlist_id",
+													"value": "682e7eeaab2f092a056e338b",
+													"type": "text"
+												},
+												{
+													"key": "media_file_ids",
+													"value": "682aed868152b682010b5def",
+													"type": "text"
+												}
+											]
+										},
+										"url": {
+											"raw": "{{baseUrl}}/playlists/tracks/add",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"playlists",
+												"tracks",
+												"add"
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "DeleteMediaFiles",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "urlencoded",
+											"urlencoded": [
+												{
+													"key": "playlist_id",
+													"value": "6810b6f60b6ac9ea59499348",
+													"type": "text"
+												},
+												{
+													"key": "media_file_ids",
+													"value": "680f1f0aa5f8700ec384d796,680f1f0aa5f8700ec384d797",
+													"type": "text"
+												}
+											]
+										},
+										"url": {
+											"raw": "{{baseUrl}}/playlists/tracks/remove",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"playlists",
+												"tracks",
+												"remove"
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Retrieval",
+							"item": [
+								{
+									"name": "{itemId}",
+									"item": [
+										{
+											"name": "stream.{container}",
+											"item": []
+										},
+										{
+											"name": "hls1",
+											"item": [
+												{
+													"name": "{playlistId}",
+													"item": [
+														{
+															"name": "{segmentId}.{container}",
+															"item": []
+														}
+													]
+												}
+											]
+										},
+										{
+											"name": "main.m3u8",
+											"item": []
+										},
+										{
+											"name": "master.m3u8",
+											"item": []
+										},
+										{
+											"name": "hls",
+											"item": [
+												{
+													"name": "{segmentId}",
+													"item": [
+														{
+															"name": "stream.aac",
+															"item": []
+														},
+														{
+															"name": "stream.mp3",
+															"item": []
+														}
+													]
+												}
+											]
+										}
+									]
+								},
+								{
+									"name": "Stream",
+									"item": [
+										{
+											"name": "GetStream ID",
+											"protocolProfileBehavior": {
+												"disableBodyPruning": true
+											},
+											"request": {
+												"auth": {
+													"type": "noauth"
+												},
+												"method": "GET",
+												"header": [],
+												"body": {
+													"mode": "urlencoded",
+													"urlencoded": []
+												},
+												"url": {
+													"raw": "{{baseUrl}}/media/stream?media_file_id=681dfab0694d7b3fc40aced4&access_token={{accessToken}}",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"media",
+														"stream"
+													],
+													"query": [
+														{
+															"key": "media_file_id",
+															"value": "681dfab0694d7b3fc40aced4"
+														},
+														{
+															"key": "access_token",
+															"value": "{{accessToken}}"
+														}
+													]
+												},
+												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+											},
+											"response": []
+										},
+										{
+											"name": "GetDownload ID",
+											"protocolProfileBehavior": {
+												"disableBodyPruning": true
+											},
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{accessToken}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [],
+												"body": {
+													"mode": "urlencoded",
+													"urlencoded": []
+												},
+												"url": {
+													"raw": "{{baseUrl}}/media/download?media_file_id=681622b1669a9c8a8d88ca9d",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"media",
+														"download"
+													],
+													"query": [
+														{
+															"key": "media_file_id",
+															"value": "681622b1669a9c8a8d88ca9d"
+														}
+													]
+												},
+												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+											},
+											"response": []
+										}
+									]
+								},
+								{
+									"name": "Lyrics",
+									"item": [
+										{
+											"name": "GetLyrics ID",
+											"protocolProfileBehavior": {
+												"disableBodyPruning": true
+											},
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{accessToken}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [],
+												"body": {
+													"mode": "urlencoded",
+													"urlencoded": [
+														{
+															"key": "id",
+															"value": "",
+															"type": "text"
+														},
+														{
+															"key": "albumId",
+															"value": "",
+															"type": "text"
+														},
+														{
+															"key": "artistId",
+															"value": "",
+															"type": "text"
+														}
+													]
+												},
+												"url": {
+													"raw": "{{baseUrl}}/media/lyrics?media_file_id=681dfab0694d7b3fc40aced5",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"media",
+														"lyrics"
+													],
+													"query": [
+														{
+															"key": "media_file_id",
+															"value": "681dfab0694d7b3fc40aced5"
+														}
+													]
+												},
+												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+											},
+											"response": []
+										}
+									]
+								},
+								{
+									"name": "Image",
+									"item": [
+										{
+											"name": "GetCoverArt ID",
+											"protocolProfileBehavior": {
+												"disableBodyPruning": true
+											},
+											"request": {
+												"auth": {
+													"type": "noauth"
+												},
+												"method": "GET",
+												"header": [],
+												"body": {
+													"mode": "urlencoded",
+													"urlencoded": []
+												},
+												"url": {
+													"raw": "{{baseUrl}}/media/cover?type=album&target_id=27bb7a2525af6ec7e1d5c4b8&access_token={{accessToken}}",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"media",
+														"cover"
+													],
+													"query": [
+														{
+															"key": "type",
+															"value": "album"
+														},
+														{
+															"key": "target_id",
+															"value": "27bb7a2525af6ec7e1d5c4b8"
+														},
+														{
+															"key": "access_token",
+															"value": "{{accessToken}}"
+														}
+													]
+												},
+												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+											},
+											"response": []
+										}
+									]
+								}
+							]
+						},
+						{
+							"name": "Homes",
+							"item": [
+								{
+									"name": "Random Artists",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/homes/artists/random?start=0&end=20",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"homes",
+												"artists",
+												"random"
+											],
+											"query": [
+												{
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "20"
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Random Albums",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/homes/albums/random?start=0&end=20",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"homes",
+												"albums",
+												"random"
+											],
+											"query": [
+												{
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "20"
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Random Medias",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/homes/medias/random?start=0&end=20",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"homes",
+												"medias",
+												"random"
+											],
+											"query": [
+												{
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "20"
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Recommend",
+							"item": []
+						},
+						{
+							"name": "Tags",
+							"item": []
+						}
+					]
+				},
+				{
+					"name": "Video",
+					"item": []
+				},
+				{
+					"name": "Photo",
+					"item": []
+				},
+				{
+					"name": "Text",
+					"item": []
+				}
+			]
+		}
+	]
+}

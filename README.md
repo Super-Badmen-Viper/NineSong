@@ -61,3 +61,6 @@ HTTP请求 → Controller → Usecase（业务逻辑） → Repository（数据�
    - web: volumes
    - mongodb: volumes
  - run: docker-compose.yaml
+
+## postman run
+Import postman.json file: NineSong API.postman_collection.json
