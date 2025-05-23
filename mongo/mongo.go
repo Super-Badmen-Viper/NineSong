@@ -24,11 +24,13 @@ type Collection interface {
 	InsertOne(context.Context, interface{}) (interface{}, error)
 	InsertMany(context.Context, []interface{}) ([]interface{}, error)
 	DeleteOne(context.Context, interface{}) (int64, error)
+	DeleteMany(context.Context, interface{}) (int64, error)
 	Find(context.Context, interface{}, ...*options.FindOptions) (Cursor, error)
 	CountDocuments(context.Context, interface{}, ...*options.CountOptions) (int64, error)
 	Aggregate(context.Context, interface{}) (Cursor, error)
 	UpdateOne(context.Context, interface{}, interface{}, ...*options.UpdateOptions) (*mongo.UpdateResult, error)
 	UpdateMany(context.Context, interface{}, interface{}, ...*options.UpdateOptions) (*mongo.UpdateResult, error)
+	UpdateByID(ctx context.Context, id interface{}, update interface{}) (*mongo.UpdateResult, error)
 }
 
 type SingleResult interface {
@@ -163,6 +165,11 @@ func (mc *mongoCollection) DeleteOne(ctx context.Context, filter interface{}) (i
 	return count.DeletedCount, err
 }
 
+func (mc *mongoCollection) DeleteMany(ctx context.Context, filter interface{}) (int64, error) {
+	count, err := mc.coll.DeleteMany(ctx, filter)
+	return count.DeletedCount, err
+}
+
 func (mc *mongoCollection) Find(ctx context.Context, filter interface{}, opts ...*options.FindOptions) (Cursor, error) {
 	findResult, err := mc.coll.Find(ctx, filter, opts...)
 	return &mongoCursor{mc: findResult}, err
@@ -175,6 +182,10 @@ func (mc *mongoCollection) Aggregate(ctx context.Context, pipeline interface{}) 
 
 func (mc *mongoCollection) UpdateMany(ctx context.Context, filter interface{}, update interface{}, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
 	return mc.coll.UpdateMany(ctx, filter, update, opts[:]...)
+}
+
+func (mc *mongoCollection) UpdateByID(ctx context.Context, id interface{}, update interface{}) (*mongo.UpdateResult, error) {
+	return mc.coll.UpdateByID(ctx, id, update)
 }
 
 func (mc *mongoCollection) CountDocuments(ctx context.Context, filter interface{}, opts ...*options.CountOptions) (int64, error) {
