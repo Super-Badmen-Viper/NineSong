@@ -25,7 +25,7 @@ func NewMediaFileRepository(db mongo.Database, collection string) scene_audio_ro
 
 func (r *mediaFileRepository) GetMediaFileItems(
 	ctx context.Context,
-	end, order, sort, start, search, starred, albumId, artistId, year string,
+	start, end, sort, order, search, starred, albumId, artistId, year string,
 ) ([]scene_audio_route_models.MediaFileMetadata, error) {
 
 	coll := r.db.Collection(r.collection)

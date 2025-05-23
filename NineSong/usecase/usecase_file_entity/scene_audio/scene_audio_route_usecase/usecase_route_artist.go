@@ -24,7 +24,7 @@ func NewArtistUsecase(repo scene_audio_route_interface.ArtistRepository, timeout
 
 func (uc *ArtistUsecase) GetArtistItems(
 	ctx context.Context,
-	end, order, sort, start, search, starred string,
+	start, end, sort, order, search, starred string,
 ) ([]scene_audio_route_models.ArtistMetadata, error) {
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
 	defer cancel()
@@ -58,7 +58,7 @@ func (uc *ArtistUsecase) GetArtistItems(
 		}
 	}
 
-	return uc.repo.GetArtistItems(ctx, end, order, sort, start, search, starred)
+	return uc.repo.GetArtistItems(ctx, start, end, sort, order, search, starred)
 }
 
 func (uc *ArtistUsecase) GetArtistFilterItemsCount(

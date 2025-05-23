@@ -25,7 +25,7 @@ func NewAlbumRepository(db mongo.Database, collection string) scene_audio_route_
 
 func (r *albumRepository) GetAlbumItems(
 	ctx context.Context,
-	end, order, sort, start, search, starred, artistId string,
+	start, end, sort, order, search, starred, artistId string,
 	minYear, maxYear string,
 ) ([]scene_audio_route_models.AlbumMetadata, error) {
 	coll := r.db.Collection(r.collection)

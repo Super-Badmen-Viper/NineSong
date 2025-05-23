@@ -23,7 +23,7 @@ func (c *HomeController) parsePagination(ctx *gin.Context) (start, end string) {
 func (c *HomeController) GetRandomArtistList(ctx *gin.Context) {
 	start, end := c.parsePagination(ctx)
 
-	artists, err := c.usecase.GetRandomArtistList(ctx, end, start)
+	artists, err := c.usecase.GetRandomArtistList(ctx, start, end)
 	if err != nil {
 		ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
 		return
@@ -35,7 +35,7 @@ func (c *HomeController) GetRandomArtistList(ctx *gin.Context) {
 func (c *HomeController) GetRandomAlbumList(ctx *gin.Context) {
 	start, end := c.parsePagination(ctx)
 
-	albums, err := c.usecase.GetRandomAlbumList(ctx, end, start)
+	albums, err := c.usecase.GetRandomAlbumList(ctx, start, end)
 	if err != nil {
 		ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
 		return
@@ -47,7 +47,7 @@ func (c *HomeController) GetRandomAlbumList(ctx *gin.Context) {
 func (c *HomeController) GetRandomMediaFileList(ctx *gin.Context) {
 	start, end := c.parsePagination(ctx)
 
-	mediaFiles, err := c.usecase.GetRandomMediaFileList(ctx, end, start)
+	mediaFiles, err := c.usecase.GetRandomMediaFileList(ctx, start, end)
 	if err != nil {
 		ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
 		return

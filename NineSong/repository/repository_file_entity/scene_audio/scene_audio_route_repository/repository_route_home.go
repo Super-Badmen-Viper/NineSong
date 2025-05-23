@@ -21,7 +21,7 @@ func NewHomeRepository(db mongo.Database) scene_audio_route_interface.HomeReposi
 
 func (r *homeRepository) GetRandomArtistList(
 	ctx context.Context,
-	end, start string,
+	start, end string,
 ) ([]scene_audio_route_models.ArtistMetadata, error) {
 	collection := r.db.Collection(domain.CollectionFileEntityAudioArtist)
 
@@ -55,7 +55,7 @@ func (r *homeRepository) GetRandomArtistList(
 
 func (r *homeRepository) GetRandomAlbumList(
 	ctx context.Context,
-	end, start string,
+	start, end string,
 ) ([]scene_audio_route_models.AlbumMetadata, error) {
 	collection := r.db.Collection(domain.CollectionFileEntityAudioAlbum)
 
@@ -87,7 +87,7 @@ func (r *homeRepository) GetRandomAlbumList(
 
 func (r *homeRepository) GetRandomMediaFileList(
 	ctx context.Context,
-	end, start string,
+	start, end string,
 ) ([]scene_audio_route_models.MediaFileMetadata, error) {
 	collection := r.db.Collection(domain.CollectionFileEntityAudioMediaFile)
 

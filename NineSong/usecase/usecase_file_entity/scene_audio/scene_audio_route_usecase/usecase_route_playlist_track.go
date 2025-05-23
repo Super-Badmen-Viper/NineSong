@@ -26,7 +26,7 @@ func NewPlaylistTrackUsecase(repo scene_audio_route_interface.PlaylistTrackRepos
 
 func (uc *playlistTrackUsecase) GetPlaylistTrackItems(
 	ctx context.Context,
-	end, order, sort, start, search, starred, albumId, artistId, year, playlistId string,
+	start, end, sort, order, search, starred, albumId, artistId, year, playlistId string,
 ) ([]scene_audio_route_models.MediaFileMetadata, error) {
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
 	defer cancel()
@@ -88,7 +88,7 @@ func (uc *playlistTrackUsecase) GetPlaylistTrackItems(
 		order = "asc"
 	}
 
-	return uc.repo.GetPlaylistTrackItems(ctx, end, order, sort, start, search, starred, albumId, artistId, year, playlistId)
+	return uc.repo.GetPlaylistTrackItems(ctx, start, end, sort, order, search, starred, albumId, artistId, year, playlistId)
 }
 
 func (uc *playlistTrackUsecase) GetPlaylistTrackFilterItemsCount(

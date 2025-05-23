@@ -32,7 +32,7 @@ type FileUsecase struct {
 	workerPool  chan struct{}
 	scanTimeout time.Duration
 
-	audioExtractor scene_audio_db_usecase.AudioMetadataExtractor
+	audioExtractor scene_audio_db_usecase.AudioMetadataExtractorTag
 	artistRepo     scene_audio_db_interface.ArtistRepository
 	albumRepo      scene_audio_db_interface.AlbumRepository
 	mediaRepo      scene_audio_db_interface.MediaFileRepository

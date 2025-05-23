@@ -16,11 +16,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type AudioMetadataExtractor struct {
+type AudioMetadataExtractorTag struct {
 	mediaID primitive.ObjectID
 }
 
-func (e *AudioMetadataExtractor) Extract(
+func (e *AudioMetadataExtractorTag) Extract(
 	path string,
 	fileMetadata *domain_file_entity.FileMetadata,
 ) (
@@ -81,7 +81,7 @@ func (e *AudioMetadataExtractor) Extract(
 	return mediaFile, album, artist, metadata, nil
 }
 
-func (e *AudioMetadataExtractor) enrichFileMetadata(path string, fm *domain_file_entity.FileMetadata) error {
+func (e *AudioMetadataExtractorTag) enrichFileMetadata(path string, fm *domain_file_entity.FileMetadata) error {
 	// 计算文件校验和
 	file, err := os.Open(path)
 	if err != nil {
@@ -121,7 +121,7 @@ func (e *AudioMetadataExtractor) enrichFileMetadata(path string, fm *domain_file
 	return nil
 }
 
-func (e *AudioMetadataExtractor) buildMediaFile(
+func (e *AudioMetadataExtractorTag) buildMediaFile(
 	path string,
 	m tag.Metadata,
 	rawTags map[string]interface{},
@@ -194,7 +194,7 @@ func (e *AudioMetadataExtractor) buildMediaFile(
 	}
 }
 
-func (e *AudioMetadataExtractor) buildAlbum(
+func (e *AudioMetadataExtractorTag) buildAlbum(
 	m tag.Metadata,
 	rawTags map[string]interface{},
 	now time.Time,
@@ -242,7 +242,7 @@ func (e *AudioMetadataExtractor) buildAlbum(
 	}
 }
 
-func (e *AudioMetadataExtractor) buildArtist(
+func (e *AudioMetadataExtractorTag) buildArtist(
 	m tag.Metadata,
 	rawTags map[string]interface{},
 	artistID primitive.ObjectID,
@@ -269,19 +269,19 @@ func (e *AudioMetadataExtractor) buildArtist(
 }
 
 // 辅助方法
-func (e *AudioMetadataExtractor) generateArtistID(m tag.Metadata, rawTags map[string]interface{}) primitive.ObjectID {
+func (e *AudioMetadataExtractorTag) generateArtistID(m tag.Metadata, rawTags map[string]interface{}) primitive.ObjectID {
 	if mbzID := e.getTagString(rawTags, "musicbrainz_artistid"); mbzID != "" {
 		return generateDeterministicID(mbzID)
 	}
 	return generateDeterministicID(m.Artist())
 }
-func (e *AudioMetadataExtractor) generateAlbumID(m tag.Metadata, rawTags map[string]interface{}) primitive.ObjectID {
+func (e *AudioMetadataExtractorTag) generateAlbumID(m tag.Metadata, rawTags map[string]interface{}) primitive.ObjectID {
 	if mbzID := e.getTagString(rawTags, "musicbrainz_albumid"); mbzID != "" {
 		return generateDeterministicID(mbzID)
 	}
 	return generateDeterministicID(m.Album() + "|" + m.AlbumArtist())
 }
-func (e *AudioMetadataExtractor) generateAlbumArtistID(m tag.Metadata, rawTags map[string]interface{}) primitive.ObjectID {
+func (e *AudioMetadataExtractorTag) generateAlbumArtistID(m tag.Metadata, rawTags map[string]interface{}) primitive.ObjectID {
 	if mbzID := e.getTagString(rawTags, "musicbrainz_albumartistid"); mbzID != "" {
 		return generateDeterministicID(mbzID)
 	}
@@ -291,7 +291,7 @@ func generateDeterministicID(seed string) primitive.ObjectID {
 	hash := sha256.Sum256([]byte(seed))
 	return primitive.ObjectID(hash[:12])
 }
-func (e *AudioMetadataExtractor) getTagString(tags map[string]interface{}, key string) string {
+func (e *AudioMetadataExtractorTag) getTagString(tags map[string]interface{}, key string) string {
 	if val, ok := tags[key]; ok {
 		if s, ok := val.(string); ok {
 			return strings.TrimSpace(s)
@@ -301,7 +301,7 @@ func (e *AudioMetadataExtractor) getTagString(tags map[string]interface{}, key s
 	return ""
 }
 
-func (e *AudioMetadataExtractor) getTagInt(tags map[string]interface{}, key string) int {
+func (e *AudioMetadataExtractorTag) getTagInt(tags map[string]interface{}, key string) int {
 	if s := e.getTagString(tags, key); s != "" {
 		var result int
 		if _, err := fmt.Sscanf(s, "%d", &result); err == nil {
@@ -310,7 +310,7 @@ func (e *AudioMetadataExtractor) getTagInt(tags map[string]interface{}, key stri
 	}
 	return 0
 }
-func (e *AudioMetadataExtractor) getTagFloat(tags map[string]interface{}, key string) float64 {
+func (e *AudioMetadataExtractorTag) getTagFloat(tags map[string]interface{}, key string) float64 {
 	if s := e.getTagString(tags, key); s != "" {
 		var result float64
 		if _, err := fmt.Sscanf(s, "%f", &result); err == nil {
@@ -319,7 +319,7 @@ func (e *AudioMetadataExtractor) getTagFloat(tags map[string]interface{}, key st
 	}
 	return 0.0
 }
-func (e *AudioMetadataExtractor) isCompilation(tags map[string]interface{}) bool {
+func (e *AudioMetadataExtractorTag) isCompilation(tags map[string]interface{}) bool {
 	switch {
 	case e.getTagString(tags, "compilation") == "1",
 		strings.Contains(strings.ToLower(e.getTagString(tags, "musicbrainz_albumtype")), "compilation"):

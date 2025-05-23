@@ -36,10 +36,10 @@ func (c *PlaylistTrackController) GetPlaylistTracks(ctx *gin.Context) {
 
 	results, err := c.PlaylistTrackUsecase.GetPlaylistTrackItems(
 		ctx.Request.Context(),
-		params.End,
-		params.Order,
-		params.Sort,
 		params.Start,
+		params.End,
+		params.Sort,
+		params.Order,
 		params.Search,
 		params.Starred,
 		params.AlbumId,

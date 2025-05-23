@@ -33,10 +33,10 @@ func (c *ArtistController) GetArtists(ctx *gin.Context) {
 
 	artists, err := c.ArtistUsecase.GetArtistItems(
 		ctx.Request.Context(),
-		params.End,
-		params.Order,
-		params.Sort,
 		params.Start,
+		params.End,
+		params.Sort,
+		params.Order,
 		params.Search,
 		params.Starred,
 	)

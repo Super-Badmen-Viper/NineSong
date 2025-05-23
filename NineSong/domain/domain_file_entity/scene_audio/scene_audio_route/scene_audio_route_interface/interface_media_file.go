@@ -8,7 +8,7 @@ import (
 type MediaFileRepository interface {
 	GetMediaFileItems(
 		ctx context.Context,
-		end, order, sort, start,
+		start, end, sort, order,
 		search, starred,
 		albumId, artistId,
 		year string,

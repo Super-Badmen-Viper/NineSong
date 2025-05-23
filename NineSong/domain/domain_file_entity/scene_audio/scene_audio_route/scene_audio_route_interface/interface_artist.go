@@ -9,7 +9,7 @@ import (
 type ArtistRepository interface {
 	GetArtistItems(
 		ctx context.Context,
-		end, order, sort, start,
+		start, end, sort, order,
 		search, starred string,
 	) ([]scene_audio_route_models.ArtistMetadata, error)
 

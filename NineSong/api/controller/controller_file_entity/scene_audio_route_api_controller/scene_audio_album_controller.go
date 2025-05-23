@@ -44,10 +44,10 @@ func (c *AlbumController) GetAlbumItems(ctx *gin.Context) {
 
 	albums, err := c.AlbumUsecase.GetAlbumItems(
 		ctx.Request.Context(),
-		params.End,
-		params.Order,
-		params.Sort,
 		params.Start,
+		params.End,
+		params.Sort,
+		params.Order,
 		params.Search,
 		params.Starred,
 		params.ArtistID,

@@ -9,7 +9,7 @@ import (
 type AlbumRepository interface {
 	GetAlbumItems(
 		ctx context.Context,
-		end, order, sort, start,
+		start, end, sort, order,
 		search, starred,
 		artistId,
 		minYear, maxYear string,

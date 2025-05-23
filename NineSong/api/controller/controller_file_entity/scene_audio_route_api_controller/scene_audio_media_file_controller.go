@@ -40,10 +40,10 @@ func (c *MediaFileController) GetMediaFiles(ctx *gin.Context) {
 
 	mediaFiles, err := c.MediaFileUsecase.GetMediaFileItems(
 		ctx.Request.Context(),
-		params.End,
-		params.Order,
-		params.Sort,
 		params.Start,
+		params.End,
+		params.Sort,
+		params.Order,
 		params.Search,
 		params.Starred,
 		params.AlbumID,

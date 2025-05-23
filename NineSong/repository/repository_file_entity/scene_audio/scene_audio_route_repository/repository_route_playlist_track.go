@@ -32,7 +32,7 @@ func NewPlaylistTrackRepository(db mongo.Database, collection string) scene_audi
 
 func (r *playlistTrackRepository) GetPlaylistTrackItems(
 	ctx context.Context,
-	end, order, sort, start, search, starred, albumId, artistId, year, playlistId string,
+	start, end, sort, order, search, starred, albumId, artistId, year, playlistId string,
 ) ([]scene_audio_route_models.MediaFileMetadata, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
