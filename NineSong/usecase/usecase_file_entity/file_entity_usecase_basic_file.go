@@ -69,7 +69,7 @@ func NewFileUsecase(
 	}
 }
 
-func (uc *FileUsecase) ProcessDirectory(ctx context.Context, dirPath string, targetTypes []domain_file_entity.FileTypeNo) error {
+func (uc *FileUsecase) processDirectory(ctx context.Context, dirPath string, targetTypes []domain_file_entity.FileTypeNo) error {
 	// 防御性检查
 	if uc.folderRepo == nil {
 		log.Printf("folderRepo未初始化")
@@ -108,12 +108,6 @@ func (uc *FileUsecase) ProcessDirectory(ctx context.Context, dirPath string, tar
 		uc.targetTypes[ft] = struct{}{}
 	}
 	uc.targetMutex.Unlock()
-
-	// 清理 domain.CollectionFileEntityFileInfo
-	//if err := uc.fileRepo.DeleteByFolder(ctx, folder.ID); err != nil {
-	//	log.Printf("清理失败: %v", err)
-	//	return fmt.Errorf("cleanup failed: %w", err)
-	//}
 
 	// 并发处理管道
 	var wg sync.WaitGroup
@@ -242,7 +236,7 @@ func (uc *FileUsecase) processFile(
 			return
 		}
 
-		if err := uc.processMediaFilesAndAlbumCover(
+		if err := uc.processAudioMediaFilesAndAlbumCover(
 			ctx,
 			mediaFile,
 			album,
@@ -255,8 +249,69 @@ func (uc *FileUsecase) processFile(
 	}
 }
 
-// 合并后的封面与专辑关联处理方法
-func (uc *FileUsecase) processMediaFilesAndAlbumCover(
+func (uc *FileUsecase) createMetadataBasicInfo(
+	path string,
+	folderID primitive.ObjectID,
+) (*domain_file_entity.FileMetadata, error) {
+	// 1. 先查询是否已存在该路径文件
+	existingFile, err := uc.fileRepo.FindByPath(context.Background(), path)
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		log.Printf("路径查询失败: %s | %v", path, err)
+		return nil, fmt.Errorf("路径查询失败: %w", err)
+	}
+
+	// 2. 已存在则直接返回
+	if existingFile != nil {
+		return existingFile, nil
+	}
+
+	// 3. 不存在时执行原流程
+	file, err := os.Open(path)
+	if err != nil {
+		log.Printf("文件打开失败: %s | %v", path, err)
+		return nil, err
+	}
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			log.Printf("文件关闭失败: %s | %v", path, err)
+		}
+	}(file)
+
+	stat, err := file.Stat()
+	if err != nil {
+		log.Printf("文件信息获取失败: %s | %v", path, err)
+		return nil, err
+	}
+
+	fileType, err := uc.detector.DetectMediaType(path)
+	if err != nil {
+		log.Printf("文件类型检测失败: %s | %v", path, err)
+		return nil, err
+	}
+
+	hash := sha256.New()
+	if _, err := io.CopyBuffer(hash, file, make([]byte, 32*1024)); err != nil {
+		log.Printf("哈希计算失败: %s | %v", path, err)
+		return nil, err
+	}
+
+	normalizedPath := filepath.ToSlash(filepath.Clean(path))
+
+	return &domain_file_entity.FileMetadata{
+		ID:        primitive.NewObjectID(),
+		FolderID:  folderID,
+		FilePath:  normalizedPath,
+		FileType:  fileType,
+		Size:      stat.Size(),
+		ModTime:   stat.ModTime(),
+		Checksum:  fmt.Sprintf("%x", hash.Sum(nil)),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}, nil
+}
+
+func (uc *FileUsecase) processAudioMediaFilesAndAlbumCover(
 	ctx context.Context,
 	media *scene_audio_db_models.MediaFileMetadata,
 	album *scene_audio_db_models.AlbumMetadata,
@@ -339,8 +394,7 @@ func (uc *FileUsecase) processMediaFilesAndAlbumCover(
 	return nil
 }
 
-func (uc *FileUsecase) processAudioHierarchy(
-	ctx context.Context,
+func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,
 	artist *scene_audio_db_models.ArtistMetadata,
 	album *scene_audio_db_models.AlbumMetadata,
 	mediaFile *scene_audio_db_models.MediaFileMetadata,
@@ -371,7 +425,7 @@ func (uc *FileUsecase) processAudioHierarchy(
 			log.Print("艺术家名称为空")
 			return fmt.Errorf("artist name is empty")
 		}
-		if err := uc.upsertArtist(ctx, artist); err != nil {
+		if err := uc.updateAudioArtistMetadata(ctx, artist); err != nil {
 			log.Printf("艺术家处理失败: %s | %v", artist.Name, err)
 			return fmt.Errorf("艺术家处理失败 | 原因:%w", err)
 		}
@@ -383,7 +437,7 @@ func (uc *FileUsecase) processAudioHierarchy(
 			log.Print("专辑名称为空")
 			return fmt.Errorf("album name is empty")
 		}
-		if err := uc.upsertAlbum(ctx, album); err != nil {
+		if err := uc.updateAudioAlbumMetadata(ctx, album); err != nil {
 			log.Printf("专辑处理失败: %s | %v", album.Name, err)
 			return fmt.Errorf("专辑处理失败 | 名称:%s | 原因:%w", album.Name, err)
 		}
@@ -400,11 +454,11 @@ func (uc *FileUsecase) processAudioHierarchy(
 	}
 
 	// 异步统计更新
-	go uc.safeUpdateStatistics(artist, album)
+	go uc.updateAudioArtistAndAlbumStatistics(artist, album)
 	return nil
 }
 
-func (uc *FileUsecase) safeUpdateStatistics(artist *scene_audio_db_models.ArtistMetadata, album *scene_audio_db_models.AlbumMetadata) {
+func (uc *FileUsecase) updateAudioArtistAndAlbumStatistics(artist *scene_audio_db_models.ArtistMetadata, album *scene_audio_db_models.AlbumMetadata) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("统计更新发生panic: %v", r)
@@ -434,10 +488,7 @@ func (uc *FileUsecase) safeUpdateStatistics(artist *scene_audio_db_models.Artist
 	}
 }
 
-func (uc *FileUsecase) upsertArtist(
-	ctx context.Context,
-	artist *scene_audio_db_models.ArtistMetadata,
-) error {
+func (uc *FileUsecase) updateAudioArtistMetadata(ctx context.Context, artist *scene_audio_db_models.ArtistMetadata) error {
 	if uc.artistRepo == nil {
 		log.Print("艺术家仓库未初始化")
 		return fmt.Errorf("系统服务异常")
@@ -470,10 +521,7 @@ func (uc *FileUsecase) upsertArtist(
 	return nil
 }
 
-func (uc *FileUsecase) upsertAlbum(
-	ctx context.Context,
-	album *scene_audio_db_models.AlbumMetadata,
-) error {
+func (uc *FileUsecase) updateAudioAlbumMetadata(ctx context.Context, album *scene_audio_db_models.AlbumMetadata) error {
 	if uc.albumRepo == nil {
 		log.Print("专辑仓库未初始化")
 		return fmt.Errorf("系统服务异常")
@@ -511,66 +559,4 @@ func (uc *FileUsecase) upsertAlbum(
 		return err
 	}
 	return nil
-}
-
-func (uc *FileUsecase) createMetadataBasicInfo(
-	path string,
-	folderID primitive.ObjectID,
-) (*domain_file_entity.FileMetadata, error) {
-	// 1. 先查询是否已存在该路径文件
-	existingFile, err := uc.fileRepo.FindByPath(context.Background(), path)
-	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
-		log.Printf("路径查询失败: %s | %v", path, err)
-		return nil, fmt.Errorf("路径查询失败: %w", err)
-	}
-
-	// 2. 已存在则直接返回
-	if existingFile != nil {
-		return existingFile, nil
-	}
-
-	// 3. 不存在时执行原流程
-	file, err := os.Open(path)
-	if err != nil {
-		log.Printf("文件打开失败: %s | %v", path, err)
-		return nil, err
-	}
-	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
-			log.Printf("文件关闭失败: %s | %v", path, err)
-		}
-	}(file)
-
-	stat, err := file.Stat()
-	if err != nil {
-		log.Printf("文件信息获取失败: %s | %v", path, err)
-		return nil, err
-	}
-
-	fileType, err := uc.detector.DetectMediaType(path)
-	if err != nil {
-		log.Printf("文件类型检测失败: %s | %v", path, err)
-		return nil, err
-	}
-
-	hash := sha256.New()
-	if _, err := io.CopyBuffer(hash, file, make([]byte, 32*1024)); err != nil {
-		log.Printf("哈希计算失败: %s | %v", path, err)
-		return nil, err
-	}
-
-	normalizedPath := filepath.ToSlash(filepath.Clean(path))
-
-	return &domain_file_entity.FileMetadata{
-		ID:        primitive.NewObjectID(),
-		FolderID:  folderID,
-		FilePath:  normalizedPath,
-		FileType:  fileType,
-		Size:      stat.Size(),
-		ModTime:   stat.ModTime(),
-		Checksum:  fmt.Sprintf("%x", hash.Sum(nil)),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}, nil
 }

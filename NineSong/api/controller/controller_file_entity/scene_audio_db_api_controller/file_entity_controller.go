@@ -31,7 +31,7 @@ func (ctrl *FileController) ScanDirectory(c *gin.Context) {
 
 	bgCtx := context.Background()
 	go func() {
-		if err := ctrl.usecase.ProcessDirectory(bgCtx, req.FolderPath, req.FileTypes); err != nil {
+		if err := ctrl.usecase.processDirectory(bgCtx, req.FolderPath, req.FileTypes); err != nil {
 			log.Printf("Scan failed: %v", err)
 		}
 	}()
