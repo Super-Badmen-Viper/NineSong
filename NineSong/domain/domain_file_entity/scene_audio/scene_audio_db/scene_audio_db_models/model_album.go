@@ -10,7 +10,6 @@ type AlbumMetadata struct {
 	ID        primitive.ObjectID `bson:"_id"`        // 文档唯一标识符
 	CreatedAt time.Time          `bson:"created_at"` // 文档创建时间
 	UpdatedAt time.Time          `bson:"updated_at"` // 文档最后更新时间
-	FullText  string             `bson:"full_text"`  // 专辑全文文本内容，用于搜索
 
 	// 基础元数据 (综合)
 	Name        string  `bson:"name"`         // 专辑名称

@@ -546,7 +546,6 @@ func (uc *FileUsecase) updateAudioAlbumMetadata(ctx context.Context, album *scen
 
 	existing, err := uc.albumRepo.GetByFilter(ctx, filter)
 	if err != nil {
-
 		log.Printf("组合查询错误: %v", err)
 	}
 	if existing != nil {

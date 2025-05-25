@@ -193,20 +193,17 @@ func (r *albumRepository) GetByFilter(
 ) (*scene_audio_db_models.AlbumMetadata, error) {
 	coll := r.db.Collection(r.collection)
 
-	// 类型安全验证
 	bsonFilter, ok := filter.(bson.M)
 	if !ok {
 		return nil, fmt.Errorf("invalid filter type: %T", filter)
 	}
 
-	// 执行查询
 	result := coll.FindOne(ctx, bsonFilter)
 
-	// 处理结果
 	var album scene_audio_db_models.AlbumMetadata
 	if err := result.Decode(&album); err != nil {
 		if domain.IsNotFound(err) {
-			return nil, fmt.Errorf("未找到: %w", err)
+			return nil, nil
 		}
 		return nil, fmt.Errorf("专辑查询失败: %w", err)
 	}

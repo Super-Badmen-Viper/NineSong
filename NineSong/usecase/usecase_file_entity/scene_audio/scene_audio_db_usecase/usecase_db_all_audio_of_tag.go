@@ -64,7 +64,6 @@ func (e *AudioMetadataExtractorTag) Extract(
 	)
 	album := e.buildAlbum(
 		metadata,
-		rawTags,
 		now,
 		artistID,
 		albumID,
@@ -72,7 +71,7 @@ func (e *AudioMetadataExtractorTag) Extract(
 	)
 	artist := e.buildArtist(
 		metadata,
-		rawTags,
+		now,
 		artistID,
 	)
 	return mediaFile, album, artist, metadata, nil
@@ -124,11 +123,17 @@ func (e *AudioMetadataExtractorTag) buildMediaFile(
 	currentTrack, totalTracks := m.Track()
 	currentDisc, totalDiscs := m.Disc()
 
-	compilation := e.hasMultipleArtists(m.Artist())
+	compilationArtist := e.hasMultipleArtists(m.Artist())
 	formattedArtist := m.Artist()
-	if compilation {
+	if compilationArtist {
 		formattedArtist = regexp.MustCompile(`[/,&;\\s]+`).ReplaceAllString(strings.TrimSpace(m.Artist()), " ")
 		formattedArtist = regexp.MustCompile(`\s+`).ReplaceAllString(formattedArtist, "、")
+	}
+	compilationAlbumArtist := e.hasMultipleArtists(m.AlbumArtist())
+	formattedAlbumArtist := m.AlbumArtist()
+	if compilationAlbumArtist {
+		formattedAlbumArtist = regexp.MustCompile(`[/,&;\\s]+`).ReplaceAllString(strings.TrimSpace(m.AlbumArtist()), " ")
+		formattedAlbumArtist = regexp.MustCompile(`\s+`).ReplaceAllString(formattedAlbumArtist, "、")
 	}
 
 	title := e.cleanText(m.Title())
@@ -158,10 +163,9 @@ func (e *AudioMetadataExtractorTag) buildMediaFile(
 
 		// 基础元数据 (github.com/dhowden/tag、go.senan.xyz/taglib)
 		Title:       m.Title(),
-		SubTitle:    e.getTagString(rawTags, "sub_title"),
 		Artist:      formattedArtist,
 		Album:       m.Album(),
-		AlbumArtist: m.AlbumArtist(),
+		AlbumArtist: formattedAlbumArtist,
 		Genre:       m.Genre(),
 		Year:        m.Year(),
 		TrackNumber: currentTrack,
@@ -171,7 +175,7 @@ func (e *AudioMetadataExtractorTag) buildMediaFile(
 		Composer:    m.Composer(),
 		Comment:     m.Comment(),
 		Lyrics:      m.Lyrics(),
-		Compilation: compilation,
+		Compilation: compilationArtist,
 
 		// 基础元数据: 关系ID索引
 		ArtistID:      artistID.Hex(),
@@ -196,66 +200,75 @@ func (e *AudioMetadataExtractorTag) buildMediaFile(
 
 func (e *AudioMetadataExtractorTag) buildAlbum(
 	m tag.Metadata,
-	rawTags map[string]interface{},
 	now time.Time,
 	artistID, albumID, albumArtistID primitive.ObjectID,
 ) *scene_audio_db_models.AlbumMetadata {
-	return &scene_audio_db_models.AlbumMetadata{
-		ID:            albumID,
-		ArtistID:      artistID.Hex(),
-		AlbumArtistID: albumArtistID.Hex(),
+	compilationArtist := e.hasMultipleArtists(m.Artist())
+	formattedArtist := m.Artist()
+	if compilationArtist {
+		formattedArtist = regexp.MustCompile(`[/,&;\\s]+`).ReplaceAllString(strings.TrimSpace(m.Artist()), " ")
+		formattedArtist = regexp.MustCompile(`\s+`).ReplaceAllString(formattedArtist, "、")
+	}
+	compilationAlbumArtist := e.hasMultipleArtists(m.AlbumArtist())
+	formattedAlbumArtist := m.AlbumArtist()
+	if compilationAlbumArtist {
+		formattedAlbumArtist = regexp.MustCompile(`[/,&;\\s]+`).ReplaceAllString(strings.TrimSpace(m.AlbumArtist()), " ")
+		formattedAlbumArtist = regexp.MustCompile(`\s+`).ReplaceAllString(formattedAlbumArtist, "、")
+	}
 
+	return &scene_audio_db_models.AlbumMetadata{
+		// 系统保留字段 (综合)
+		ID:        albumID,
+		CreatedAt: now,
+		UpdatedAt: now,
+
+		// 基础元数据 (综合)
 		Name:        m.Album(),
-		Artist:      m.Artist(),
-		AlbumArtist: m.AlbumArtist(),
+		Artist:      formattedArtist,
+		AlbumArtist: formattedAlbumArtist,
 		Genre:       m.Genre(),
+		Comment:     m.Comment(),
+		Compilation: compilationArtist,
+		SongCount:   0,
+		Duration:    0,
+		Size:        0,
 		MinYear:     m.Year(),
 		MaxYear:     m.Year(),
-		CreatedAt:   now,
-		UpdatedAt:   now,
 
-		EmbedArtPath:          "",
-		Compilation:           false,
-		SongCount:             0,
-		Duration:              0,
-		FullText:              "",
-		Size:                  0,
-		CatalogNum:            e.getTagString(rawTags, "catalognum"),
-		Comment:               m.Comment(),
-		AllArtistIDs:          "",
-		ImageFiles:            "",
-		Paths:                 "",
-		Description:           "",
-		SmallImageURL:         "",
-		MediumImageURL:        "",
-		LargeImageURL:         "",
-		ExternalURL:           "",
-		ExternalInfoUpdatedAt: time.Time{},
+		// 关系ID索引
+		ArtistID:      artistID.Hex(),
+		AlbumArtistID: albumArtistID.Hex(),
+		AllArtistIDs:  "",
+
+		// 索引排序信息
+		OrderAlbumName:       e.getOrderAlbumName(m.Album()),
+		OrderAlbumArtistName: e.getOrderAlbumArtistName(m.AlbumArtist()),
+		SortAlbumName:        e.getSortAlbumName(m.Album()),
+		SortArtistName:       e.getSortArtistName(m.Artist()),
+		SortAlbumArtistName:  e.getSortAlbumArtistName(m.AlbumArtist()),
 	}
 }
 
 func (e *AudioMetadataExtractorTag) buildArtist(
 	m tag.Metadata,
-	rawTags map[string]interface{},
+	now time.Time,
 	artistID primitive.ObjectID,
 ) *scene_audio_db_models.ArtistMetadata {
 	return &scene_audio_db_models.ArtistMetadata{
-		ID:          artistID,
-		Name:        m.Artist(),
-		MBZArtistID: e.getTagString(rawTags, "musicbrainz_artistid"),
-		// 默认空值字段
-		AlbumCount:            0,
-		FullText:              "",
-		OrderArtistName:       e.getTagString(rawTags, "order_artist_name"),
-		SortArtistName:        e.getTagString(rawTags, "sort_artist_name"),
-		SongCount:             0,
-		Size:                  0,
-		Biography:             e.getTagString(rawTags, "biography"),
-		SmallImageURL:         e.getTagString(rawTags, "artist_image_small"),
-		MediumImageURL:        e.getTagString(rawTags, "artist_image_medium"),
-		LargeImageURL:         e.getTagString(rawTags, "artist_image_large"),
-		ExternalURL:           e.getTagString(rawTags, "artist_external_url"),
-		ExternalInfoUpdatedAt: time.Time{},
+		// 系统保留字段 (综合)
+		ID:        artistID,
+		CreatedAt: now,
+		UpdatedAt: now,
+
+		// 基础元数据 (综合)
+		Name:       m.Artist(),
+		AlbumCount: 0,
+		SongCount:  0,
+		Size:       0,
+
+		// 索引排序信息
+		OrderArtistName: e.getOrderArtistName(m.Artist()),
+		SortArtistName:  e.getSortArtistName(m.Artist()),
 	}
 }
 
@@ -266,36 +279,6 @@ type AudioMetadataExtractorTag struct {
 func generateDeterministicID(seed string) primitive.ObjectID {
 	hash := sha256.Sum256([]byte(seed))
 	return primitive.ObjectID(hash[:12])
-}
-
-func (e *AudioMetadataExtractorTag) getTagString(tags map[string]interface{}, key string) string {
-	if val, ok := tags[key]; ok {
-		if s, ok := val.(string); ok {
-			return strings.TrimSpace(s)
-		}
-		return fmt.Sprintf("%v", val)
-	}
-	return ""
-}
-
-func (e *AudioMetadataExtractorTag) getTagInt(tags map[string]interface{}, key string) int {
-	if s := e.getTagString(tags, key); s != "" {
-		var result int
-		if _, err := fmt.Sscanf(s, "%d", &result); err == nil {
-			return result
-		}
-	}
-	return 0
-}
-
-func (e *AudioMetadataExtractorTag) getTagFloat(tags map[string]interface{}, key string) float64 {
-	if s := e.getTagString(tags, key); s != "" {
-		var result float64
-		if _, err := fmt.Sscanf(s, "%f", &result); err == nil {
-			return result
-		}
-	}
-	return 0.0
 }
 
 func (e *AudioMetadataExtractorTag) hasMultipleArtists(artist string) bool {

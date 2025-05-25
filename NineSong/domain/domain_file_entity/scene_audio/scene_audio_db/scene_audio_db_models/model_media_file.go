@@ -19,7 +19,6 @@ type MediaFileMetadata struct {
 
 	// 基础元数据 (github.com/dhowden/tag、go.senan.xyz/taglib)
 	Title       string `bson:"title"`        // 标准曲目标题
-	SubTitle    string `bson:"sub_title"`    // 副标题或版本说明（如 Live、Remix 等）
 	Artist      string `bson:"artist"`       // 表演者名称
 	Album       string `bson:"album"`        // 所属专辑名称
 	AlbumArtist string `bson:"album_artist"` // 专辑级艺术家名称（可能不同于曲目艺术家）

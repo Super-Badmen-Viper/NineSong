@@ -1,4 +1,4 @@
-package scene_audio_db_models
+package scene_audio_utils_models
 
 import "go.mongodb.org/mongo-driver/bson/primitive"
 

@@ -254,7 +254,6 @@ func (e *AudioMetadataExtractorTaglib) buildAlbum(
 		Compilation:           false,
 		SongCount:             0,
 		Duration:              0,
-		FullText:              "",
 		EmbedArtPath:          coverPath,
 		OrderAlbumName:        e.getTagString(tags, "order_album_name"),
 		OrderAlbumArtistName:  e.getTagString(tags, "order_album_artist_name"),
@@ -304,7 +303,6 @@ func (e *AudioMetadataExtractorTaglib) buildArtist(
 
 		// 默认空值字段
 		AlbumCount:            0,
-		FullText:              "",
 		OrderArtistName:       e.getTagString(tags, "order_artist_name"),
 		SortArtistName:        e.getTagString(tags, "sort_artist_name"),
 		SongCount:             0,

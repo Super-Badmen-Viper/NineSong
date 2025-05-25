@@ -3,6 +3,7 @@ package repository_file_entity
 import (
 	"context"
 	"fmt"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
 	"go.mongodb.org/mongo-driver/bson"
@@ -41,6 +42,9 @@ func (r *fileRepo) FindByPath(ctx context.Context, path string) (*domain_file_en
 	// 错误处理
 	switch {
 	case err != nil:
+		if domain.IsNotFound(err) {
+			return nil, nil
+		}
 		log.Printf("[ERROR] 文件查询失败 | 路径: %s | 错误: %v", normalizedPath, err)
 		return nil, fmt.Errorf("文件查询失败: %w", err)
 	default:
