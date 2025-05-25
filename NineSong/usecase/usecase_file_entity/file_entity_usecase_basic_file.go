@@ -69,7 +69,7 @@ func NewFileUsecase(
 	}
 }
 
-func (uc *FileUsecase) processDirectory(ctx context.Context, dirPath string, targetTypes []domain_file_entity.FileTypeNo) error {
+func (uc *FileUsecase) ProcessDirectory(ctx context.Context, dirPath string, targetTypes []domain_file_entity.FileTypeNo) error {
 	// 防御性检查
 	if uc.folderRepo == nil {
 		log.Printf("folderRepo未初始化")

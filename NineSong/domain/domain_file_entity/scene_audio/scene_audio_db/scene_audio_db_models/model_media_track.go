@@ -3,7 +3,7 @@ package scene_audio_db_models
 import "go.mongodb.org/mongo-driver/bson/primitive"
 
 type MediaTrackMetadata struct {
-	ID           primitive.ObjectID `bson:"track_id"`     // 音轨唯一标识[8](@ref)
+	ID           primitive.ObjectID `bson:"_id"`          // 音轨唯一标识[8](@ref)
 	Codec        string             `bson:"codec"`        // 编码格式(AAC/Opus/FLAC)[4,8](@ref)
 	BitDepth     int                `bson:"bit_depth"`    // 量化位深(16/24/32bit)[2,6](@ref)
 	SampleRate   int                `bson:"sample_rate"`  // 采样率(44.1k/48k/96kHz)[2,8](@ref)

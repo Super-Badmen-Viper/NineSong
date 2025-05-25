@@ -6,7 +6,7 @@ import (
 )
 
 type AnnotationMetadata struct {
-	AnnID     primitive.ObjectID `bson:"ann_id"`
+	ID        primitive.ObjectID `bson:"_id"`
 	UserID    string             `bson:"user_id"`
 	ItemID    string             `bson:"item_id"`
 	ItemType  string             `bson:"item_type"`

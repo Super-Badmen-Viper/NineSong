@@ -192,7 +192,6 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 		Lyrics:               e.getTagString(tags, "lyrics"),
 		CatalogNum:           e.getTagString(tags, "catalognum"),
 		Comment:              e.getTagString(tags, "comment"),
-		BPM:                  e.getTagInt(tags, "bpm"),
 		Channels:             int(properties.Channels),
 		RGAlbumGain:          e.getTagFloat(tags, "replaygain_album_gain"),
 		RGTrackGain:          e.getTagFloat(tags, "replaygain_track_gain"),
@@ -314,7 +313,6 @@ func (e *AudioMetadataExtractorTaglib) buildArtist(
 		SmallImageURL:         e.getTagString(tags, "artist_image_small"),
 		MediumImageURL:        e.getTagString(tags, "artist_image_medium"),
 		LargeImageURL:         e.getTagString(tags, "artist_image_large"),
-		SimilarArtists:        e.getTagString(tags, "similar_artists"),
 		ExternalURL:           e.getTagString(tags, "artist_external_url"),
 		ExternalInfoUpdatedAt: time.Time{},
 	}

@@ -17,6 +17,8 @@ import (
 type Database interface {
 	Collection(string) Collection
 	Client() Client
+	ListCollectionNames(ctx context.Context, filter interface{}) ([]string, error)
+	CreateCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error
 }
 
 type Collection interface {
@@ -139,6 +141,14 @@ func (md *mongoDatabase) Collection(colName string) Collection {
 func (md *mongoDatabase) Client() Client {
 	client := md.db.Client()
 	return &mongoClient{cl: client}
+}
+
+func (md *mongoDatabase) ListCollectionNames(ctx context.Context, filter interface{}) ([]string, error) {
+	return md.db.ListCollectionNames(ctx, filter)
+}
+
+func (md *mongoDatabase) CreateCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
+	return md.db.CreateCollection(ctx, name, opts...)
 }
 
 func (mc *mongoCollection) FindOne(ctx context.Context, filter interface{}) SingleResult {

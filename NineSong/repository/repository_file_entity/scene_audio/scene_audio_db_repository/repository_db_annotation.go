@@ -59,7 +59,7 @@ func (r *annotationRepository) Upsert(ctx context.Context, file *scene_audio_db_
 	update["$set"].(bson.M)["updated_at"] = now
 
 	// 执行更新操作
-	filter := bson.M{"_id": file.AnnID}
+	filter := bson.M{"_id": file.ID}
 	opts := options.Update().SetUpsert(true)
 	result, err := coll.UpdateOne(ctx, filter, update, opts)
 	if err != nil {
@@ -69,7 +69,7 @@ func (r *annotationRepository) Upsert(ctx context.Context, file *scene_audio_db_
 	// 处理插入后的ID同步
 	if result.UpsertedID != nil {
 		if oid, ok := result.UpsertedID.(primitive.ObjectID); ok {
-			file.AnnID = oid
+			file.ID = oid
 		}
 	}
 
@@ -81,7 +81,7 @@ func (r *annotationRepository) BulkUpsert(ctx context.Context, files []*scene_au
 	var successCount int
 
 	for _, file := range files {
-		filter := bson.M{"_id": file.AnnID}
+		filter := bson.M{"_id": file.ID}
 		update := bson.M{"$set": file}
 
 		_, err := coll.UpdateOne(

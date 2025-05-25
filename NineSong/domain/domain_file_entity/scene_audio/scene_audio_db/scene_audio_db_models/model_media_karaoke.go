@@ -3,8 +3,12 @@ package scene_audio_db_models
 import "go.mongodb.org/mongo-driver/bson/primitive"
 
 type MediaKaraokeMetadata struct {
-	ID                primitive.ObjectID `bson:"karaoke_id"`   // 唯一标识[4](@ref)
+	ID                primitive.ObjectID `bson:"_id"`          // 唯一标识[4](@ref)
 	AccompanimentHash string             `bson:"k_accmp_hash"` // 伴奏文件哈希[4](@ref)
+	AccompanimentPath string             `bson:"k_accmp_path"`
+	SoundtrackPath    string             `bson:"k_soundtrack_path"`
+	VoicePath         string             `bson:"k_voice_path"`
+	KaraokePath       string             `bson:"k_karaoke_path"`
 	LyricsSyncMode    string             `bson:"lyrics_sync"`  // 歌词同步模式(逐字/逐行)[4](@ref)
 	DuetMode          DuetConfig         `bson:"duet_config"`  // 合唱配置[4,5](@ref)
 	RecordingMeta     RecordMeta         `bson:"rec_meta"`     // 录制元数据[4](@ref)
