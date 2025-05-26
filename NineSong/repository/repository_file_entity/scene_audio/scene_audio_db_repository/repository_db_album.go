@@ -156,21 +156,95 @@ func (r *albumRepository) GetByArtist(ctx context.Context, artistID string) ([]*
 	return albums, nil
 }
 
-func (r *albumRepository) UpdateSongCount(
+func (r *albumRepository) AlbumCountByArtist(
+	ctx context.Context,
+	artistID string,
+) (int64, error) {
+	coll := r.db.Collection(r.collection)
+
+	filter := bson.M{
+		"$or": []bson.M{
+			{"artist_id": artistID},
+			{"album_artist_id": artistID},
+		},
+	}
+
+	count, err := coll.CountDocuments(ctx, filter)
+	if err != nil {
+		return 0, fmt.Errorf("统计艺术家专辑数量失败: %w", err)
+	}
+
+	return count, nil
+}
+
+func (r *albumRepository) ResetALLField(ctx context.Context) (int64, error) {
+	coll := r.db.Collection(r.collection)
+
+	resetFields := []string{
+		"song_count",
+		"size",
+		"duration",
+	}
+
+	update := make(bson.M)
+	for _, field := range resetFields {
+		update[field] = 0
+	}
+
+	result, err := coll.UpdateMany(
+		ctx,
+		bson.M{},
+		bson.M{"$set": update},
+	)
+
+	if err != nil {
+		return 0, fmt.Errorf("批量重置专辑字段失败: %w", err)
+	}
+
+	return result.ModifiedCount, nil
+}
+
+func (r *albumRepository) ResetField(
+	ctx context.Context,
+	field string,
+) (int64, error) {
+	coll := r.db.Collection(r.collection)
+
+	filter := bson.M{}
+
+	update := bson.M{"$set": bson.M{field: 0}}
+
+	result, err := coll.UpdateMany(
+		ctx,
+		filter,
+		update,
+	)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return result.ModifiedCount, nil
+}
+
+func (r *albumRepository) UpdateCounter(
 	ctx context.Context,
 	albumID primitive.ObjectID,
+	field string,
 	increment int,
 ) (int64, error) {
 	coll := r.db.Collection(r.collection)
 
-	result, err := coll.UpdateByID(
-		ctx,
-		albumID,
-		bson.M{"$inc": bson.M{"song_count": increment}},
-	)
+	var update bson.M
+	if increment == 0 {
+		update = bson.M{"$set": bson.M{field: 0}}
+	} else {
+		update = bson.M{"$inc": bson.M{field: increment}}
+	}
 
+	result, err := coll.UpdateByID(ctx, albumID, update)
 	if err != nil {
-		return 0, fmt.Errorf("歌曲计数更新失败: %w", err)
+		return 0, err
 	}
 
 	return result.ModifiedCount, nil

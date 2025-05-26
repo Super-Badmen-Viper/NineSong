@@ -145,7 +145,7 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 		Album:       e.getTagString(tags, taglib.Album),
 		AlbumArtist: formattedAlbumArtist,
 		Genre:       e.getTagString(tags, taglib.Genre),
-		Year:        e.getTagInt(tags, "year"),
+		Year:        e.getTagInt(tags, taglib.Date),
 		TrackNumber: currentTrack,
 		DiscNumber:  currentDisc,
 		TotalTracks: totalTracks,
@@ -218,8 +218,8 @@ func (e *AudioMetadataExtractorTaglib) buildAlbum(
 		SongCount:   0,
 		Duration:    0,
 		Size:        0,
-		MinYear:     e.getTagInt(tags, "year"),
-		MaxYear:     e.getTagInt(tags, "year"),
+		MinYear:     e.getTagInt(tags, taglib.Date),
+		MaxYear:     e.getTagInt(tags, taglib.Date),
 
 		// 关系ID索引
 		ArtistID:      artistID.Hex(),

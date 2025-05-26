@@ -19,7 +19,11 @@ type ArtistRepository interface {
 	// 查询
 	GetByID(ctx context.Context, id primitive.ObjectID) (*scene_audio_db_models.ArtistMetadata, error)
 	GetByName(ctx context.Context, name string) (*scene_audio_db_models.ArtistMetadata, error)
+	GetAllIDs(ctx context.Context) ([]primitive.ObjectID, error)
 
-	UpdateAlbumCount(ctx context.Context, artistID primitive.ObjectID, increment int) (int64, error)
+	ResetALLField(ctx context.Context) (int64, error)
+	ResetField(ctx context.Context, field string) (int64, error)
+	UpdateCounter(ctx context.Context, artistID primitive.ObjectID, field string, increment int) (int64, error)
+
 	GetByMBID(ctx context.Context, mbzID string) (*scene_audio_db_models.ArtistMetadata, error)
 }

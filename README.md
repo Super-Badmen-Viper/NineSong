@@ -70,4 +70,7 @@ HTTP请求 → Controller → Usecase（业务逻辑） → Repository（数据�
 Import postman.json file: NineSong API.postman_collection.json
 
 ## Thanks:
- - [go-audio](https://github.com/go-audio): https://github.com/go-audio
+ - [go-backend-clean-architecture](https://github.com/amitshekhariitbhu/go-backend-clean-architecture) : NineSong's Clean Architecture Project Template
+ - [go-audio](https://github.com/go-audio) : A comprehensive GO audio library with a wide range of data types
+ - [go-taglib](https://github.com/sentriz/go-taglib) : GO TAG library with comprehensive coverage of media file types
+ - ......

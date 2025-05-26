@@ -109,6 +109,16 @@ func (uc *FileUsecase) ProcessDirectory(ctx context.Context, dirPath string, tar
 	}
 	uc.targetMutex.Unlock()
 
+	// 扫描前先清空下数据库表内的统计数据，扫描过程中会重新统计一次
+	_, err = uc.albumRepo.ResetALLField(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = uc.artistRepo.ResetALLField(ctx)
+	if err != nil {
+		return err
+	}
+
 	// 并发处理管道
 	var wg sync.WaitGroup
 	errChan := make(chan error, 100)
@@ -150,6 +160,24 @@ func (uc *FileUsecase) ProcessDirectory(ctx context.Context, dirPath string, tar
 			finalErr = err
 		} else {
 			finalErr = fmt.Errorf("%v; %w", finalErr, err)
+		}
+	}
+
+	// 更新艺术家专辑统计数量
+	ids, err := uc.artistRepo.GetAllIDs(ctx)
+	if err != nil {
+		return fmt.Errorf("获取艺术家ID列表失败: %w", err)
+	}
+	for _, artistID := range ids {
+		strID := artistID.Hex()
+		albumCount, err := uc.albumRepo.AlbumCountByArtist(ctx, strID)
+		if err != nil {
+			log.Printf("艺术家%s专辑统计失败: %v", strID, err)
+			continue
+		}
+		_, err = uc.artistRepo.UpdateCounter(ctx, artistID, "album_count", int(albumCount))
+		if err != nil {
+			log.Printf("艺术家%s计数更新失败: %v", strID, err)
 		}
 	}
 
@@ -460,11 +488,15 @@ func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,
 	}
 
 	// 异步统计更新
-	go uc.updateAudioArtistAndAlbumStatistics(artist, album)
+	go uc.updateAudioArtistAndAlbumStatistics(artist, album, mediaFile)
 	return nil
 }
 
-func (uc *FileUsecase) updateAudioArtistAndAlbumStatistics(artist *scene_audio_db_models.ArtistMetadata, album *scene_audio_db_models.AlbumMetadata) {
+func (uc *FileUsecase) updateAudioArtistAndAlbumStatistics(
+	artist *scene_audio_db_models.ArtistMetadata,
+	album *scene_audio_db_models.AlbumMetadata,
+	mediaFile *scene_audio_db_models.MediaFileMetadata,
+) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("统计更新发生panic: %v", r)
@@ -482,14 +514,26 @@ func (uc *FileUsecase) updateAudioArtistAndAlbumStatistics(artist *scene_audio_d
 	}
 
 	if !artistID.IsZero() {
-		if _, err := uc.artistRepo.UpdateAlbumCount(ctx, artistID, 1); err != nil {
-			log.Printf("艺术家统计更新失败: %v", err)
+		if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "song_count", 1); err != nil {
+			log.Printf("专辑统计更新失败: %v", err)
+		}
+		if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "size", mediaFile.Size); err != nil {
+			log.Printf("专辑大小统计更新失败: %v", err)
+		}
+		if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "duration", int(mediaFile.Duration)); err != nil {
+			log.Printf("专辑播放时间统计更新失败: %v", err)
 		}
 	}
 
 	if !albumID.IsZero() {
-		if _, err := uc.albumRepo.UpdateSongCount(ctx, albumID, 1); err != nil {
-			log.Printf("专辑统计更新失败: %v", err)
+		if _, err := uc.albumRepo.UpdateCounter(ctx, albumID, "song_count", 1); err != nil {
+			log.Printf("专辑单曲数量统计更新失败: %v", err)
+		}
+		if _, err := uc.albumRepo.UpdateCounter(ctx, albumID, "size", mediaFile.Size); err != nil {
+			log.Printf("专辑大小统计更新失败: %v", err)
+		}
+		if _, err := uc.albumRepo.UpdateCounter(ctx, albumID, "duration", int(mediaFile.Duration)); err != nil {
+			log.Printf("专辑播放时间统计更新失败: %v", err)
 		}
 	}
 }

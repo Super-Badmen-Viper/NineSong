@@ -106,23 +106,102 @@ func (r *artistRepository) GetByName(ctx context.Context, name string) (*scene_a
 	return &artist, nil
 }
 
-func (r *artistRepository) UpdateAlbumCount(
+func (r *artistRepository) GetAllIDs(ctx context.Context) ([]primitive.ObjectID, error) {
+	coll := r.db.Collection(r.collection)
+
+	opts := options.Find().SetProjection(bson.M{"_id": 1})
+
+	cursor, err := coll.Find(ctx, bson.M{}, opts)
+	if err != nil {
+		return nil, fmt.Errorf("查询艺术家ID失败: %w", err)
+	}
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
+
+	var ids []primitive.ObjectID
+	for cursor.Next(ctx) {
+		var result struct {
+			ID primitive.ObjectID `bson:"_id"`
+		}
+		if err := cursor.Decode(&result); err != nil {
+			return nil, fmt.Errorf("解码艺术家ID失败: %w", err)
+		}
+		ids = append(ids, result.ID)
+	}
+
+	return ids, nil
+}
+
+func (r *artistRepository) ResetALLField(ctx context.Context) (int64, error) {
+	coll := r.db.Collection(r.collection)
+
+	resetFields := []string{
+		"album_count",
+		"song_count",
+		"size",
+		"duration",
+	}
+
+	update := make(bson.M)
+	for _, field := range resetFields {
+		update[field] = 0
+	}
+
+	result, err := coll.UpdateMany(
+		ctx,
+		bson.M{},
+		bson.M{"$set": update},
+	)
+
+	if err != nil {
+		return 0, fmt.Errorf("批量重置专辑字段失败: %w", err)
+	}
+
+	return result.ModifiedCount, nil
+}
+
+func (r *artistRepository) ResetField(
+	ctx context.Context,
+	field string,
+) (int64, error) {
+	coll := r.db.Collection(r.collection)
+
+	filter := bson.M{}
+
+	update := bson.M{"$set": bson.M{field: 0}}
+
+	result, err := coll.UpdateMany(
+		ctx,
+		filter,
+		update,
+	)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return result.ModifiedCount, nil
+}
+
+func (r *artistRepository) UpdateCounter(
 	ctx context.Context,
 	artistID primitive.ObjectID,
+	field string,
 	increment int,
 ) (int64, error) {
 	coll := r.db.Collection(r.collection)
 
-	result, err := coll.UpdateByID(
-		ctx,
-		artistID,
-		bson.M{
-			"$inc": bson.M{"album_count": increment},
-		},
-	)
+	var update bson.M
+	if increment == 0 {
+		update = bson.M{"$set": bson.M{field: 0}}
+	} else {
+		update = bson.M{"$inc": bson.M{field: increment}}
+	}
 
+	result, err := coll.UpdateByID(ctx, artistID, update)
 	if err != nil {
-		return 0, fmt.Errorf("专辑计数更新失败: %w", err)
+		return 0, err
 	}
 
 	return result.ModifiedCount, nil

@@ -23,7 +23,12 @@ type AlbumRepository interface {
 	GetByName(ctx context.Context, name string) (*scene_audio_db_models.AlbumMetadata, error)
 	GetByArtist(ctx context.Context, artistID string) ([]*scene_audio_db_models.AlbumMetadata, error)
 
-	UpdateSongCount(ctx context.Context, albumID primitive.ObjectID, increment int) (int64, error)
+	AlbumCountByArtist(ctx context.Context, artistID string) (int64, error)
+
+	ResetALLField(ctx context.Context) (int64, error)
+	ResetField(ctx context.Context, field string) (int64, error)
+	UpdateCounter(ctx context.Context, albumID primitive.ObjectID, field string, increment int) (int64, error)
+
 	GetByMBID(ctx context.Context, mbzID string) (*scene_audio_db_models.AlbumMetadata, error)
 	GetByFilter(ctx context.Context, filter interface{}) (*scene_audio_db_models.AlbumMetadata, error)
 }

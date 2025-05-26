@@ -48,7 +48,6 @@ func (r *fileRepo) FindByPath(ctx context.Context, path string) (*domain_file_en
 		log.Printf("[ERROR] 文件查询失败 | 路径: %s | 错误: %v", normalizedPath, err)
 		return nil, fmt.Errorf("文件查询失败: %w", err)
 	default:
-		log.Printf("[DEBUG] 找到已有文件记录 | ID: %s | 路径: %s", result.ID.Hex(), normalizedPath)
 		return &result, nil
 	}
 }
