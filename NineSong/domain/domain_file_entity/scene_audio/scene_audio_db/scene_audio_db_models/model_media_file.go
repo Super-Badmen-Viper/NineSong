@@ -37,6 +37,7 @@ type MediaFileMetadata struct {
 	ArtistID      string `bson:"artist_id"`       // 艺术家在系统中的唯一标识符
 	AlbumID       string `bson:"album_id"`        // 专辑在系统中的唯一标识符
 	AlbumArtistID string `bson:"album_artist_id"` // 专辑艺术家在系统中的唯一标识符
+	AllArtistIDs  string `bson:"all_artist_ids"`  // 所有参与艺术家的唯一标识符列表
 	MvID          string `bson:"mv_id"`           // 音频对应的音乐视频唯一标识符（如有）
 	KaraokeID     string `bson:"karaoke_id"`      // 音频对应的卡拉 OK 版本唯一标识符（如有）
 	LyricsID      string `bson:"lyrics_id"`       // 歌词文件的唯一标识符（如有）

@@ -289,20 +289,41 @@ func buildMediaMatch(search, starred, albumId, artistId, year string) bson.D {
 }
 
 func validateMediaSortField(sort string) string {
-	validSortFields := map[string]bool{
-		"index":      true,
-		"play_count": true, "play_date": true, "title": true,
-		"artist": true, "album": true, "year": true,
-		"duration": true, "bit_rate": true, "size": true,
-		"rating": true, "starred_at": true,
-		"created_at": true, "updated_at": true,
+	sortMappings := map[string]string{
+		"title":                   "sort_title",
+		"album":                   "sort_album_name",
+		"artist":                  "sort_artist_name",
+		"album_artist":            "sort_album_artist_name",
+		"order_title":             "order_title",
+		"order_album_name":        "order_album_name",
+		"order_artist_name":       "order_artist_name",
+		"order_album_artist_name": "order_album_artist_name",
+
+		"play_count": "play_count",
+		"year":       "year",
+		"duration":   "duration",
 	}
+
 	if strings.ToLower(sort) == "_id" {
 		return "index"
 	}
-	if validSortFields[strings.ToLower(sort)] {
-		return strings.ToLower(sort)
+
+	lowerSort := strings.ToLower(sort)
+	if mappedField, exists := sortMappings[lowerSort]; exists {
+		return mappedField
 	}
+
+	validSortFields := map[string]bool{
+		"index": true, "play_count": true, "play_date": true,
+		"title": true, "artist": true, "album": true,
+		"year": true, "duration": true, "bit_rate": true,
+		"size": true, "rating": true, "starred_at": true,
+		"created_at": true, "updated_at": true,
+	}
+	if validSortFields[lowerSort] {
+		return lowerSort
+	}
+
 	return "index"
 }
 

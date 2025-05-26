@@ -18,5 +18,4 @@ type PlaylistMetadata struct {
 	Size        int                `bson:"size"`
 	Rules       string             `bson:"rules"`
 	EvaluatedAt time.Time          `bson:"evaluated_at"`
-	//OwnerID     string             `bson:"owner_id"`
 }

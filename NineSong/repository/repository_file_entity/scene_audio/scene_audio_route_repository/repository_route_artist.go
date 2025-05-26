@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
@@ -218,18 +219,43 @@ func buildArtistBaseMatch(search, starred string) bson.D {
 }
 
 func validateArtistSortField(sort string) string {
+	sortMappings := map[string]string{
+		"name":         "sort_artist_name",
+		"album_artist": "sort_album_artist_name",
+		"album_count":  "album_count",
+		"song_count":   "song_count",
+		"play_count":   "play_count",
+		"play_date":    "play_date",
+		"rating":       "rating",
+		"starred_at":   "starred_at",
+		"size":         "size",
+		"created_at":   "created_at",
+		"updated_at":   "updated_at",
+	}
+
+	lowerSort := strings.ToLower(sort)
+	if mappedField, exists := sortMappings[lowerSort]; exists {
+		return mappedField
+	}
+
 	validSortFields := map[string]bool{
-		"name":        true,
-		"album_count": true, "song_count": true,
-		"play_count": true, "play_date": true,
-		"rating":     true,
-		"starred_at": true,
-		"size":       true,
-		"created_at": true, "updated_at": true,
+		"sort_artist_name":       true,
+		"sort_album_artist_name": true,
+		"album_count":            true,
+		"song_count":             true,
+		"play_count":             true,
+		"play_date":              true,
+		"rating":                 true,
+		"starred_at":             true,
+		"size":                   true,
+		"created_at":             true,
+		"updated_at":             true,
 	}
-	if validSortFields[sort] {
-		return sort
+
+	if validSortFields[lowerSort] {
+		return lowerSort
 	}
+
 	return "_id"
 }
 

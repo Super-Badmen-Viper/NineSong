@@ -9,6 +9,7 @@ import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"strconv"
+	"strings"
 )
 
 type albumRepository struct {
@@ -235,20 +236,52 @@ func buildAlbumBaseMatch(search, starred, artistId, minYear, maxYear string) bso
 }
 
 func validateAlbumSortField(sort string) string {
+	sortMappings := map[string]string{
+		"name":         "order_album_name",
+		"artist":       "artist",
+		"album_artist": "album_artist",
+		"min_year":     "min_year",
+		"max_year":     "max_year",
+		"rating":       "rating",
+		"starred_at":   "starred_at",
+		"genre":        "genre",
+		"song_count":   "song_count",
+		"duration":     "duration",
+		"size":         "size",
+		"play_count":   "play_count",
+		"play_date":    "play_date",
+		"created_at":   "created_at",
+		"updated_at":   "updated_at",
+	}
+
+	lowerSort := strings.ToLower(sort)
+
+	if mappedField, exists := sortMappings[lowerSort]; exists {
+		return mappedField
+	}
+
 	validSortFields := map[string]bool{
-		"name":     true,
-		"min_year": true, "max_year": true,
-		"rating":     true,
-		"starred_at": true,
-		"genre":      true,
-		"song_count": true,
-		"duration":   true, "size": true,
-		"play_count": true, "play_date": true,
-		"created_at": true, "updated_at": true,
+		"order_album_name": true,
+		"artist":           true,
+		"album_artist":     true,
+		"min_year":         true,
+		"max_year":         true,
+		"rating":           true,
+		"starred_at":       true,
+		"genre":            true,
+		"song_count":       true,
+		"duration":         true,
+		"size":             true,
+		"play_count":       true,
+		"play_date":        true,
+		"created_at":       true,
+		"updated_at":       true,
 	}
-	if validSortFields[sort] {
-		return sort
+
+	if validSortFields[lowerSort] {
+		return lowerSort
 	}
+
 	return "_id"
 }
 

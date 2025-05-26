@@ -9,6 +9,7 @@ import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"strconv"
+	"strings"
 )
 
 type mediaFileRepository struct {
@@ -198,20 +199,33 @@ func extractCount(data []map[string]int) int {
 }
 
 func validateSortField(sort string) string {
-	validSortFields := map[string]bool{
-		"title":  true,
-		"artist": true, "album": true,
-		"year":       true,
-		"rating":     true,
-		"starred_at": true,
-		"genre":      true,
-		"play_count": true, "play_date": true,
-		"duration": true, "bit_rate": true, "size": true,
-		"created_at": true, "updated_at": true,
+	sortMappings := map[string]string{
+		"title":                   "sort_title",
+		"album":                   "sort_album_name",
+		"artist":                  "sort_artist_name",
+		"album_artist":            "sort_album_artist_name",
+		"order_title":             "order_title",
+		"order_album_name":        "order_album_name",
+		"order_artist_name":       "order_artist_name",
+		"order_album_artist_name": "order_album_artist_name",
+
+		"year":       "year",
+		"rating":     "rating",
+		"starred_at": "starred_at",
+		"genre":      "genre",
+		"play_count": "play_count",
+		"play_date":  "play_date",
+		"duration":   "duration",
+		"bit_rate":   "bit_rate",
+		"size":       "size",
+		"created_at": "created_at",
+		"updated_at": "updated_at",
 	}
-	if validSortFields[sort] {
-		return sort
+
+	if mapped, ok := sortMappings[strings.ToLower(sort)]; ok {
+		return mapped
 	}
+
 	return "_id"
 }
 
