@@ -89,13 +89,15 @@ type MediaFileMetadata struct {
 	DiscSubtitle      string `bson:"disc_subtitle"`        // 光盘副标题（如特别版、纪念版等说明）
 	CatalogNum        string `bson:"catalog_num"`          // 唱片目录编号（发行方的内部编号）
 
-	// 音频分析 (github.com/go-audio/audio)
-	SampleRate    int     `bson:"sample_rate"`    // 音频采样率（Hz）
-	BitDepth      int     `bson:"bit_depth"`      // 音频位深（位）
-	ChannelLayout string  `bson:"channel_layout"` // 声道布局（如立体声、环绕声等）
-	Duration      float64 `bson:"duration"`       // 音频时长（秒）
-	BitRate       int     `bson:"bit_rate"`       // 比特率（bps）
-	Channels      int     `bson:"channels"`       // 音频通道数（如 2 表示立体声）
+	// 音频分析 (综合)
+	SampleRate int     `bson:"sample_rate"` // 音频采样率（Hz）
+	Duration   float64 `bson:"duration"`    // 音频时长（秒）
+	BitRate    int     `bson:"bit_rate"`    // 比特率（bps）
+	Channels   int     `bson:"channels"`    // 音频通道数（如 2 表示立体声）
+
+	// 高级音频参数 (github.com/go-audio/audio)
+	BitDepth      int    `bson:"bit_depth"`      // 音频位深（位）
+	ChannelLayout string `bson:"channel_layout"` // 声道布局（如立体声、环绕声等）
 
 	// 音频标准化与动态响度控制 (综合)
 	NormalizationThreshold float64 `bson:"norm_threshold"` // 音频标准化阈值

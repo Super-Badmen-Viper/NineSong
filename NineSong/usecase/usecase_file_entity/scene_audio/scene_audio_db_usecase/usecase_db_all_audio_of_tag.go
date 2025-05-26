@@ -24,16 +24,15 @@ func (e *AudioMetadataExtractorTag) Extract(
 	*scene_audio_db_models.MediaFileMetadata,
 	*scene_audio_db_models.AlbumMetadata,
 	*scene_audio_db_models.ArtistMetadata,
-	tag.Metadata,
 	error,
 ) {
 	e.mediaID = primitive.NewObjectID()
 	if err := e.enrichFileMetadata(path, fileMetadata); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("文件访问失败[%s]: %w", path, err)
+		return nil, nil, nil, fmt.Errorf("文件访问失败[%s]: %w", path, err)
 	}
 	defer func(file *os.File) {
 		err := file.Close()
@@ -44,37 +43,20 @@ func (e *AudioMetadataExtractorTag) Extract(
 
 	metadata, err := tag.ReadFrom(file)
 	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("标签解析失败[%s]: %w", path, err)
+		return nil, nil, nil, fmt.Errorf("标签解析失败[%s]: %w", path, err)
 	}
+
 	now := time.Now().UTC()
-	rawTags := metadata.Raw()
 
 	artistID := generateDeterministicID(metadata.Artist())
 	albumID := generateDeterministicID(metadata.Album())
 	albumArtistID := generateDeterministicID(metadata.AlbumArtist())
 
-	mediaFile := e.buildMediaFile(
-		path,
-		metadata,
-		rawTags,
-		fileMetadata,
-		artistID,
-		albumID,
-		albumArtistID,
-	)
-	album := e.buildAlbum(
-		metadata,
-		now,
-		artistID,
-		albumID,
-		albumArtistID,
-	)
-	artist := e.buildArtist(
-		metadata,
-		now,
-		artistID,
-	)
-	return mediaFile, album, artist, metadata, nil
+	mediaFile := e.buildMediaFile(path, metadata, fileMetadata, artistID, albumID, albumArtistID)
+	album := e.buildAlbum(metadata, now, artistID, albumID, albumArtistID)
+	artist := e.buildArtist(metadata, now, artistID)
+
+	return mediaFile, album, artist, nil
 }
 
 func (e *AudioMetadataExtractorTag) enrichFileMetadata(path string, fm *domain_file_entity.FileMetadata) error {
@@ -116,7 +98,6 @@ func (e *AudioMetadataExtractorTag) enrichFileMetadata(path string, fm *domain_f
 func (e *AudioMetadataExtractorTag) buildMediaFile(
 	path string,
 	m tag.Metadata,
-	rawTags map[string]interface{},
 	fm *domain_file_entity.FileMetadata,
 	artistID, albumID, albumArtistID primitive.ObjectID,
 ) *scene_audio_db_models.MediaFileMetadata {
@@ -139,7 +120,7 @@ func (e *AudioMetadataExtractorTag) buildMediaFile(
 	title := e.cleanText(m.Title())
 	artist := e.cleanText(formattedArtist)
 	album := e.cleanText(m.Album())
-	parts := []string{}
+	var parts []string
 	if title != "" {
 		parts = append(parts, title)
 	}
@@ -206,14 +187,12 @@ func (e *AudioMetadataExtractorTag) buildAlbum(
 	compilationArtist := e.hasMultipleArtists(m.Artist())
 	formattedArtist := m.Artist()
 	if compilationArtist {
-		formattedArtist = regexp.MustCompile(`[/,&;\\s]+`).ReplaceAllString(strings.TrimSpace(m.Artist()), " ")
-		formattedArtist = regexp.MustCompile(`\s+`).ReplaceAllString(formattedArtist, "、")
+		formattedArtist = formatMultipleArtists(m.Artist())
 	}
 	compilationAlbumArtist := e.hasMultipleArtists(m.AlbumArtist())
 	formattedAlbumArtist := m.AlbumArtist()
 	if compilationAlbumArtist {
-		formattedAlbumArtist = regexp.MustCompile(`[/,&;\\s]+`).ReplaceAllString(strings.TrimSpace(m.AlbumArtist()), " ")
-		formattedAlbumArtist = regexp.MustCompile(`\s+`).ReplaceAllString(formattedAlbumArtist, "、")
+		formattedAlbumArtist = formatMultipleArtists(m.AlbumArtist())
 	}
 
 	return &scene_audio_db_models.AlbumMetadata{
@@ -282,7 +261,7 @@ func generateDeterministicID(seed string) primitive.ObjectID {
 }
 
 func (e *AudioMetadataExtractorTag) hasMultipleArtists(artist string) bool {
-	separators := []string{"//", "/", ",", "&", ";", " "}
+	separators := []string{"/", ",", "&", ";", "//"}
 	artist = strings.TrimSpace(artist)
 	for _, sep := range separators {
 		if strings.Contains(artist, sep) {

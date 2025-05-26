@@ -4,8 +4,10 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -14,8 +16,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.senan.xyz/taglib"
 )
-
-type AudioMetadataExtractorTaglib struct{}
 
 func (e *AudioMetadataExtractorTaglib) Extract(
 	path string,
@@ -26,12 +26,10 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 	*scene_audio_db_models.ArtistMetadata,
 	error,
 ) {
-	// 获取完整文件元数据
 	if err := e.enrichFileMetadata(path, fileMetadata); err != nil {
 		return nil, nil, nil, err
 	}
 
-	// 读取音频文件的标签和属性
 	tags, err := taglib.ReadTags(path)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("标签解析失败[%s]: %w", path, err)
@@ -43,30 +41,28 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 
 	now := time.Now().UTC()
 
-	// 生成确定性ID
-	artistID := e.generateArtistID(tags)
-	albumID := e.generateAlbumID(tags)
-	albumArtistID := e.generateAlbumArtistID(tags)
+	artistID := generateDeterministicID(e.getTagString(tags, taglib.Artist))
+	albumID := generateDeterministicID(e.getTagString(tags, taglib.Album))
+	albumArtistID := generateDeterministicID(e.getTagString(tags, taglib.AlbumArtist))
 
-	// 构建媒体文件元数据
-	mediaFile := e.buildMediaFile(path, tags, properties, fileMetadata, now, artistID, albumID, albumArtistID)
-
-	// 构建专辑元数据
-	album := e.buildAlbum(path, tags, properties, now, artistID, albumID, albumArtistID)
-
-	// 构建艺术家元数据
-	artist := e.buildArtist(path, tags, properties, now, artistID)
+	mediaFile := e.buildMediaFile(path, tags, properties, fileMetadata, artistID, albumID, albumArtistID)
+	album := e.buildAlbum(tags, now, artistID, albumID, albumArtistID)
+	artist := e.buildArtist(tags, now, artistID)
 
 	return mediaFile, album, artist, nil
 }
 
 func (e *AudioMetadataExtractorTaglib) enrichFileMetadata(path string, fm *domain_file_entity.FileMetadata) error {
-	// 计算文件校验和
 	file, err := os.Open(path)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			log.Printf("文件关闭失败[%s]: %v", path, err)
+		}
+	}(file)
 
 	hash := sha256.New()
 	if _, err := io.Copy(hash, file); err != nil {
@@ -74,19 +70,16 @@ func (e *AudioMetadataExtractorTaglib) enrichFileMetadata(path string, fm *domai
 	}
 	fm.Checksum = fmt.Sprintf("%x", hash.Sum(nil))
 
-	// 获取文件信息
 	info, err := file.Stat()
 	if err != nil {
 		return fmt.Errorf("文件状态获取失败: %w", err)
 	}
 
-	// 填充文件元数据
 	fm.FilePath = path
 	fm.Size = info.Size()
 	fm.ModTime = info.ModTime().UTC()
 	fm.FileType = domain_file_entity.Audio
 
-	// 设置时间戳
 	if fm.CreatedAt.IsZero() {
 		fm.CreatedAt = time.Now().UTC()
 	}
@@ -100,245 +93,259 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 	tags map[string][]string,
 	properties taglib.Properties,
 	fm *domain_file_entity.FileMetadata,
-	now time.Time,
 	artistID, albumID, albumArtistID primitive.ObjectID,
 ) *scene_audio_db_models.MediaFileMetadata {
-	// 提取标签信息
-	title := e.getTagString(tags, taglib.Title)
-	album := e.getTagString(tags, taglib.Album)
-	artist := e.getTagString(tags, taglib.Artist)
+	titleTag := e.getTagString(tags, taglib.Title)
+	artistTag := e.getTagString(tags, taglib.Artist)
+	albumTag := e.getTagString(tags, taglib.Album)
 	albumArtist := e.getTagString(tags, taglib.AlbumArtist)
-	genre := e.getTagString(tags, taglib.Genre)
-	year := e.getTagInt(tags, "year")
+
 	currentTrack, totalTracks := e.getTagIntPair(tags, taglib.TrackNumber)
 	currentDisc, totalDiscs := e.getTagIntPair(tags, taglib.DiscNumber)
 
-	// 提取 MusicBrainz 元数据
-	mbzTrackID := e.getTagString(tags, "musicbrainz_trackid")
-	mbzAlbumID := e.getTagString(tags, "musicbrainz_albumid")
-	mbzArtistID := e.getTagString(tags, "musicbrainz_artistid")
-	mbzAlbumArtistID := e.getTagString(tags, "musicbrainz_albumartistid")
-	mbzAlbumType := e.getTagString(tags, "musicbrainz_albumtype")
-	mbzAlbumComment := e.getTagString(tags, "musicbrainz_albumcomment")
-	mbzReleaseTrackID := e.getTagString(tags, "musicbrainz_releasetrackid")
-
-	// 判断是否为合辑
-	compilation := false
-	if compilationStr := e.getTagString(tags, "compilation"); compilationStr == "1" {
-		compilation = true
+	compilationArtist := e.hasMultipleArtists(artistTag)
+	formattedArtist := artistTag
+	if compilationArtist {
+		formattedArtist = formatMultipleArtists(artistTag)
 	}
-	if strings.Contains(strings.ToLower(e.getTagString(tags, "musicbrainz_albumtype")), "compilation") {
-		compilation = true
+	compilationAlbumArtist := e.hasMultipleArtists(albumArtist)
+	formattedAlbumArtist := albumArtist
+	if compilationAlbumArtist {
+		formattedAlbumArtist = formatMultipleArtists(albumArtist)
 	}
 
-	// 提取封面图片
-	coverPath := ""
-	if pic := e.extractMediaCover(tags); pic != "" {
-		coverPath = pic
+	title := e.cleanText(titleTag)
+	artist := e.cleanText(formattedArtist)
+	album := e.cleanText(albumTag)
+	var parts []string
+	if title != "" {
+		parts = append(parts, title)
 	}
+	if artist != "" {
+		parts = append(parts, artist)
+	}
+	if album != "" {
+		parts = append(parts, album)
+	}
+	fullText := strings.Join(parts, " ")
 
 	return &scene_audio_db_models.MediaFileMetadata{
-		// 基础文件元数据
-		ID:        fm.ID,
-		Path:      fm.FilePath,
-		Size:      int(fm.Size),
+		// 系统保留字段 (综合)
+		ID:        e.mediaID,
 		CreatedAt: fm.CreatedAt,
 		UpdatedAt: fm.UpdatedAt,
+		FullText:  fullText,
+		Path:      fm.FilePath,
+		Suffix:    strings.ToLower(strings.TrimPrefix(filepath.Ext(path), ".")),
+		Size:      int(fm.Size),
 
+		// 基础元数据 (github.com/dhowden/tag、go.senan.xyz/taglib)
+		Title:       titleTag,
+		Artist:      formattedArtist,
+		Album:       e.getTagString(tags, taglib.Album),
+		AlbumArtist: formattedAlbumArtist,
+		Genre:       e.getTagString(tags, taglib.Genre),
+		Year:        e.getTagInt(tags, "year"),
+		TrackNumber: currentTrack,
+		DiscNumber:  currentDisc,
+		TotalTracks: totalTracks,
+		TotalDiscs:  totalDiscs,
+		Composer:    e.getTagString(tags, taglib.Composer),
+		Comment:     e.getTagString(tags, taglib.Comment),
+		Lyrics:      e.getTagString(tags, taglib.Lyrics),
+		Compilation: compilationArtist,
+
+		// 基础元数据: 关系ID索引
 		ArtistID:      artistID.Hex(),
 		AlbumID:       albumID.Hex(),
 		AlbumArtistID: albumArtistID.Hex(),
+		MvID:          "",
+		KaraokeID:     "",
+		LyricsID:      "",
 
-		// 音频标签元数据
-		Title:       title,
-		Album:       album,
-		Artist:      artist,
-		AlbumArtist: albumArtist,
-		Genre:       genre,
-		Year:        year,
-		TrackNumber: currentTrack,
-		TotalTracks: totalTracks,
-		DiscNumber:  currentDisc,
-		TotalDiscs:  totalDiscs,
-		Suffix:      strings.ToLower(strings.TrimPrefix(filepath.Ext(path), ".")),
+		// 基础元数据: 索引排序信息
+		Index:                0,
+		SortTitle:            e.getSortTitle(titleTag),
+		SortAlbumName:        e.getSortAlbumName(albumTag),
+		SortArtistName:       e.getSortArtistName(formattedArtist),
+		SortAlbumArtistName:  e.getSortAlbumArtistName(formattedAlbumArtist),
+		OrderTitle:           e.getOrderTitle(titleTag),
+		OrderArtistName:      e.getOrderArtistName(formattedArtist),
+		OrderAlbumName:       e.getOrderAlbumName(albumTag),
+		OrderAlbumArtistName: e.getOrderAlbumArtistName(formattedAlbumArtist),
 
-		// MusicBrainz 元数据
-		MBZTrackID:        mbzTrackID,
-		MBZAlbumID:        mbzAlbumID,
-		MBZArtistID:       mbzArtistID,
-		MBZAlbumArtistID:  mbzAlbumArtistID,
-		MBZAlbumType:      mbzAlbumType,
-		MBZAlbumComment:   mbzAlbumComment,
-		MBZReleaseTrackID: mbzReleaseTrackID,
-
-		// 音频属性
-		Duration: float64(properties.Length),
-		BitRate:  int(properties.Bitrate),
-
-		// 其他元数据
-		Compilation: compilation,
-		HasCoverArt: coverPath != "",
-
-		// 默认空值字段
-		FullText:             "",
-		OrderAlbumName:       e.getTagString(tags, "order_album_name"),
-		OrderAlbumArtistName: e.getTagString(tags, "order_album_artist_name"),
-		OrderArtistName:      e.getTagString(tags, "order_artist_name"),
-		SortAlbumName:        e.getTagString(tags, "sort_album_name"),
-		SortArtistName:       e.getTagString(tags, "sort_artist_name"),
-		SortAlbumArtistName:  e.getTagString(tags, "sort_album_artist_name"),
-		SortTitle:            e.getTagString(tags, "sort_title"),
-		DiscSubtitle:         e.getTagString(tags, "discsubtitle"),
-		Lyrics:               e.getTagString(tags, "lyrics"),
-		CatalogNum:           e.getTagString(tags, "catalognum"),
-		Comment:              e.getTagString(tags, "comment"),
-		Channels:             int(properties.Channels),
-		RGAlbumGain:          e.getTagFloat(tags, "replaygain_album_gain"),
-		RGTrackGain:          e.getTagFloat(tags, "replaygain_track_gain"),
-		RGAlbumPeak:          e.getTagFloat(tags, "replaygain_album_peak"),
-		RGTrackPeak:          e.getTagFloat(tags, "replaygain_track_peak"),
-		MediumImageURL:       coverPath,
+		// 音频分析 (综合)
+		SampleRate: int(properties.SampleRate),
+		Duration:   float64(properties.Length),
+		BitRate:    int(properties.Bitrate),
+		Channels:   int(properties.Channels),
 	}
-}
-
-func (e *AudioMetadataExtractorTaglib) extractMediaCover(tags map[string][]string) string {
-	// 这里需要根据你的封面提取逻辑进行实现
-	// 示例：检查是否存在封面数据
-	if _, ok := tags["COVERART"]; ok {
-		// 假设封面数据存储在 COVERART 标签中
-		return "cover_path.jpg"
-	}
-	return ""
 }
 
 func (e *AudioMetadataExtractorTaglib) buildAlbum(
-	path string,
 	tags map[string][]string,
-	properties taglib.Properties,
 	now time.Time,
 	artistID, albumID, albumArtistID primitive.ObjectID,
 ) *scene_audio_db_models.AlbumMetadata {
-	// 提取标签信息
-	name := e.getTagString(tags, taglib.Album)
-	artist := e.getTagString(tags, taglib.Artist)
+	artistTag := e.getTagString(tags, taglib.Artist)
+	albumTag := e.getTagString(tags, taglib.Album)
 	albumArtist := e.getTagString(tags, taglib.AlbumArtist)
-	genre := e.getTagString(tags, taglib.Genre)
-	year := e.getTagInt(tags, "year")
 
-	// 提取 MusicBrainz 元数据
-	mbzAlbumID := e.getTagString(tags, "musicbrainz_albumid")
-	mbzAlbumArtistID := e.getTagString(tags, "musicbrainz_albumartistid")
-	mbzAlbumType := e.getTagString(tags, "musicbrainz_albumtype")
-
-	// 提取专辑封面
-	coverPath := e.extractAlbumCover(path)
+	compilationArtist := e.hasMultipleArtists(artistTag)
+	formattedArtist := artistTag
+	if compilationArtist {
+		formattedArtist = formatMultipleArtists(artistTag)
+	}
+	compilationAlbumArtist := e.hasMultipleArtists(albumArtist)
+	formattedAlbumArtist := albumArtist
+	if compilationAlbumArtist {
+		formattedAlbumArtist = formatMultipleArtists(albumArtist)
+	}
 
 	return &scene_audio_db_models.AlbumMetadata{
-		ID:            albumID,
+		// 系统保留字段 (综合)
+		ID:        albumID,
+		CreatedAt: now,
+		UpdatedAt: now,
+
+		// 基础元数据 (综合)
+		Name:        e.getTagString(tags, taglib.Album),
+		Artist:      formattedArtist,
+		AlbumArtist: formattedAlbumArtist,
+		Genre:       e.getTagString(tags, taglib.Genre),
+		Comment:     e.getTagString(tags, taglib.Comment),
+		Compilation: compilationArtist,
+		SongCount:   0,
+		Duration:    0,
+		Size:        0,
+		MinYear:     e.getTagInt(tags, "year"),
+		MaxYear:     e.getTagInt(tags, "year"),
+
+		// 关系ID索引
 		ArtistID:      artistID.Hex(),
 		AlbumArtistID: albumArtistID.Hex(),
+		AllArtistIDs:  "",
 
-		Name:             name,
-		Artist:           artist,
-		AlbumArtist:      albumArtist,
-		Genre:            genre,
-		MinYear:          year,
-		MaxYear:          year,
-		MBZAlbumID:       mbzAlbumID,
-		MBZAlbumArtistID: mbzAlbumArtistID,
-		MBZAlbumType:     mbzAlbumType,
-		CreatedAt:        now,
-		UpdatedAt:        now,
-
-		// 默认空值字段
-		Compilation:           false,
-		SongCount:             0,
-		Duration:              0,
-		EmbedArtPath:          coverPath,
-		OrderAlbumName:        e.getTagString(tags, "order_album_name"),
-		OrderAlbumArtistName:  e.getTagString(tags, "order_album_artist_name"),
-		SortAlbumName:         e.getTagString(tags, "sort_album_name"),
-		SortArtistName:        e.getTagString(tags, "sort_artist_name"),
-		SortAlbumArtistName:   e.getTagString(tags, "sort_album_artist_name"),
-		Size:                  0,
-		CatalogNum:            e.getTagString(tags, "catalognum"),
-		Comment:               e.getTagString(tags, "comment"),
-		AllArtistIDs:          "",
-		ImageFiles:            coverPath,
-		Paths:                 "",
-		Description:           "",
-		SmallImageURL:         "",
-		MediumImageURL:        coverPath,
-		LargeImageURL:         "",
-		ExternalURL:           "",
-		ExternalInfoUpdatedAt: time.Time{},
+		// 索引排序信息
+		SortAlbumName:        e.getSortAlbumName(albumTag),
+		SortArtistName:       e.getSortArtistName(formattedArtist),
+		SortAlbumArtistName:  e.getSortAlbumArtistName(formattedAlbumArtist),
+		OrderAlbumName:       e.getOrderAlbumName(albumTag),
+		OrderAlbumArtistName: e.getOrderAlbumArtistName(formattedAlbumArtist),
 	}
-}
-
-func (e *AudioMetadataExtractorTaglib) extractAlbumCover(path string) string {
-	// 这里需要根据你的专辑封面提取逻辑进行实现
-	// 示例：检查是否存在封面文件
-	dir := filepath.Dir(path)
-	coverPath := filepath.Join(dir, "cover.jpg")
-	if _, err := os.Stat(coverPath); err == nil {
-		return coverPath
-	}
-	return ""
 }
 
 func (e *AudioMetadataExtractorTaglib) buildArtist(
-	path string,
 	tags map[string][]string,
-	properties taglib.Properties,
 	now time.Time,
 	artistID primitive.ObjectID,
 ) *scene_audio_db_models.ArtistMetadata {
-	// 提取标签信息
-	name := e.getTagString(tags, taglib.Artist)
+	artistTag := e.getTagString(tags, taglib.Artist)
 
 	return &scene_audio_db_models.ArtistMetadata{
-		ID:          artistID,
-		Name:        name,
-		MBZArtistID: e.getTagString(tags, "musicbrainz_artistid"),
+		// 系统保留字段 (综合)
+		ID:        artistID,
+		CreatedAt: now,
+		UpdatedAt: now,
 
-		// 默认空值字段
-		AlbumCount:            0,
-		OrderArtistName:       e.getTagString(tags, "order_artist_name"),
-		SortArtistName:        e.getTagString(tags, "sort_artist_name"),
-		SongCount:             0,
-		Size:                  0,
-		Biography:             e.getTagString(tags, "biography"),
-		SmallImageURL:         e.getTagString(tags, "artist_image_small"),
-		MediumImageURL:        e.getTagString(tags, "artist_image_medium"),
-		LargeImageURL:         e.getTagString(tags, "artist_image_large"),
-		ExternalURL:           e.getTagString(tags, "artist_external_url"),
-		ExternalInfoUpdatedAt: time.Time{},
+		// 基础元数据 (综合)
+		Name:       artistTag,
+		AlbumCount: 0,
+		SongCount:  0,
+		Size:       0,
+
+		// 索引排序信息
+		SortArtistName:  e.getSortArtistName(artistTag),
+		OrderArtistName: e.getOrderArtistName(artistTag),
 	}
 }
 
-// 辅助方法
-func (e *AudioMetadataExtractorTaglib) generateArtistID(tags map[string][]string) primitive.ObjectID {
-	mbzID := e.getTagString(tags, "musicbrainz_artistid")
-	if mbzID != "" {
-		return generateDeterministicID(mbzID)
-	}
-	return generateDeterministicID(e.getTagString(tags, taglib.Artist))
+type AudioMetadataExtractorTaglib struct {
+	mediaID primitive.ObjectID
 }
 
-func (e *AudioMetadataExtractorTaglib) generateAlbumID(tags map[string][]string) primitive.ObjectID {
-	mbzID := e.getTagString(tags, "musicbrainz_albumid")
-	if mbzID != "" {
-		return generateDeterministicID(mbzID)
+func (e *AudioMetadataExtractorTaglib) hasMultipleArtists(artist string) bool {
+	separators := []string{"/", ",", "&", ";", "//"}
+	artist = strings.TrimSpace(artist)
+	for _, sep := range separators {
+		if strings.Contains(artist, sep) {
+			return true
+		}
 	}
-	return generateDeterministicID(e.getTagString(tags, taglib.Album) + "|" + e.getTagString(tags, taglib.AlbumArtist))
+	return false
 }
 
-func (e *AudioMetadataExtractorTaglib) generateAlbumArtistID(tags map[string][]string) primitive.ObjectID {
-	mbzID := e.getTagString(tags, "musicbrainz_albumartistid")
-	if mbzID != "" {
-		return generateDeterministicID(mbzID)
+func formatMultipleArtists(artistTag string) string {
+	separators := []string{"//", "/", ",", "&", ";"}
+	currentList := []string{artistTag}
+
+	for _, sep := range separators {
+		var newList []string
+		for _, item := range currentList {
+			parts := strings.Split(item, sep)
+			for _, p := range parts {
+				if p != "" {
+					newList = append(newList, p)
+				}
+			}
+		}
+		currentList = newList
 	}
-	return generateDeterministicID(e.getTagString(tags, taglib.AlbumArtist))
+	return strings.Join(currentList, "、")
+}
+
+func (e *AudioMetadataExtractorTaglib) cleanText(text string) string {
+	reg := regexp.MustCompile(`[^a-zA-Z0-9\s]`)
+	cleaned := reg.ReplaceAllString(text, "")
+	cleaned = strings.TrimSpace(cleaned)
+	return cleaned
+}
+
+func (e *AudioMetadataExtractorTaglib) getSortTitle(title string) string {
+	return e.removeArticles(title)
+}
+
+func (e *AudioMetadataExtractorTaglib) getSortAlbumName(album string) string {
+	return e.removeNonAlphabeticChars(album)
+}
+
+func (e *AudioMetadataExtractorTaglib) getSortArtistName(artist string) string {
+	return e.removeNonAlphabeticChars(artist)
+}
+
+func (e *AudioMetadataExtractorTaglib) getSortAlbumArtistName(albumArtist string) string {
+	return e.removeNonAlphabeticChars(albumArtist)
+}
+
+func (e *AudioMetadataExtractorTaglib) getOrderTitle(title string) string {
+	return e.removePrefixes(title)
+}
+
+func (e *AudioMetadataExtractorTaglib) getOrderArtistName(artist string) string {
+	return e.removePrefixes(artist)
+}
+
+func (e *AudioMetadataExtractorTaglib) getOrderAlbumName(album string) string {
+	return e.removeArticles(album)
+}
+
+func (e *AudioMetadataExtractorTaglib) getOrderAlbumArtistName(albumArtist string) string {
+	return e.removeArticles(albumArtist)
+}
+
+func (e *AudioMetadataExtractorTaglib) removeArticles(s string) string {
+	articlesPattern := regexp.MustCompile(`(?i)^(the|a|an|a\s|an\s|the\s)`)
+	return articlesPattern.ReplaceAllString(strings.ToLower(s), "")
+}
+
+func (e *AudioMetadataExtractorTaglib) removeNonAlphabeticChars(s string) string {
+	nonAlphaPattern := regexp.MustCompile(`[^a-zA-Z]`)
+	return nonAlphaPattern.ReplaceAllString(strings.ToLower(s), "")
+}
+
+func (e *AudioMetadataExtractorTaglib) removePrefixes(s string) string {
+	prefixesPattern := regexp.MustCompile(`(?i)^(of|in|to|for|on|at|from|by|with|and\s)`)
+	return prefixesPattern.ReplaceAllString(strings.ToLower(s), "")
 }
 
 func (e *AudioMetadataExtractorTaglib) getTagString(tags map[string][]string, key string) string {
@@ -369,25 +376,4 @@ func (e *AudioMetadataExtractorTaglib) getTagIntPair(tags map[string][]string, k
 		}
 	}
 	return 0, 0
-}
-
-func (e *AudioMetadataExtractorTaglib) getTagFloat(tags map[string][]string, key string) float64 {
-	value := e.getTagString(tags, key)
-	if value != "" {
-		var result float64
-		if _, err := fmt.Sscanf(value, "%f", &result); err == nil {
-			return result
-		}
-	}
-	return 0.0
-}
-
-func (e *AudioMetadataExtractorTaglib) isCompilation(tags map[string][]string) bool {
-	switch {
-	case e.getTagString(tags, "compilation") == "1",
-		strings.Contains(strings.ToLower(e.getTagString(tags, "musicbrainz_albumtype")), "compilation"):
-		return true
-	default:
-		return false
-	}
 }

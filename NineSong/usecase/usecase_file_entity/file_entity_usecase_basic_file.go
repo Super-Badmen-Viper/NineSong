@@ -32,7 +32,7 @@ type FileUsecase struct {
 	workerPool  chan struct{}
 	scanTimeout time.Duration
 
-	audioExtractor scene_audio_db_usecase.AudioMetadataExtractorTag
+	audioExtractor scene_audio_db_usecase.AudioMetadataExtractorTaglib
 	artistRepo     scene_audio_db_interface.ArtistRepository
 	albumRepo      scene_audio_db_interface.AlbumRepository
 	mediaRepo      scene_audio_db_interface.MediaFileRepository
@@ -227,7 +227,7 @@ func (uc *FileUsecase) processFile(
 
 	// 处理音频文件
 	if fileType == domain_file_entity.Audio {
-		mediaFile, album, artist, metadataTag, err := uc.audioExtractor.Extract(path, metadata)
+		mediaFile, album, artist, err := uc.audioExtractor.Extract(path, metadata)
 		if err != nil {
 			return
 		}
@@ -240,7 +240,7 @@ func (uc *FileUsecase) processFile(
 			ctx,
 			mediaFile,
 			album,
-			metadataTag,
+			path,
 			coverTempPath,
 		); err != nil {
 			errChan <- fmt.Errorf("文件存储失败 %s: %w", path, err)
@@ -315,16 +315,29 @@ func (uc *FileUsecase) processAudioMediaFilesAndAlbumCover(
 	ctx context.Context,
 	media *scene_audio_db_models.MediaFileMetadata,
 	album *scene_audio_db_models.AlbumMetadata,
-	tag tag.Metadata,
+	path string,
 	coverBasePath string,
 ) error {
-	// 创建媒体文件存储目录
+	file, err := os.Open(path)
+	if err != nil {
+		return nil
+	}
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			log.Printf("文件关闭失败[%s]: %v", path, err)
+		}
+	}(file)
+	metadata, err := tag.ReadFrom(file)
+	if err != nil {
+		return nil
+	}
+
 	mediaCoverDir := filepath.Join(coverBasePath, "media", media.ID.Hex())
 	if err := os.MkdirAll(mediaCoverDir, 0755); err != nil {
 		return fmt.Errorf("媒体目录创建失败: %w", err)
 	}
 
-	// 原子化操作保障
 	var coverPath string
 	defer func() {
 		if coverPath == "" {
@@ -336,8 +349,7 @@ func (uc *FileUsecase) processAudioMediaFilesAndAlbumCover(
 		}
 	}()
 
-	// 保存封面文件
-	if pic := tag.Picture(); pic != nil && len(pic.Data) > 0 {
+	if pic := metadata.Picture(); pic != nil && len(pic.Data) > 0 {
 		targetPath := filepath.Join(mediaCoverDir, "cover.jpg")
 		if err := os.WriteFile(targetPath, pic.Data, 0644); err != nil {
 			return fmt.Errorf("封面写入失败: %w", err)
@@ -345,7 +357,6 @@ func (uc *FileUsecase) processAudioMediaFilesAndAlbumCover(
 		coverPath = targetPath
 	}
 
-	// 更新媒体文件记录
 	mediaUpdate := bson.M{
 		"$set": bson.M{
 			"medium_image_url": coverPath,
@@ -356,17 +367,13 @@ func (uc *FileUsecase) processAudioMediaFilesAndAlbumCover(
 		return fmt.Errorf("媒体更新失败: %w", err)
 	}
 
-	// 同步处理专辑封面 (核心修改点)
 	if album != nil && coverPath != "" {
-		// 直接使用内存对象判断，避免二次查询
 		if album.MediumImageURL == "" {
-			// 创建专辑专属封面目录
 			albumCoverDir := filepath.Join(coverBasePath, "album", album.ID.Hex())
 			if err := os.MkdirAll(albumCoverDir, 0755); err != nil {
 				log.Printf("[WARN] 专辑封面目录创建失败 | AlbumID:%s | 错误:%v",
 					album.ID.Hex(), err)
-			} else if pic := tag.Picture(); pic != nil && len(pic.Data) > 0 {
-				// 保存到专辑目录
+			} else if pic := metadata.Picture(); pic != nil && len(pic.Data) > 0 {
 				albumCoverPath := filepath.Join(albumCoverDir, "cover.jpg")
 				if err := os.WriteFile(albumCoverPath, pic.Data, 0644); err != nil {
 					log.Printf("[WARN] 专辑封面写入失败 | AlbumID:%s | 路径:%s | 错误:%v",
@@ -376,11 +383,10 @@ func (uc *FileUsecase) processAudioMediaFilesAndAlbumCover(
 				}
 			}
 
-			// 更新专辑元数据
 			albumUpdate := bson.M{
 				"$set": bson.M{
 					"medium_image_url": coverPath,
-					"has_cover_art":    true, // 新增字段
+					"has_cover_art":    true,
 					"updated_at":       time.Now().UTC(),
 				},
 			}
