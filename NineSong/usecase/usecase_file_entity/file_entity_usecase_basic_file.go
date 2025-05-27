@@ -570,11 +570,10 @@ func (uc *FileUsecase) updateAudioArtistMetadata(ctx context.Context, artist *sc
 	}
 	if existing != nil {
 		artist.ID = existing.ID
-		if err := uc.artistRepo.Upsert(ctx, artist); err != nil {
-			log.Printf("艺术家创建失败: %s | %v", artist.Name, err)
-			return err
-		}
-		return nil
+	}
+	if err := uc.artistRepo.Upsert(ctx, artist); err != nil {
+		log.Printf("艺术家创建失败: %s | %v", artist.Name, err)
+		return err
 	}
 	return nil
 }
@@ -607,11 +606,10 @@ func (uc *FileUsecase) updateAudioAlbumMetadata(ctx context.Context, album *scen
 	}
 	if existing != nil {
 		album.ID = existing.ID
-		if err := uc.albumRepo.Upsert(ctx, album); err != nil {
-			log.Printf("专辑创建失败: %s | %v", album.Name, err)
-			return err
-		}
-		return nil
+	}
+	if err := uc.albumRepo.Upsert(ctx, album); err != nil {
+		log.Printf("专辑创建失败: %s | %v", album.Name, err)
+		return err
 	}
 	return nil
 }

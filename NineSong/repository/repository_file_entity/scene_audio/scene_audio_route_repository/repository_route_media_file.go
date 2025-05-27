@@ -230,7 +230,16 @@ func buildMatchStage(search, starred, albumId, artistId, year string) bson.D {
 	filter := bson.D{}
 
 	if artistId != "" {
-		filter = append(filter, bson.E{Key: "artist_id", Value: artistId})
+		artistFilter := bson.D{
+			{Key: "$or", Value: bson.A{
+				bson.D{{Key: "artist_id", Value: artistId}},
+				bson.D{{
+					Key:   "all_artist_ids.artist_id",
+					Value: artistId,
+				}},
+			}},
+		}
+		filter = append(filter, bson.E{Key: "$and", Value: bson.A{artistFilter}})
 	}
 	if albumId != "" {
 		filter = append(filter, bson.E{Key: "album_id", Value: albumId})
