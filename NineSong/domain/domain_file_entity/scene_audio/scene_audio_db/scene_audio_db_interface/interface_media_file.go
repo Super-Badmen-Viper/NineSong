@@ -10,7 +10,7 @@ import (
 // MediaFileRepository 基础CRUD接口
 type MediaFileRepository interface {
 	// 创建/更新
-	Upsert(ctx context.Context, file *scene_audio_db_models.MediaFileMetadata) error
+	Upsert(ctx context.Context, file *scene_audio_db_models.MediaFileMetadata) (*scene_audio_db_models.MediaFileMetadata, error)
 	BulkUpsert(ctx context.Context, files []*scene_audio_db_models.MediaFileMetadata) (int, error)
 	UpdateByID(ctx context.Context, id primitive.ObjectID, update bson.M) (bool, error)
 

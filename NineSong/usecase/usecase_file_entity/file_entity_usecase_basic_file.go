@@ -450,7 +450,7 @@ func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,
 
 	// 直接保存无关联数据
 	if artists == nil && album == nil {
-		if err := uc.mediaRepo.Upsert(ctx, mediaFile); err != nil {
+		if mediaFile, err := uc.mediaRepo.Upsert(ctx, mediaFile); err != nil {
 			log.Printf("歌曲保存失败: %s | %v", mediaFile.Path, err)
 			return fmt.Errorf("歌曲元数据保存失败 | 路径:%s | %w", mediaFile.Path, err)
 		}
@@ -484,7 +484,7 @@ func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,
 	}
 
 	// 保存媒体文件
-	if err := uc.mediaRepo.Upsert(ctx, mediaFile); err != nil {
+	if mediaFile, err := uc.mediaRepo.Upsert(ctx, mediaFile); err != nil {
 		errorInfo := fmt.Sprintf("路径:%s", mediaFile.Path)
 		if album != nil {
 			errorInfo += fmt.Sprintf(" 专辑:%s", album.Name)
@@ -570,12 +570,11 @@ func (uc *FileUsecase) updateAudioArtistMetadata(ctx context.Context, artist *sc
 	}
 	if existing != nil {
 		artist.ID = existing.ID
+		if err := uc.artistRepo.Upsert(ctx, artist); err != nil {
+			log.Printf("艺术家创建失败: %s | %v", artist.Name, err)
+			return err
+		}
 		return nil
-	}
-
-	if err := uc.artistRepo.Upsert(ctx, artist); err != nil {
-		log.Printf("艺术家创建失败: %s | %v", artist.Name, err)
-		return err
 	}
 	return nil
 }
@@ -608,12 +607,11 @@ func (uc *FileUsecase) updateAudioAlbumMetadata(ctx context.Context, album *scen
 	}
 	if existing != nil {
 		album.ID = existing.ID
+		if err := uc.albumRepo.Upsert(ctx, album); err != nil {
+			log.Printf("专辑创建失败: %s | %v", album.Name, err)
+			return err
+		}
 		return nil
-	}
-
-	if err := uc.albumRepo.Upsert(ctx, album); err != nil {
-		log.Printf("专辑创建失败: %s | %v", album.Name, err)
-		return err
 	}
 	return nil
 }

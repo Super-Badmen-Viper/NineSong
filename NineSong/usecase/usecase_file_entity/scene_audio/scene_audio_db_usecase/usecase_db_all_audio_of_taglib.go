@@ -115,6 +115,11 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 	var allArtistIDs []scene_audio_db_models.ArtistIDPair
 	if compilationArtist {
 		formattedArtist, allArtistIDs = formatMultipleArtists(artistTag)
+	} else {
+		allArtistIDs = append(allArtistIDs, scene_audio_db_models.ArtistIDPair{
+			ArtistName: artistTag,
+			ArtistID:   artistID.Hex(),
+		})
 	}
 	compilationAlbumArtist := e.hasMultipleArtists(albumArtist)
 	formattedAlbumArtist := albumArtist
@@ -207,6 +212,11 @@ func (e *AudioMetadataExtractorTaglib) buildAlbum(
 	var allArtistIDs []scene_audio_db_models.ArtistIDPair
 	if compilationArtist {
 		formattedArtist, allArtistIDs = formatMultipleArtists(artistTag)
+	} else {
+		allArtistIDs = append(allArtistIDs, scene_audio_db_models.ArtistIDPair{
+			ArtistName: artistTag,
+			ArtistID:   artistID.Hex(),
+		})
 	}
 	compilationAlbumArtist := e.hasMultipleArtists(albumArtist)
 	formattedAlbumArtist := albumArtist
@@ -227,12 +237,12 @@ func (e *AudioMetadataExtractorTaglib) buildAlbum(
 		AlbumArtist: formattedAlbumArtist,
 		Genre:       e.getTagString(tags, taglib.Genre),
 		Comment:     e.getTagString(tags, taglib.Comment),
-		Compilation: compilationArtist,
 		SongCount:   0,
 		Duration:    0,
 		Size:        0,
 		MinYear:     e.getTagInt(tags, taglib.Date),
 		MaxYear:     e.getTagInt(tags, taglib.Date),
+		Compilation: compilationArtist,
 
 		// 关系ID索引
 		ArtistID:          artistID.Hex(),
@@ -267,6 +277,11 @@ func (e *AudioMetadataExtractorTaglib) buildArtist(
 	var allArtistIDs []scene_audio_db_models.ArtistIDPair
 	if compilationArtist {
 		formattedArtist, allArtistIDs = formatMultipleArtists(artistTag)
+	} else {
+		allArtistIDs = append(allArtistIDs, scene_audio_db_models.ArtistIDPair{
+			ArtistName: artistTag,
+			ArtistID:   artistID.Hex(),
+		})
 	}
 
 	return &scene_audio_db_models.ArtistMetadata{
@@ -276,10 +291,11 @@ func (e *AudioMetadataExtractorTaglib) buildArtist(
 		UpdatedAt: now,
 
 		// 基础元数据 (综合)
-		Name:       formattedArtist,
-		AlbumCount: 0,
-		SongCount:  0,
-		Size:       0,
+		Name:        formattedArtist,
+		AlbumCount:  0,
+		SongCount:   0,
+		Size:        0,
+		Compilation: compilationArtist,
 
 		// 关系ID索引(复合艺术家)
 		AllArtistIDs: allArtistIDs,

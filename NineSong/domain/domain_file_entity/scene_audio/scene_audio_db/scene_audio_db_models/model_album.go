@@ -17,12 +17,12 @@ type AlbumMetadata struct {
 	AlbumArtist string  `bson:"album_artist"` // 专辑级艺术家名称（可能不同于曲目艺术家）
 	Genre       string  `bson:"genre"`        // 音乐流派（如流行、摇滚等）
 	Comment     string  `bson:"comment"`      // 注释信息
-	Compilation bool    `bson:"compilation"`  // 是否为合辑（多艺术家作品合集）
 	SongCount   int     `bson:"song_count"`   // 专辑中的歌曲总数
 	Duration    float64 `bson:"duration"`     // 专辑总时长（秒）
 	Size        int     `bson:"size"`         // 专辑文件总大小（字节）
 	MinYear     int     `bson:"min_year"`     // 专辑中歌曲的最早发行年份
 	MaxYear     int     `bson:"max_year"`     // 专辑中歌曲的最晚发行年份
+	Compilation bool    `bson:"compilation"`  // 是否为合辑（多艺术家作品合集）
 
 	// 关系ID索引
 	ArtistID          string         `bson:"artist_id"`            // 艺术家在系统中的唯一标识符

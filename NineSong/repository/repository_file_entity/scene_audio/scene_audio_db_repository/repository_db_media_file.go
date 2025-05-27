@@ -2,6 +2,7 @@ package scene_audio_db_repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_interface"
@@ -9,6 +10,7 @@ import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	driver "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 )
@@ -25,35 +27,48 @@ func NewMediaFileRepository(db mongo.Database, collection string) scene_audio_db
 	}
 }
 
-func (r *mediaFileRepository) Upsert(ctx context.Context, file *scene_audio_db_models.MediaFileMetadata) error {
+func (r *mediaFileRepository) Upsert(ctx context.Context, file *scene_audio_db_models.MediaFileMetadata) (*scene_audio_db_models.MediaFileMetadata, error) {
 	coll := r.db.Collection(r.collection)
 	now := time.Now().UTC()
 
-	filter := bson.M{"path": file.Path}
+	filter := bson.M{
+		"path": file.Path,
+	}
+
 	update := file.ToUpdateDoc()
 	update["$setOnInsert"] = bson.M{
-		"_id":        primitive.NewObjectID(),
 		"created_at": now,
 	}
 
 	opts := options.Update().SetUpsert(true)
 	result, err := coll.UpdateOne(ctx, filter, update, opts)
 	if err != nil {
-		return fmt.Errorf("upsert操作失败: %w", err)
+		return nil, fmt.Errorf("upsert操作失败: %w", err)
 	}
 
 	if result.UpsertedID != nil {
 		file.ID = result.UpsertedID.(primitive.ObjectID)
 		file.CreatedAt = now
 	} else {
-		var existing struct{ ID primitive.ObjectID }
-		if err := coll.FindOne(ctx, filter).Decode(&existing); err == nil {
+		var existing struct {
+			ID primitive.ObjectID `bson:"_id"`
+		}
+		err := coll.FindOne(
+			ctx,
+			bson.M{"path": file.Path},
+		).Decode(&existing)
+
+		if err == nil {
 			file.ID = existing.ID
+		} else if errors.Is(err, driver.ErrNoDocuments) {
+			return nil, fmt.Errorf("文档既未插入也未更新: %w", err)
+		} else {
+			return nil, fmt.Errorf("ID查询失败: %w", err)
 		}
 	}
-	file.UpdatedAt = now
 
-	return nil
+	file.UpdatedAt = now
+	return file, nil
 }
 
 func (r *mediaFileRepository) BulkUpsert(ctx context.Context, files []*scene_audio_db_models.MediaFileMetadata) (int, error) {
