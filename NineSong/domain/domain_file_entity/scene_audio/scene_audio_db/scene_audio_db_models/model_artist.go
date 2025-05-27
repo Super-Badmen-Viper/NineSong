@@ -17,6 +17,9 @@ type ArtistMetadata struct {
 	SongCount  int    `bson:"song_count"`
 	Size       int    `bson:"size"`
 
+	// 关系ID索引
+	AllArtistIDs []ArtistIDPair `bson:"all_artist_ids"` // 所有参与艺术家的唯一标识符列表
+
 	// 索引排序信息
 	OrderArtistName string `bson:"order_artist_name"`
 	SortArtistName  string `bson:"sort_artist_name"`

@@ -259,12 +259,12 @@ func (uc *FileUsecase) processFile(
 
 	// 处理音频文件
 	if fileType == domain_file_entity.Audio {
-		mediaFile, album, artist, err := uc.audioExtractor.Extract(path, metadata)
+		mediaFile, album, artists, err := uc.audioExtractor.Extract(path, metadata)
 		if err != nil {
 			return
 		}
 
-		if err := uc.processAudioHierarchy(ctx, artist, album, mediaFile); err != nil {
+		if err := uc.processAudioHierarchy(ctx, artists, album, mediaFile); err != nil {
 			return
 		}
 
@@ -433,7 +433,7 @@ func (uc *FileUsecase) processAudioMediaFilesAndAlbumCover(
 }
 
 func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,
-	artist *scene_audio_db_models.ArtistMetadata,
+	artists []*scene_audio_db_models.ArtistMetadata,
 	album *scene_audio_db_models.AlbumMetadata,
 	mediaFile *scene_audio_db_models.MediaFileMetadata,
 ) error {
@@ -449,7 +449,7 @@ func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,
 	}
 
 	// 直接保存无关联数据
-	if artist == nil && album == nil {
+	if artists == nil && album == nil {
 		if err := uc.mediaRepo.Upsert(ctx, mediaFile); err != nil {
 			log.Printf("歌曲保存失败: %s | %v", mediaFile.Path, err)
 			return fmt.Errorf("歌曲元数据保存失败 | 路径:%s | %w", mediaFile.Path, err)
@@ -458,14 +458,16 @@ func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,
 	}
 
 	// 处理艺术家
-	if artist != nil {
-		if artist.Name == "" {
-			log.Print("艺术家名称为空")
-			return fmt.Errorf("artist name is empty")
-		}
-		if err := uc.updateAudioArtistMetadata(ctx, artist); err != nil {
-			log.Printf("艺术家处理失败: %s | %v", artist.Name, err)
-			return fmt.Errorf("艺术家处理失败 | 原因:%w", err)
+	if artists != nil {
+		for _, artist := range artists {
+			if artist.Name == "" {
+				log.Print("艺术家名称为空")
+				return fmt.Errorf("artist name is empty")
+			}
+			if err := uc.updateAudioArtistMetadata(ctx, artist); err != nil {
+				log.Printf("艺术家处理失败: %s | %v", artist.Name, err)
+				return fmt.Errorf("艺术家处理失败 | 原因:%w", err)
+			}
 		}
 	}
 
@@ -492,12 +494,12 @@ func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,
 	}
 
 	// 异步统计更新
-	go uc.updateAudioArtistAndAlbumStatistics(artist, album, mediaFile)
+	go uc.updateAudioArtistAndAlbumStatistics(artists, album, mediaFile)
 	return nil
 }
 
 func (uc *FileUsecase) updateAudioArtistAndAlbumStatistics(
-	artist *scene_audio_db_models.ArtistMetadata,
+	artists []*scene_audio_db_models.ArtistMetadata,
 	album *scene_audio_db_models.AlbumMetadata,
 	mediaFile *scene_audio_db_models.MediaFileMetadata,
 ) {
@@ -510,25 +512,28 @@ func (uc *FileUsecase) updateAudioArtistAndAlbumStatistics(
 	ctx := context.Background()
 	var artistID, albumID primitive.ObjectID
 
-	if artist != nil && !artist.ID.IsZero() {
-		artistID = artist.ID
+	if artists != nil {
+		for _, artist := range artists {
+			if artist != nil && !artist.ID.IsZero() {
+				artistID = artist.ID
+			}
+			if !artistID.IsZero() {
+				if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "song_count", 1); err != nil {
+					log.Printf("专辑统计更新失败: %v", err)
+				}
+				if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "size", mediaFile.Size); err != nil {
+					log.Printf("专辑大小统计更新失败: %v", err)
+				}
+				if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "duration", int(mediaFile.Duration)); err != nil {
+					log.Printf("专辑播放时间统计更新失败: %v", err)
+				}
+			}
+		}
 	}
+
 	if album != nil && !album.ID.IsZero() {
 		albumID = album.ID
 	}
-
-	if !artistID.IsZero() {
-		if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "song_count", 1); err != nil {
-			log.Printf("专辑统计更新失败: %v", err)
-		}
-		if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "size", mediaFile.Size); err != nil {
-			log.Printf("专辑大小统计更新失败: %v", err)
-		}
-		if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "duration", int(mediaFile.Duration)); err != nil {
-			log.Printf("专辑播放时间统计更新失败: %v", err)
-		}
-	}
-
 	if !albumID.IsZero() {
 		if _, err := uc.albumRepo.UpdateCounter(ctx, albumID, "song_count", 1); err != nil {
 			log.Printf("专辑单曲数量统计更新失败: %v", err)

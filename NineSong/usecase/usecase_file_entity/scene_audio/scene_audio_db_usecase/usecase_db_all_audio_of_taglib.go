@@ -23,7 +23,7 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 ) (
 	*scene_audio_db_models.MediaFileMetadata,
 	*scene_audio_db_models.AlbumMetadata,
-	*scene_audio_db_models.ArtistMetadata,
+	[]*scene_audio_db_models.ArtistMetadata,
 	error,
 ) {
 	if err := e.enrichFileMetadata(path, fileMetadata); err != nil {
@@ -45,9 +45,16 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 	albumID := generateDeterministicID(e.getTagString(tags, taglib.Album))
 	albumArtistID := generateDeterministicID(e.getTagString(tags, taglib.AlbumArtist))
 
-	mediaFile := e.buildMediaFile(path, tags, properties, fileMetadata, artistID, albumID, albumArtistID)
+	mediaFile, compilationArtist := e.buildMediaFile(path, tags, properties, fileMetadata, artistID, albumID, albumArtistID)
 	album := e.buildAlbum(tags, now, artistID, albumID, albumArtistID)
-	artist := e.buildArtist(tags, now, artistID)
+	var artist []*scene_audio_db_models.ArtistMetadata
+	if compilationArtist {
+		for _, artistIDPair := range mediaFile.AllArtistIDs {
+			artistId, _ := primitive.ObjectIDFromHex(artistIDPair.ArtistID)
+			artist = append(artist, e.buildArtist(tags, now, artistId, artistIDPair.ArtistName))
+		}
+	}
+	artist = append(artist, e.buildArtist(tags, now, artistID, ""))
 
 	return mediaFile, album, artist, nil
 }
@@ -94,7 +101,7 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 	properties taglib.Properties,
 	fm *domain_file_entity.FileMetadata,
 	artistID, albumID, albumArtistID primitive.ObjectID,
-) *scene_audio_db_models.MediaFileMetadata {
+) (*scene_audio_db_models.MediaFileMetadata, bool) {
 	titleTag := e.getTagString(tags, taglib.Title)
 	artistTag := e.getTagString(tags, taglib.Artist)
 	albumTag := e.getTagString(tags, taglib.Album)
@@ -105,13 +112,13 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 
 	compilationArtist := e.hasMultipleArtists(artistTag)
 	formattedArtist := artistTag
-	var allArtistIDs []string
+	var allArtistIDs []scene_audio_db_models.ArtistIDPair
 	if compilationArtist {
 		formattedArtist, allArtistIDs = formatMultipleArtists(artistTag)
 	}
 	compilationAlbumArtist := e.hasMultipleArtists(albumArtist)
 	formattedAlbumArtist := albumArtist
-	var allAlbumArtistIDs []string
+	var allAlbumArtistIDs []scene_audio_db_models.ArtistIDPair
 	if compilationAlbumArtist {
 		formattedAlbumArtist, allAlbumArtistIDs = formatMultipleArtists(albumArtist)
 	}
@@ -183,7 +190,7 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 		Duration:   float64(properties.Length),
 		BitRate:    int(properties.Bitrate),
 		Channels:   int(properties.Channels),
-	}
+	}, compilationArtist
 }
 
 func (e *AudioMetadataExtractorTaglib) buildAlbum(
@@ -197,13 +204,13 @@ func (e *AudioMetadataExtractorTaglib) buildAlbum(
 
 	compilationArtist := e.hasMultipleArtists(artistTag)
 	formattedArtist := artistTag
-	var allArtistIDs []string
+	var allArtistIDs []scene_audio_db_models.ArtistIDPair
 	if compilationArtist {
 		formattedArtist, allArtistIDs = formatMultipleArtists(artistTag)
 	}
 	compilationAlbumArtist := e.hasMultipleArtists(albumArtist)
 	formattedAlbumArtist := albumArtist
-	var allAlbumArtistIDs []string
+	var allAlbumArtistIDs []scene_audio_db_models.ArtistIDPair
 	if compilationAlbumArtist {
 		formattedAlbumArtist, allAlbumArtistIDs = formatMultipleArtists(albumArtist)
 	}
@@ -246,8 +253,21 @@ func (e *AudioMetadataExtractorTaglib) buildArtist(
 	tags map[string][]string,
 	now time.Time,
 	artistID primitive.ObjectID,
+	artistName string,
 ) *scene_audio_db_models.ArtistMetadata {
-	artistTag := e.getTagString(tags, taglib.Artist)
+	var artistTag string
+	if artistName != "" {
+		artistTag = artistName
+	} else {
+		artistTag = e.getTagString(tags, taglib.Artist)
+	}
+
+	compilationArtist := e.hasMultipleArtists(artistTag)
+	formattedArtist := artistTag
+	var allArtistIDs []scene_audio_db_models.ArtistIDPair
+	if compilationArtist {
+		formattedArtist, allArtistIDs = formatMultipleArtists(artistTag)
+	}
 
 	return &scene_audio_db_models.ArtistMetadata{
 		// 系统保留字段 (综合)
@@ -256,14 +276,17 @@ func (e *AudioMetadataExtractorTaglib) buildArtist(
 		UpdatedAt: now,
 
 		// 基础元数据 (综合)
-		Name:       artistTag,
+		Name:       formattedArtist,
 		AlbumCount: 0,
 		SongCount:  0,
 		Size:       0,
 
+		// 关系ID索引(复合艺术家)
+		AllArtistIDs: allArtistIDs,
+
 		// 索引排序信息
-		SortArtistName:  e.getSortArtistName(artistTag),
-		OrderArtistName: e.getOrderArtistName(artistTag),
+		SortArtistName:  e.getSortArtistName(formattedArtist),
+		OrderArtistName: e.getOrderArtistName(formattedArtist),
 	}
 }
 
@@ -282,7 +305,7 @@ func (e *AudioMetadataExtractorTaglib) hasMultipleArtists(artist string) bool {
 	return false
 }
 
-func formatMultipleArtists(artistTag string) (string, []string) {
+func formatMultipleArtists(artistTag string) (string, []scene_audio_db_models.ArtistIDPair) {
 	separators := []string{"//", "/", ",", "&", ";"}
 	currentList := []string{artistTag}
 
@@ -310,12 +333,16 @@ func formatMultipleArtists(artistTag string) (string, []string) {
 
 	joinedArtists := strings.Join(dedupedList, "、")
 
-	allArtistIDs := make([]string, len(dedupedList))
+	allArtistPairs := make([]scene_audio_db_models.ArtistIDPair, len(dedupedList))
 	for i, artist := range dedupedList {
-		allArtistIDs[i] = generateDeterministicID(artist).Hex()
+		artistID := generateDeterministicID(artist).Hex()
+		allArtistPairs[i] = scene_audio_db_models.ArtistIDPair{
+			ArtistName: artist,
+			ArtistID:   artistID,
+		}
 	}
 
-	return joinedArtists, allArtistIDs
+	return joinedArtists, allArtistPairs
 }
 
 func (e *AudioMetadataExtractorTaglib) cleanText(text string) string {

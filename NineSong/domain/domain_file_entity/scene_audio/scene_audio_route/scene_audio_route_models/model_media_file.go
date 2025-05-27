@@ -1,6 +1,7 @@
 package scene_audio_route_models
 
 import (
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -26,6 +27,9 @@ type MediaFileMetadata struct {
 	UpdatedAt     time.Time          `bson:"updated_at"`
 	AlbumArtistID string             `bson:"album_artist_id"`
 	Channels      int                `bson:"channels"`
+
+	AllArtistIDs      []scene_audio_db_models.ArtistIDPair `bson:"all_artist_ids"`       // 所有参与艺术家的唯一标识符列表
+	AllAlbumArtistIDs []scene_audio_db_models.ArtistIDPair `bson:"all_album_artist_ids"` // 所有参与专辑艺术家的唯一标识符列表
 
 	PlayCount int       `bson:"play_count"`
 	PlayDate  time.Time `bson:"play_date"`

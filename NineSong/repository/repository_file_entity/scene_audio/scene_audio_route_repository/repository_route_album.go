@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type albumRepository struct {
@@ -29,6 +30,8 @@ func (r *albumRepository) GetAlbumItems(
 	start, end, sort, order, search, starred, artistId string,
 	minYear, maxYear string,
 ) ([]scene_audio_route_models.AlbumMetadata, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
 	coll := r.db.Collection(r.collection)
 
 	// 构建完整聚合管道

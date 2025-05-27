@@ -1,6 +1,7 @@
 package scene_audio_route_models
 
 import (
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
@@ -12,6 +13,9 @@ type ArtistMetadata struct {
 	SongCount   int                `bson:"song_count"`
 	Size        int                `bson:"size"`
 	HasCoverArt bool               `bson:"has_cover_art"`
+
+	AllArtistIDs      []scene_audio_db_models.ArtistIDPair `bson:"all_artist_ids"`       // 所有参与艺术家的唯一标识符列表
+	AllAlbumArtistIDs []scene_audio_db_models.ArtistIDPair `bson:"all_album_artist_ids"` // 所有参与专辑艺术家的唯一标识符列表
 
 	ImageFiles string `bson:"image_files"` // 为空则不存在cover封面，从媒体文件中提取
 

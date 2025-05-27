@@ -290,18 +290,13 @@ func buildMediaMatch(search, starred, albumId, artistId, year string) bson.D {
 
 func validateMediaSortField(sort string) string {
 	sortMappings := map[string]string{
-		"title":                   "sort_title",
-		"album":                   "sort_album_name",
-		"artist":                  "sort_artist_name",
-		"album_artist":            "sort_album_artist_name",
-		"order_title":             "order_title",
-		"order_album_name":        "order_album_name",
-		"order_artist_name":       "order_artist_name",
-		"order_album_artist_name": "order_album_artist_name",
-
-		"play_count": "play_count",
-		"year":       "year",
-		"duration":   "duration",
+		"title":        "order_title",
+		"album":        "order_album_name",
+		"artist":       "order_artist_name",
+		"album_artist": "order_album_artist_name",
+		"play_count":   "play_count",
+		"year":         "year",
+		"duration":     "duration",
 	}
 
 	if strings.ToLower(sort) == "_id" {

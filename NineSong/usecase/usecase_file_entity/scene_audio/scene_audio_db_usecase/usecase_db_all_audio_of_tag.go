@@ -106,13 +106,13 @@ func (e *AudioMetadataExtractorTag) buildMediaFile(
 
 	compilationArtist := e.hasMultipleArtists(m.Artist())
 	formattedArtist := m.Artist()
-	var allArtistIDs []string
+	var allArtistIDs []scene_audio_db_models.ArtistIDPair
 	if compilationArtist {
 		formattedArtist, allArtistIDs = formatMultipleArtists(m.Artist())
 	}
 	compilationAlbumArtist := e.hasMultipleArtists(m.AlbumArtist())
 	formattedAlbumArtist := m.AlbumArtist()
-	var allAlbumArtistIDs []string
+	var allAlbumArtistIDs []scene_audio_db_models.ArtistIDPair
 	if compilationAlbumArtist {
 		formattedAlbumArtist, allAlbumArtistIDs = formatMultipleArtists(m.AlbumArtist())
 	}
@@ -188,13 +188,13 @@ func (e *AudioMetadataExtractorTag) buildAlbum(
 ) *scene_audio_db_models.AlbumMetadata {
 	compilationArtist := e.hasMultipleArtists(m.Artist())
 	formattedArtist := m.Artist()
-	var allArtistIDs []string
+	var allArtistIDs []scene_audio_db_models.ArtistIDPair
 	if compilationArtist {
 		formattedArtist, allArtistIDs = formatMultipleArtists(m.Artist())
 	}
 	compilationAlbumArtist := e.hasMultipleArtists(m.AlbumArtist())
 	formattedAlbumArtist := m.AlbumArtist()
-	var allAlbumArtistIDs []string
+	var allAlbumArtistIDs []scene_audio_db_models.ArtistIDPair
 	if compilationAlbumArtist {
 		formattedAlbumArtist, allAlbumArtistIDs = formatMultipleArtists(m.AlbumArtist())
 	}

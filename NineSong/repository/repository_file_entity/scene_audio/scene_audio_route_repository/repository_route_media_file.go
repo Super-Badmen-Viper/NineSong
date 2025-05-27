@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type mediaFileRepository struct {
@@ -28,7 +29,8 @@ func (r *mediaFileRepository) GetMediaFileItems(
 	ctx context.Context,
 	start, end, sort, order, search, starred, albumId, artistId, year string,
 ) ([]scene_audio_route_models.MediaFileMetadata, error) {
-
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
 	coll := r.db.Collection(r.collection)
 
 	// 构建聚合管道（完全使用bson.D结构）
@@ -200,26 +202,21 @@ func extractCount(data []map[string]int) int {
 
 func validateSortField(sort string) string {
 	sortMappings := map[string]string{
-		"title":                   "sort_title",
-		"album":                   "sort_album_name",
-		"artist":                  "sort_artist_name",
-		"album_artist":            "sort_album_artist_name",
-		"order_title":             "order_title",
-		"order_album_name":        "order_album_name",
-		"order_artist_name":       "order_artist_name",
-		"order_album_artist_name": "order_album_artist_name",
-
-		"year":       "year",
-		"rating":     "rating",
-		"starred_at": "starred_at",
-		"genre":      "genre",
-		"play_count": "play_count",
-		"play_date":  "play_date",
-		"duration":   "duration",
-		"bit_rate":   "bit_rate",
-		"size":       "size",
-		"created_at": "created_at",
-		"updated_at": "updated_at",
+		"title":        "order_title",
+		"album":        "order_album_name",
+		"artist":       "order_artist_name",
+		"album_artist": "order_album_artist_name",
+		"year":         "year",
+		"rating":       "rating",
+		"starred_at":   "starred_at",
+		"genre":        "genre",
+		"play_count":   "play_count",
+		"play_date":    "play_date",
+		"duration":     "duration",
+		"bit_rate":     "bit_rate",
+		"size":         "size",
+		"created_at":   "created_at",
+		"updated_at":   "updated_at",
 	}
 
 	if mapped, ok := sortMappings[strings.ToLower(sort)]; ok {
