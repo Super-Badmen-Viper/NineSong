@@ -105,13 +105,15 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 
 	compilationArtist := e.hasMultipleArtists(artistTag)
 	formattedArtist := artistTag
+	var allArtistIDs []string
 	if compilationArtist {
-		formattedArtist = formatMultipleArtists(artistTag)
+		formattedArtist, allArtistIDs = formatMultipleArtists(artistTag)
 	}
 	compilationAlbumArtist := e.hasMultipleArtists(albumArtist)
 	formattedAlbumArtist := albumArtist
+	var allAlbumArtistIDs []string
 	if compilationAlbumArtist {
-		formattedAlbumArtist = formatMultipleArtists(albumArtist)
+		formattedAlbumArtist, allAlbumArtistIDs = formatMultipleArtists(albumArtist)
 	}
 
 	title := e.cleanText(titleTag)
@@ -156,12 +158,14 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 		Compilation: compilationArtist,
 
 		// 基础元数据: 关系ID索引
-		ArtistID:      artistID.Hex(),
-		AlbumID:       albumID.Hex(),
-		AlbumArtistID: albumArtistID.Hex(),
-		MvID:          "",
-		KaraokeID:     "",
-		LyricsID:      "",
+		ArtistID:          artistID.Hex(),
+		AlbumID:           albumID.Hex(),
+		AlbumArtistID:     albumArtistID.Hex(),
+		AllArtistIDs:      allArtistIDs,
+		AllAlbumArtistIDs: allAlbumArtistIDs,
+		MvID:              "",
+		KaraokeID:         "",
+		LyricsID:          "",
 
 		// 基础元数据: 索引排序信息
 		Index:                0,
@@ -193,13 +197,15 @@ func (e *AudioMetadataExtractorTaglib) buildAlbum(
 
 	compilationArtist := e.hasMultipleArtists(artistTag)
 	formattedArtist := artistTag
+	var allArtistIDs []string
 	if compilationArtist {
-		formattedArtist = formatMultipleArtists(artistTag)
+		formattedArtist, allArtistIDs = formatMultipleArtists(artistTag)
 	}
 	compilationAlbumArtist := e.hasMultipleArtists(albumArtist)
 	formattedAlbumArtist := albumArtist
+	var allAlbumArtistIDs []string
 	if compilationAlbumArtist {
-		formattedAlbumArtist = formatMultipleArtists(albumArtist)
+		formattedAlbumArtist, allAlbumArtistIDs = formatMultipleArtists(albumArtist)
 	}
 
 	return &scene_audio_db_models.AlbumMetadata{
@@ -222,9 +228,10 @@ func (e *AudioMetadataExtractorTaglib) buildAlbum(
 		MaxYear:     e.getTagInt(tags, taglib.Date),
 
 		// 关系ID索引
-		ArtistID:      artistID.Hex(),
-		AlbumArtistID: albumArtistID.Hex(),
-		AllArtistIDs:  "",
+		ArtistID:          artistID.Hex(),
+		AlbumArtistID:     albumArtistID.Hex(),
+		AllArtistIDs:      allArtistIDs,
+		AllAlbumArtistIDs: allAlbumArtistIDs,
 
 		// 索引排序信息
 		SortAlbumName:        e.getSortAlbumName(albumTag),
@@ -275,7 +282,7 @@ func (e *AudioMetadataExtractorTaglib) hasMultipleArtists(artist string) bool {
 	return false
 }
 
-func formatMultipleArtists(artistTag string) string {
+func formatMultipleArtists(artistTag string) (string, []string) {
 	separators := []string{"//", "/", ",", "&", ";"}
 	currentList := []string{artistTag}
 
@@ -291,7 +298,24 @@ func formatMultipleArtists(artistTag string) string {
 		}
 		currentList = newList
 	}
-	return strings.Join(currentList, "、")
+
+	uniqueArtists := make(map[string]struct{})
+	var dedupedList []string
+	for _, artist := range currentList {
+		if _, exists := uniqueArtists[artist]; !exists {
+			uniqueArtists[artist] = struct{}{}
+			dedupedList = append(dedupedList, artist)
+		}
+	}
+
+	joinedArtists := strings.Join(dedupedList, "、")
+
+	allArtistIDs := make([]string, len(dedupedList))
+	for i, artist := range dedupedList {
+		allArtistIDs[i] = generateDeterministicID(artist).Hex()
+	}
+
+	return joinedArtists, allArtistIDs
 }
 
 func (e *AudioMetadataExtractorTaglib) cleanText(text string) string {

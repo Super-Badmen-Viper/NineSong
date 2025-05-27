@@ -212,7 +212,7 @@ func (r *albumRepository) ResetField(
 
 	filter := bson.M{}
 
-	update := bson.M{"$set": bson.M{field: 0}}
+	update := bson.M{"$set": bson.M{field: ""}}
 
 	result, err := coll.UpdateMany(
 		ctx,

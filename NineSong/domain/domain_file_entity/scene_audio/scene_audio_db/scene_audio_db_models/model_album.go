@@ -25,9 +25,10 @@ type AlbumMetadata struct {
 	MaxYear     int     `bson:"max_year"`     // 专辑中歌曲的最晚发行年份
 
 	// 关系ID索引
-	ArtistID      string `bson:"artist_id"`       // 艺术家在系统中的唯一标识符
-	AlbumArtistID string `bson:"album_artist_id"` // 专辑艺术家在系统中的唯一标识符
-	AllArtistIDs  string `bson:"all_artist_ids"`  // 所有参与艺术家的唯一标识符列表
+	ArtistID          string   `bson:"artist_id"`            // 艺术家在系统中的唯一标识符
+	AlbumArtistID     string   `bson:"album_artist_id"`      // 专辑艺术家在系统中的唯一标识符
+	AllArtistIDs      []string `bson:"all_artist_ids"`       // 所有参与艺术家的唯一标识符列表
+	AllAlbumArtistIDs []string `bson:"all_album_artist_ids"` // 所有参与专辑艺术家的唯一标识符列表
 
 	// 索引排序信息
 	OrderAlbumName       string `bson:"order_album_name"`        // 排序用专辑名称（忽略冠词，便于排序）

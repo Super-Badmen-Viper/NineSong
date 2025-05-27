@@ -34,16 +34,17 @@ type MediaFileMetadata struct {
 	Compilation bool   `bson:"compilation"`  // 是否为合辑（多艺术家作品合集）
 
 	// 基础元数据: 关系ID索引
-	ArtistID      string `bson:"artist_id"`       // 艺术家在系统中的唯一标识符
-	AlbumID       string `bson:"album_id"`        // 专辑在系统中的唯一标识符
-	AlbumArtistID string `bson:"album_artist_id"` // 专辑艺术家在系统中的唯一标识符
-	AllArtistIDs  string `bson:"all_artist_ids"`  // 所有参与艺术家的唯一标识符列表
-	MvID          string `bson:"mv_id"`           // 音频对应的音乐视频唯一标识符（如有）
-	KaraokeID     string `bson:"karaoke_id"`      // 音频对应的卡拉 OK 版本唯一标识符（如有）
-	LyricsID      string `bson:"lyrics_id"`       // 歌词文件的唯一标识符（如有）
-	MusicID       string `bson:"music_id"`        // 音频对应的乐谱唯一标识符（如有）
-	GeneratorID   string `bson:"generator_id"`    // 该音频生成的参数类型（如有）
-	TransformsID  string `bson:"transforms_id"`   // 该音频转换的数据类型（如有）
+	ArtistID          string   `bson:"artist_id"`            // 艺术家在系统中的唯一标识符
+	AlbumID           string   `bson:"album_id"`             // 专辑在系统中的唯一标识符
+	AlbumArtistID     string   `bson:"album_artist_id"`      // 专辑艺术家在系统中的唯一标识符
+	AllArtistIDs      []string `bson:"all_artist_ids"`       // 所有参与艺术家的唯一标识符列表
+	AllAlbumArtistIDs []string `bson:"all_album_artist_ids"` // 所有参与专辑艺术家的唯一标识符列表
+	MvID              string   `bson:"mv_id"`                // 音频对应的音乐视频唯一标识符（如有）
+	KaraokeID         string   `bson:"karaoke_id"`           // 音频对应的卡拉 OK 版本唯一标识符（如有）
+	LyricsID          string   `bson:"lyrics_id"`            // 歌词文件的唯一标识符（如有）
+	MusicID           string   `bson:"music_id"`             // 音频对应的乐谱唯一标识符（如有）
+	GeneratorID       string   `bson:"generator_id"`         // 该音频生成的参数类型（如有）
+	TransformsID      string   `bson:"transforms_id"`        // 该音频转换的数据类型（如有）
 
 	// 基础元数据: 索引排序信息
 	Index                int    `bson:"index" json:"Index"`      // 索引值，可用于排序或其他用途

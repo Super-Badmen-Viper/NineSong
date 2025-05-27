@@ -114,6 +114,10 @@ func (uc *FileUsecase) ProcessDirectory(ctx context.Context, dirPath string, tar
 	if err != nil {
 		return err
 	}
+	_, err = uc.albumRepo.ResetField(ctx, "AllArtistIDs")
+	if err != nil {
+		return err
+	}
 	_, err = uc.artistRepo.ResetALLField(ctx)
 	if err != nil {
 		return err
@@ -589,9 +593,8 @@ func (uc *FileUsecase) updateAudioAlbumMetadata(ctx context.Context, album *scen
 	}
 
 	filter := bson.M{
-		"name":            album.Name,
-		"album_artist_id": album.AlbumArtistID,
-		"min_year":        album.MinYear,
+		"_id":  album.ID,
+		"name": album.Name,
 	}
 
 	existing, err := uc.albumRepo.GetByFilter(ctx, filter)

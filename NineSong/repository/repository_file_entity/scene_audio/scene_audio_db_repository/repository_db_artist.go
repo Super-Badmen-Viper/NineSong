@@ -169,7 +169,7 @@ func (r *artistRepository) ResetField(
 
 	filter := bson.M{}
 
-	update := bson.M{"$set": bson.M{field: 0}}
+	update := bson.M{"$set": bson.M{field: ""}}
 
 	result, err := coll.UpdateMany(
 		ctx,

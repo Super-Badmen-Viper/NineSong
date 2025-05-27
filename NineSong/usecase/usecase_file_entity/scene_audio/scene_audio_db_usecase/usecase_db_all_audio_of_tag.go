@@ -106,15 +106,15 @@ func (e *AudioMetadataExtractorTag) buildMediaFile(
 
 	compilationArtist := e.hasMultipleArtists(m.Artist())
 	formattedArtist := m.Artist()
+	var allArtistIDs []string
 	if compilationArtist {
-		formattedArtist = regexp.MustCompile(`[/,&;\\s]+`).ReplaceAllString(strings.TrimSpace(m.Artist()), " ")
-		formattedArtist = regexp.MustCompile(`\s+`).ReplaceAllString(formattedArtist, "、")
+		formattedArtist, allArtistIDs = formatMultipleArtists(m.Artist())
 	}
 	compilationAlbumArtist := e.hasMultipleArtists(m.AlbumArtist())
 	formattedAlbumArtist := m.AlbumArtist()
+	var allAlbumArtistIDs []string
 	if compilationAlbumArtist {
-		formattedAlbumArtist = regexp.MustCompile(`[/,&;\\s]+`).ReplaceAllString(strings.TrimSpace(m.AlbumArtist()), " ")
-		formattedAlbumArtist = regexp.MustCompile(`\s+`).ReplaceAllString(formattedAlbumArtist, "、")
+		formattedAlbumArtist, allAlbumArtistIDs = formatMultipleArtists(m.AlbumArtist())
 	}
 
 	title := e.cleanText(m.Title())
@@ -159,12 +159,14 @@ func (e *AudioMetadataExtractorTag) buildMediaFile(
 		Compilation: compilationArtist,
 
 		// 基础元数据: 关系ID索引
-		ArtistID:      artistID.Hex(),
-		AlbumID:       albumID.Hex(),
-		AlbumArtistID: albumArtistID.Hex(),
-		MvID:          "",
-		KaraokeID:     "",
-		LyricsID:      "",
+		ArtistID:          artistID.Hex(),
+		AlbumID:           albumID.Hex(),
+		AlbumArtistID:     albumArtistID.Hex(),
+		AllArtistIDs:      allArtistIDs,
+		AllAlbumArtistIDs: allAlbumArtistIDs,
+		MvID:              "",
+		KaraokeID:         "",
+		LyricsID:          "",
 
 		// 基础元数据: 索引排序信息
 		Index:                0,
@@ -186,13 +188,15 @@ func (e *AudioMetadataExtractorTag) buildAlbum(
 ) *scene_audio_db_models.AlbumMetadata {
 	compilationArtist := e.hasMultipleArtists(m.Artist())
 	formattedArtist := m.Artist()
+	var allArtistIDs []string
 	if compilationArtist {
-		formattedArtist = formatMultipleArtists(m.Artist())
+		formattedArtist, allArtistIDs = formatMultipleArtists(m.Artist())
 	}
 	compilationAlbumArtist := e.hasMultipleArtists(m.AlbumArtist())
 	formattedAlbumArtist := m.AlbumArtist()
+	var allAlbumArtistIDs []string
 	if compilationAlbumArtist {
-		formattedAlbumArtist = formatMultipleArtists(m.AlbumArtist())
+		formattedAlbumArtist, allAlbumArtistIDs = formatMultipleArtists(m.AlbumArtist())
 	}
 
 	return &scene_audio_db_models.AlbumMetadata{
@@ -215,9 +219,10 @@ func (e *AudioMetadataExtractorTag) buildAlbum(
 		MaxYear:     m.Year(),
 
 		// 关系ID索引
-		ArtistID:      artistID.Hex(),
-		AlbumArtistID: albumArtistID.Hex(),
-		AllArtistIDs:  "",
+		ArtistID:          artistID.Hex(),
+		AlbumArtistID:     albumArtistID.Hex(),
+		AllArtistIDs:      allArtistIDs,
+		AllAlbumArtistIDs: allAlbumArtistIDs,
 
 		// 索引排序信息
 		OrderAlbumName:       e.getOrderAlbumName(m.Album()),
