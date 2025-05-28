@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+// 已弃用，因为支持的媒体类型太少，而且跟C#的Taglib转译/重构没啥关系
 func (e *AudioMetadataExtractorTag) Extract(
 	path string,
 	fileMetadata *domain_file_entity.FileMetadata,
@@ -258,11 +259,6 @@ func (e *AudioMetadataExtractorTag) buildArtist(
 
 type AudioMetadataExtractorTag struct {
 	mediaID primitive.ObjectID
-}
-
-func generateDeterministicID(seed string) primitive.ObjectID {
-	hash := sha256.Sum256([]byte(seed))
-	return primitive.ObjectID(hash[:12])
 }
 
 func (e *AudioMetadataExtractorTag) hasMultipleArtists(artist string) bool {

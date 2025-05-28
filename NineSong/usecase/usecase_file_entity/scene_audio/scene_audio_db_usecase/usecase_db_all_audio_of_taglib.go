@@ -1,6 +1,7 @@
 package scene_audio_db_usecase
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"fmt"
 	"io"
@@ -338,8 +339,20 @@ type AudioMetadataExtractorTaglib struct {
 	mediaID primitive.ObjectID
 }
 
+func generateDeterministicID(seed string) primitive.ObjectID {
+	hash := sha256.Sum256([]byte(seed))
+
+	randomBytes := make([]byte, 2)
+	if _, err := rand.Read(randomBytes); err != nil {
+		return primitive.ObjectID(hash[:12])
+	}
+
+	combined := append(hash[:10], randomBytes...)
+	return primitive.ObjectID(combined)
+}
+
 func (e *AudioMetadataExtractorTaglib) hasMultipleArtists(artist string) bool {
-	separators := []string{"|", "/", "//", ",", "，", "&", ";", "; ", "、"}
+	separators := []string{"|", "｜", "/", "//", ",", "，", "&", ";", "; ", "、"}
 	artist = strings.TrimSpace(artist)
 	for _, sep := range separators {
 		if strings.Contains(artist, sep) {
@@ -350,7 +363,7 @@ func (e *AudioMetadataExtractorTaglib) hasMultipleArtists(artist string) bool {
 }
 
 func formatMultipleArtists(artistTag string) (string, []scene_audio_db_models.ArtistIDPair) {
-	separators := []string{"|", "/", "//", ",", "，", "&", ";", "; ", "、"}
+	separators := []string{"|", "｜", "/", "//", ",", "，", "&", ";", "; ", "、"}
 	currentList := []string{artistTag}
 
 	for _, sep := range separators {
