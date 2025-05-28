@@ -16,7 +16,7 @@ func NewArtistRouter(
 	db mongo.Database,
 	group *gin.RouterGroup,
 ) {
-	repo := scene_audio_route_repository.NewArtistRepository(db, domain.CollectionFileEntityAudioArtist)
+	repo := scene_audio_route_repository.NewArtistRepository(db, domain.CollectionFileEntityAudioSceneArtist)
 
 	usecase := scene_audio_route_usecase.NewArtistUsecase(repo, timeout)
 	ctrl := scene_audio_route_api_controller.NewArtistController(usecase)

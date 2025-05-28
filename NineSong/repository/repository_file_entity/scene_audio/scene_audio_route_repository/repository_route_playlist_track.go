@@ -49,7 +49,7 @@ func (r *playlistTrackRepository) GetPlaylistTrackItems(
 		// 关联媒体文件
 		{
 			{Key: "$lookup", Value: bson.D{
-				{Key: "from", Value: domain.CollectionFileEntityAudioMediaFile},
+				{Key: "from", Value: domain.CollectionFileEntityAudioSceneMediaFile},
 				{Key: "localField", Value: "media_file_id"},
 				{Key: "foreignField", Value: "_id"},
 				{Key: "as", Value: "media_file"},
@@ -64,7 +64,7 @@ func (r *playlistTrackRepository) GetPlaylistTrackItems(
 		// 关联注解数据
 		{
 			{Key: "$lookup", Value: bson.D{
-				{Key: "from", Value: domain.CollectionFileEntityAudioAnnotation},
+				{Key: "from", Value: domain.CollectionFileEntityAudioSceneAnnotation},
 				{Key: "let", Value: bson.D{{Key: "mediaId", Value: "$media_file._id"}}},
 				{Key: "pipeline", Value: []bson.D{
 					{
@@ -153,7 +153,7 @@ func (r *playlistTrackRepository) GetPlaylistTrackFilterItemsCount(
 	pipeline := []bson.D{
 		{
 			{Key: "$lookup", Value: bson.D{
-				{Key: "from", Value: domain.CollectionFileEntityAudioMediaFile},
+				{Key: "from", Value: domain.CollectionFileEntityAudioSceneMediaFile},
 				{Key: "localField", Value: "media_file_id"},
 				{Key: "foreignField", Value: "_id"},
 				{Key: "as", Value: "media_file"},
@@ -167,7 +167,7 @@ func (r *playlistTrackRepository) GetPlaylistTrackFilterItemsCount(
 		},
 		{
 			{Key: "$lookup", Value: bson.D{
-				{Key: "from", Value: domain.CollectionFileEntityAudioAnnotation},
+				{Key: "from", Value: domain.CollectionFileEntityAudioSceneAnnotation},
 				{Key: "let", Value: bson.D{{Key: "mediaId", Value: "$media_file._id"}}},
 				{Key: "pipeline", Value: []bson.D{
 					{

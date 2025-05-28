@@ -70,24 +70,33 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 		formattedAlbumArtist, allAlbumArtistIDs,
 	)
 
+	// 这是NineSong面向音乐场景的业务特性，默认为单体艺术家，并探索其相关业务逻辑的用户友好性与数据管理增强
 	var artist []*scene_audio_db_models.ArtistMetadata
 	if compilationArtist {
-		for _, artistIDPair := range mediaFile.AllArtistIDs {
+		for index, artistIDPair := range mediaFile.AllArtistIDs {
+			if index == 0 {
+				// 出现复合艺术家的情况，那么单曲-专辑的艺术家ID，应该为主艺术家的ID，而不是复合艺术家的复合ID
+				mediaFile.ArtistID = artistIDPair.ArtistID
+				album.ArtistID = artistIDPair.ArtistID
+			}
 			artistId, _ := primitive.ObjectIDFromHex(artistIDPair.ArtistID)
-			artist = append(artist, e.buildArtist(
-				now, artistId, artistIDPair.ArtistName,
+			artist = append(
+				artist, e.buildArtist(
+					now, artistId, artistIDPair.ArtistName,
+					compilationArtist,
+					formattedArtist, allArtistIDs,
+				),
+			)
+		}
+	} else {
+		artist = append(
+			artist, e.buildArtist(
+				now, artistID, "",
 				compilationArtist,
 				formattedArtist, allArtistIDs,
 			),
-			)
-		}
+		)
 	}
-	artist = append(artist, e.buildArtist(
-		now, artistID, "",
-		compilationArtist,
-		formattedArtist, allArtistIDs,
-	),
-	)
 
 	return mediaFile, album, artist, nil
 }
@@ -162,11 +171,17 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 			ArtistID:   artistID.Hex(),
 		})
 	}
+
 	compilationAlbumArtist := e.hasMultipleArtists(albumArtistTag)
 	formattedAlbumArtist := albumArtistTag
 	var allAlbumArtistIDs []scene_audio_db_models.ArtistIDPair
 	if compilationAlbumArtist {
 		formattedAlbumArtist, allAlbumArtistIDs = formatMultipleArtists(albumArtistTag)
+	} else {
+		allAlbumArtistIDs = append(allAlbumArtistIDs, scene_audio_db_models.ArtistIDPair{
+			ArtistName: albumArtistTag,
+			ArtistID:   albumArtistID.Hex(),
+		})
 	}
 
 	title := e.cleanText(titleTag)
@@ -324,7 +339,7 @@ type AudioMetadataExtractorTaglib struct {
 }
 
 func (e *AudioMetadataExtractorTaglib) hasMultipleArtists(artist string) bool {
-	separators := []string{"|", "/", ",", "&", ";", "; ", "//"}
+	separators := []string{"|", "/", "//", ",", "，", "&", ";", "; ", "、"}
 	artist = strings.TrimSpace(artist)
 	for _, sep := range separators {
 		if strings.Contains(artist, sep) {
@@ -335,7 +350,7 @@ func (e *AudioMetadataExtractorTaglib) hasMultipleArtists(artist string) bool {
 }
 
 func formatMultipleArtists(artistTag string) (string, []scene_audio_db_models.ArtistIDPair) {
-	separators := []string{"//", "/", "|", ",", "&", ";", "; "}
+	separators := []string{"|", "/", "//", ",", "，", "&", ";", "; ", "、"}
 	currentList := []string{artistTag}
 
 	for _, sep := range separators {

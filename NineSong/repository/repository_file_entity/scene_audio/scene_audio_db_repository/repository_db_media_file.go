@@ -161,3 +161,49 @@ func (r *mediaFileRepository) UpdateByID(ctx context.Context, id primitive.Objec
 
 	return true, nil
 }
+
+func (r *mediaFileRepository) AlbumCountByArtist(
+	ctx context.Context,
+	artistID string,
+) (int64, error) {
+	coll := r.db.Collection(r.collection)
+
+	filter := bson.M{
+		"$or": []bson.M{
+			{"artist_id": artistID},
+		},
+	}
+
+	count, err := coll.CountDocuments(ctx, filter)
+	if err != nil {
+		return 0, fmt.Errorf("统计艺术家专辑数量失败: %w", err)
+	}
+
+	return count, nil
+}
+
+func (r *mediaFileRepository) GuestAlbumCountByArtist(
+	ctx context.Context,
+	artistID string,
+) (int64, error) {
+	coll := r.db.Collection(r.collection)
+
+	// 构造复合查询条件
+	filter := bson.M{
+		"$and": []bson.M{
+			{"artist_id": bson.M{"$ne": artistID}}, // 排除主导者[3](@ref)
+			{"all_artist_ids": bson.M{ // 匹配合作者[4](@ref)
+				"$elemMatch": bson.M{
+					"artist_id": artistID,
+				},
+			}},
+		},
+	}
+
+	count, err := coll.CountDocuments(ctx, filter)
+	if err != nil {
+		return 0, fmt.Errorf("统计合作专辑失败: %w", err)
+	}
+
+	return count, nil
+}

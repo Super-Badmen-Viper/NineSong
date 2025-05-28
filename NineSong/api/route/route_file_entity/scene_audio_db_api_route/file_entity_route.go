@@ -19,10 +19,10 @@ func NewFileEntityRouter(timeout time.Duration, db mongo.Database, group *gin.Ro
 	folderRepo := repository_file_entity.NewFolderRepo(db, domain.CollectionFileEntityFolderInfo)
 	detector := &domain_file_entity.FileDetectorImpl{}
 
-	artistRepo := scene_audio_db_repository.NewArtistRepository(db, domain.CollectionFileEntityAudioArtist)
-	albumRepo := scene_audio_db_repository.NewAlbumRepository(db, domain.CollectionFileEntityAudioAlbum)
-	mediaRepo := scene_audio_db_repository.NewMediaFileRepository(db, domain.CollectionFileEntityAudioMediaFile)
-	tempRepo := scene_audio_db_repository.NewTempRepository(db, domain.CollectionFileEntityAudioTempMetadata)
+	artistRepo := scene_audio_db_repository.NewArtistRepository(db, domain.CollectionFileEntityAudioSceneArtist)
+	albumRepo := scene_audio_db_repository.NewAlbumRepository(db, domain.CollectionFileEntityAudioSceneAlbum)
+	mediaRepo := scene_audio_db_repository.NewMediaFileRepository(db, domain.CollectionFileEntityAudioSceneMediaFile)
+	tempRepo := scene_audio_db_repository.NewTempRepository(db, domain.CollectionFileEntityAudioSceneTempMetadata)
 	// 构建用例（新增超时参数）
 	uc := usecase_file_entity.NewFileUsecase(
 		fileRepo,

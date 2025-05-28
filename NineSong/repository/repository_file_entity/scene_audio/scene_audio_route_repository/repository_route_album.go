@@ -38,7 +38,7 @@ func (r *albumRepository) GetAlbumItems(
 	pipeline := []bson.D{
 		{
 			{Key: "$lookup", Value: bson.D{
-				{Key: "from", Value: domain.CollectionFileEntityAudioAnnotation},
+				{Key: "from", Value: domain.CollectionFileEntityAudioSceneAnnotation},
 				{Key: "let", Value: bson.D{{Key: "albumId", Value: "$_id"}}},
 				{Key: "pipeline", Value: []bson.D{
 					{
@@ -120,7 +120,7 @@ func (r *albumRepository) GetAlbumFilterItemsCount(
 	pipeline := []bson.D{
 		{
 			{Key: "$lookup", Value: bson.D{
-				{Key: "from", Value: domain.CollectionFileEntityAudioAnnotation},
+				{Key: "from", Value: domain.CollectionFileEntityAudioSceneAnnotation},
 				{Key: "let", Value: bson.D{{Key: "albumId", Value: "$_id"}}},
 				{Key: "pipeline", Value: []bson.D{
 					{

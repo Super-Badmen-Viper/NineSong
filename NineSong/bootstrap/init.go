@@ -33,30 +33,30 @@ func NewInitializer(env *Env, db mongo.Database) *Initializer {
 		db:  db,
 		requiredCollections: []string{
 			"system_init",
-			domain.CollectionAppConfigs,
-			domain.CollectionAppLibraryConfigs,
-			domain.CollectionAppAudioConfigs,
-			domain.CollectionAppUIConfigs,
-			domain.CollectionAppPlaylistIDConfigs,
-			domain.CollectionAppServerConfigs,
-			domain.CollectionAppMediaFileLibrarys,
 			domain.CollectionUser,
 			domain.CollectionTask,
 			domain.CollectionSystemInfo,
 			domain.CollectionSystemConfiguration,
 			domain.CollectionFileEntityFileInfo,
 			domain.CollectionFileEntityFolderInfo,
-			domain.CollectionFileEntityAudioMediaFile,
-			domain.CollectionFileEntityAudioMediaLyricsMetadata,
-			domain.CollectionFileEntityAudioMediaMvMetadata,
-			domain.CollectionFileEntityAudioMediaTrackMetadata,
-			domain.CollectionFileEntityAudioMediaKaraokeMetadata,
-			domain.CollectionFileEntityAudioAlbum,
-			domain.CollectionFileEntityAudioArtist,
-			domain.CollectionFileEntityAudioAnnotation,
-			domain.CollectionFileEntityAudioPlaylist,
-			domain.CollectionFileEntityAudioPlaylistTrack,
-			domain.CollectionFileEntityAudioTempMetadata,
+			domain.CollectionFileEntityAudioAppConfigs,
+			domain.CollectionFileEntityAudioAppLibraryConfigs,
+			domain.CollectionFileEntityAudioAppAudioConfigs,
+			domain.CollectionFileEntityAudioAppUIConfigs,
+			domain.CollectionFileEntityAudioAppPlaylistIDConfigs,
+			domain.CollectionFileEntityAudioAppServerConfigs,
+			domain.CollectionFileEntityAudioAppMediaFileLibrary,
+			domain.CollectionFileEntityAudioSceneMediaFile,
+			domain.CollectionFileEntityAudioSceneMediaLyricsMetadata,
+			domain.CollectionFileEntityAudioSceneMediaMvMetadata,
+			domain.CollectionFileEntityAudioSceneMediaTrackMetadata,
+			domain.CollectionFileEntityAudioSceneMediaKaraokeMetadata,
+			domain.CollectionFileEntityAudioSceneAlbum,
+			domain.CollectionFileEntityAudioSceneArtist,
+			domain.CollectionFileEntityAudioSceneAnnotation,
+			domain.CollectionFileEntityAudioScenePlaylist,
+			domain.CollectionFileEntityAudioScenePlaylistTrack,
+			domain.CollectionFileEntityAudioSceneTempMetadata,
 		},
 	}
 }
@@ -430,7 +430,7 @@ func (si *Initializer) initSystemConfiguration(ctx context.Context, userId primi
 }
 
 func (si *Initializer) initAppConfigs(ctx context.Context) error {
-	coll := si.db.Collection(domain.CollectionAppConfigs)
+	coll := si.db.Collection(domain.CollectionFileEntityAudioAppConfigs)
 
 	initConfigs := []*domain_app_config.AppConfig{
 		{ConfigKey: "theme", ConfigValue: "lightTheme"},
@@ -487,7 +487,7 @@ func (si *Initializer) initAppConfigs(ctx context.Context) error {
 }
 
 func (si *Initializer) initAppLibraryConfigs(ctx context.Context) error {
-	coll := si.db.Collection(domain.CollectionAppLibraryConfigs)
+	coll := si.db.Collection(domain.CollectionFileEntityAudioAppLibraryConfigs)
 
 	initConfigs := []*domain_app_config.AppLibraryConfig{
 		{ConfigKey: "0_Music", ConfigValue: "E:\\0_Music"},
@@ -505,7 +505,7 @@ func (si *Initializer) initAppLibraryConfigs(ctx context.Context) error {
 }
 
 func (si *Initializer) initAppAudioConfigs(ctx context.Context) error {
-	coll := si.db.Collection(domain.CollectionAppAudioConfigs)
+	coll := si.db.Collection(domain.CollectionFileEntityAudioAppAudioConfigs)
 
 	initConfigs := []*domain_app_config.AppAudioConfig{
 		{ConfigKey: "this_audio_file_path", ConfigValue: "http://localhost:4533/rest/stream?u=mozhi&t=be470bc4c1556004e26c4780c0121030&s=9V8he3&v=1.12.0&c=nsmusics&f=json&id=588a1fac45fd3f65c2dae2a13ced3655"},
@@ -542,7 +542,7 @@ func (si *Initializer) initAppAudioConfigs(ctx context.Context) error {
 }
 
 func (si *Initializer) initAppUIConfigs(ctx context.Context) error {
-	coll := si.db.Collection(domain.CollectionAppUIConfigs)
+	coll := si.db.Collection(domain.CollectionFileEntityAudioAppUIConfigs)
 
 	initConfigs := []*domain_app_config.AppUIConfig{
 		{ConfigKey: "player_collapsed_album", ConfigValue: "false"},
@@ -570,7 +570,7 @@ func (si *Initializer) initAppUIConfigs(ctx context.Context) error {
 }
 
 func (si *Initializer) initAppPlaylistIDConfigs(ctx context.Context) error {
-	coll := si.db.Collection(domain.CollectionAppPlaylistIDConfigs)
+	coll := si.db.Collection(domain.CollectionFileEntityAudioAppPlaylistIDConfigs)
 
 	initConfigs := []*domain_app_config.AppPlaylistIDConfig{
 		{ConfigKey: "001dbc8a0d6d4f32b43d8a1abf732213", ConfigValue: "1"},
@@ -615,7 +615,7 @@ func (si *Initializer) initAppPlaylistIDConfigs(ctx context.Context) error {
 }
 
 func (si *Initializer) initAppServerConfigs(ctx context.Context) error {
-	coll := si.db.Collection(domain.CollectionAppServerConfigs)
+	coll := si.db.Collection(domain.CollectionFileEntityAudioAppServerConfigs)
 
 	id, _ := primitive.ObjectIDFromHex("67de9bb764e338bd6fa4b811")
 	initConfigs := []*domain_app_config.AppServerConfig{
@@ -658,7 +658,7 @@ func (si *Initializer) initAppServerConfigs(ctx context.Context) error {
 }
 
 func (si *Initializer) initAppMediaFileLibrary(ctx context.Context) error {
-	coll := si.db.Collection(domain.CollectionAppMediaFileLibrarys)
+	coll := si.db.Collection(domain.CollectionFileEntityAudioAppMediaFileLibrary)
 
 	initConfigs := []*domain_app_library.AppMediaFileLibrary{
 		{
@@ -877,7 +877,7 @@ func (si *Initializer) initFileEntityFolder(ctx context.Context) error {
 }
 
 func (si *Initializer) initFileEntityAudioTempMetadata(ctx context.Context) error {
-	coll := si.db.Collection(domain.CollectionFileEntityAudioTempMetadata)
+	coll := si.db.Collection(domain.CollectionFileEntityAudioSceneTempMetadata)
 
 	initConfigs := []*scene_audio_db_models.ExternalResource{
 		{

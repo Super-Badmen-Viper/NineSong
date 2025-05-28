@@ -21,4 +21,7 @@ type MediaFileRepository interface {
 	// 查询
 	GetByID(ctx context.Context, id primitive.ObjectID) (*scene_audio_db_models.MediaFileMetadata, error)
 	GetByPath(ctx context.Context, path string) (*scene_audio_db_models.MediaFileMetadata, error)
+
+	AlbumCountByArtist(ctx context.Context, artistID string) (int64, error)
+	GuestAlbumCountByArtist(ctx context.Context, artistID string) (int64, error)
 }

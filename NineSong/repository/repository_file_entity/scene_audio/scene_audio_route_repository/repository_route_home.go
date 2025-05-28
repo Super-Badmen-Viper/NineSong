@@ -23,7 +23,7 @@ func (r *homeRepository) GetRandomArtistList(
 	ctx context.Context,
 	start, end string,
 ) ([]scene_audio_route_models.ArtistMetadata, error) {
-	collection := r.db.Collection(domain.CollectionFileEntityAudioArtist)
+	collection := r.db.Collection(domain.CollectionFileEntityAudioSceneArtist)
 
 	// 转换分页参数
 	skip, _ := strconv.Atoi(start)
@@ -57,7 +57,7 @@ func (r *homeRepository) GetRandomAlbumList(
 	ctx context.Context,
 	start, end string,
 ) ([]scene_audio_route_models.AlbumMetadata, error) {
-	collection := r.db.Collection(domain.CollectionFileEntityAudioAlbum)
+	collection := r.db.Collection(domain.CollectionFileEntityAudioSceneAlbum)
 
 	skip, _ := strconv.Atoi(start)
 	limit, _ := strconv.Atoi(end)
@@ -89,7 +89,7 @@ func (r *homeRepository) GetRandomMediaFileList(
 	ctx context.Context,
 	start, end string,
 ) ([]scene_audio_route_models.MediaFileMetadata, error) {
-	collection := r.db.Collection(domain.CollectionFileEntityAudioMediaFile)
+	collection := r.db.Collection(domain.CollectionFileEntityAudioSceneMediaFile)
 
 	skip, _ := strconv.Atoi(start)
 	limit, _ := strconv.Atoi(end)

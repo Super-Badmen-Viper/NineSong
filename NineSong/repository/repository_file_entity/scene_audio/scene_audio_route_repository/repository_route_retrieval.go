@@ -29,7 +29,7 @@ func (r *retrievalRepository) GetStream(ctx context.Context, mediaFileId string)
 		return "", errors.New("invalid media file id format")
 	}
 
-	collection := r.db.Collection(domain.CollectionFileEntityAudioMediaFile)
+	collection := r.db.Collection(domain.CollectionFileEntityAudioSceneMediaFile)
 	var result scene_audio_route_models.MediaFileMetadata
 	err = collection.FindOne(ctx, bson.M{"_id": objID}).Decode(&result)
 	if err != nil {
@@ -44,7 +44,7 @@ func (r *retrievalRepository) GetDownload(ctx context.Context, mediaFileId strin
 		return "", errors.New("invalid media file id format")
 	}
 
-	collection := r.db.Collection(domain.CollectionFileEntityAudioMediaFile)
+	collection := r.db.Collection(domain.CollectionFileEntityAudioSceneMediaFile)
 	var result scene_audio_route_models.MediaFileMetadata
 	err = collection.FindOne(ctx, bson.M{"_id": objID}).Decode(&result)
 	if err != nil {
@@ -58,7 +58,7 @@ func (r *retrievalRepository) GetCoverArt(ctx context.Context, fileType string, 
 		return "", errors.New("invalid target id format")
 	}
 
-	tempCollection := r.db.Collection(domain.CollectionFileEntityAudioTempMetadata)
+	tempCollection := r.db.Collection(domain.CollectionFileEntityAudioSceneTempMetadata)
 	var tempMeta scene_audio_db_models.ExternalResource
 	err := tempCollection.FindOne(
 		ctx,
@@ -88,7 +88,7 @@ func (r *retrievalRepository) GetLyricsLrcMetaData(ctx context.Context, mediaFil
 		return "", errors.New("invalid media file id format")
 	}
 
-	collection := r.db.Collection(domain.CollectionFileEntityAudioMediaFile)
+	collection := r.db.Collection(domain.CollectionFileEntityAudioSceneMediaFile)
 	var result scene_audio_route_models.RetrievalLyricsMetadata
 
 	filter := bson.M{"_id": objID}

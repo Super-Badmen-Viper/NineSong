@@ -6,12 +6,14 @@ import (
 )
 
 type ArtistMetadata struct {
-	ID          primitive.ObjectID `bson:"_id"`
-	Name        string             `bson:"name"`
-	AlbumCount  int                `bson:"album_count"`
-	SongCount   int                `bson:"song_count"`
-	Size        int                `bson:"size"`
-	HasCoverArt bool               `bson:"has_cover_art"`
+	ID              primitive.ObjectID `bson:"_id"`
+	Name            string             `bson:"name"`
+	AlbumCount      int                `bson:"album_count"`
+	GuestAlbumCount int                `bson:"guest_album_count"`
+	SongCount       int                `bson:"song_count"`
+	GuestSongCount  int                `bson:"guest_song_count"`
+	Size            int                `bson:"size"`
+	HasCoverArt     bool               `bson:"has_cover_art"`
 
 	Compilation       bool           `bson:"compilation"`          // 是否为合辑（多艺术家作品合集）
 	AllArtistIDs      []ArtistIDPair `bson:"all_artist_ids"`       // 所有参与艺术家的唯一标识符列表

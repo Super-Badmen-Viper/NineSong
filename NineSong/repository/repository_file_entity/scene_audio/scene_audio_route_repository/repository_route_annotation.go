@@ -58,7 +58,7 @@ func (r *annotationRepository) UpdateStarred(
 	}
 
 	opts := options.Update().SetUpsert(true)
-	coll := r.db.Collection(domain.CollectionFileEntityAudioAnnotation)
+	coll := r.db.Collection(domain.CollectionFileEntityAudioSceneAnnotation)
 
 	res, err := coll.UpdateOne(ctx, filter, update, opts)
 	if err != nil {
@@ -94,7 +94,7 @@ func (r *annotationRepository) UpdateUnStarred(
 		},
 	}
 
-	coll := r.db.Collection(domain.CollectionFileEntityAudioAnnotation)
+	coll := r.db.Collection(domain.CollectionFileEntityAudioSceneAnnotation)
 
 	res, err := coll.UpdateOne(ctx, filter, update)
 	if err != nil {
@@ -136,7 +136,7 @@ func (r *annotationRepository) UpdateRating(
 	}
 
 	opts := options.Update().SetUpsert(true)
-	coll := r.db.Collection(domain.CollectionFileEntityAudioAnnotation)
+	coll := r.db.Collection(domain.CollectionFileEntityAudioSceneAnnotation)
 
 	res, err := coll.UpdateOne(ctx, filter, update, opts)
 	if err != nil {
@@ -178,7 +178,7 @@ func (r *annotationRepository) UpdateScrobble(
 	}
 
 	opts := options.Update().SetUpsert(true)
-	coll := r.db.Collection(domain.CollectionFileEntityAudioAnnotation)
+	coll := r.db.Collection(domain.CollectionFileEntityAudioSceneAnnotation)
 
 	res, err := coll.UpdateOne(ctx, filter, update, opts)
 	if err != nil {

@@ -16,7 +16,7 @@ func NewMediaFileRouter(
 	db mongo.Database,
 	group *gin.RouterGroup,
 ) {
-	repo := scene_audio_route_repository.NewMediaFileRepository(db, domain.CollectionFileEntityAudioMediaFile)
+	repo := scene_audio_route_repository.NewMediaFileRepository(db, domain.CollectionFileEntityAudioSceneMediaFile)
 	usecase := scene_audio_route_usecase.NewMediaFileUsecase(repo, timeout)
 	ctrl := scene_audio_route_api_controller.NewMediaFileController(usecase)
 

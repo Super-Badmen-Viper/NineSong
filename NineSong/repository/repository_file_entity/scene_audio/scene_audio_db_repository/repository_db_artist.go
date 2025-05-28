@@ -141,6 +141,8 @@ func (r *artistRepository) ResetALLField(ctx context.Context) (int64, error) {
 		"song_count",
 		"size",
 		"duration",
+		"guest_album_count",
+		"guest_song_count",
 	}
 
 	update := make(bson.M)

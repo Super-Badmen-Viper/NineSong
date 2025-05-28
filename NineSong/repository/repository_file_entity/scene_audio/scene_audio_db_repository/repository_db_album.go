@@ -156,27 +156,6 @@ func (r *albumRepository) GetByArtist(ctx context.Context, artistID string) ([]*
 	return albums, nil
 }
 
-func (r *albumRepository) AlbumCountByArtist(
-	ctx context.Context,
-	artistID string,
-) (int64, error) {
-	coll := r.db.Collection(r.collection)
-
-	filter := bson.M{
-		"$or": []bson.M{
-			{"artist_id": artistID},
-			{"album_artist_id": artistID},
-		},
-	}
-
-	count, err := coll.CountDocuments(ctx, filter)
-	if err != nil {
-		return 0, fmt.Errorf("统计艺术家专辑数量失败: %w", err)
-	}
-
-	return count, nil
-}
-
 func (r *albumRepository) ResetALLField(ctx context.Context) (int64, error) {
 	coll := r.db.Collection(r.collection)
 

@@ -11,7 +11,7 @@ import (
 )
 
 func NewAppMediaFileLibraryRouter(timeout time.Duration, db mongo.Database, group *gin.RouterGroup) {
-	repo := repository_app_library.NewAppMediaFileLibraryRepository(db, domain.CollectionAppMediaFileLibrarys)
+	repo := repository_app_library.NewAppMediaFileLibraryRepository(db, domain.CollectionFileEntityAudioAppMediaFileLibrary)
 	uc := usecase_app_library.NewAppMediaFileLibraryUsecase(repo, timeout)
 	ctrl := controller_app_library.NewAppMediaFileLibraryController(uc)
 

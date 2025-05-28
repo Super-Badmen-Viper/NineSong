@@ -11,7 +11,7 @@ import (
 )
 
 func NewAppPlaylistIDConfigRouter(timeout time.Duration, db mongo.Database, group *gin.RouterGroup) {
-	repo := repository_app_config.NewAppPlaylistIDConfigRepository(db, domain.CollectionAppPlaylistIDConfigs)
+	repo := repository_app_config.NewAppPlaylistIDConfigRepository(db, domain.CollectionFileEntityAudioAppPlaylistIDConfigs)
 	uc := usecase_app_config.NewAppPlaylistIDConfigUsecase(repo, timeout)
 	ctrl := controller_app_config.NewAppPlaylistIDConfigController(uc)
 

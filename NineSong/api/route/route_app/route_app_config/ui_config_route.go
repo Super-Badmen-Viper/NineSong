@@ -11,7 +11,7 @@ import (
 )
 
 func NewAppUIConfigRouter(timeout time.Duration, db mongo.Database, group *gin.RouterGroup) {
-	repo := repository_app_config.NewAppUIConfigRepository(db, domain.CollectionAppUIConfigs)
+	repo := repository_app_config.NewAppUIConfigRepository(db, domain.CollectionFileEntityAudioAppUIConfigs)
 	uc := usecase_app_config.NewAppUIConfigUsecase(repo, timeout)
 	ctrl := controller_app_config.NewAppUIConfigController(uc)
 

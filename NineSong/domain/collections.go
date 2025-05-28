@@ -1,29 +1,6 @@
 package domain
 
 const (
-	CollectionAppConfigs = "app_configs_base"
-)
-const (
-	CollectionAppLibraryConfigs = "app_configs_library"
-)
-const (
-	CollectionAppAudioConfigs = "app_configs_audio"
-)
-const (
-	CollectionAppUIConfigs = "app_configs_ui"
-)
-const (
-	CollectionAppPlaylistIDConfigs = "app_configs_playlist_id"
-)
-const (
-	CollectionAppServerConfigs = "app_configs_server"
-)
-
-const (
-	CollectionAppMediaFileLibrarys = "app_library_media_file"
-)
-
-const (
 	CollectionUser = "system_auth_users"
 )
 const (
@@ -45,35 +22,57 @@ const (
 )
 
 const (
-	CollectionFileEntityAudioMediaFile = "file_entity_audio_media_file"
+	CollectionFileEntityAudioAppConfigs = "file_entity_audio_app_configs_base"
 )
 const (
-	CollectionFileEntityAudioMediaLyricsMetadata = "file_entity_audio_media_lyrics"
+	CollectionFileEntityAudioAppLibraryConfigs = "file_entity_audio_app_configs_library"
 )
 const (
-	CollectionFileEntityAudioMediaMvMetadata = "file_entity_audio_media_mv"
+	CollectionFileEntityAudioAppAudioConfigs = "file_entity_audio_app_configs_audio"
 )
 const (
-	CollectionFileEntityAudioMediaTrackMetadata = "file_entity_audio_media_track"
+	CollectionFileEntityAudioAppUIConfigs = "file_entity_audio_app_configs_ui"
 )
 const (
-	CollectionFileEntityAudioMediaKaraokeMetadata = "file_entity_audio_media_karaoke"
+	CollectionFileEntityAudioAppPlaylistIDConfigs = "file_entity_audio_app_configs_playlist_id"
 )
 const (
-	CollectionFileEntityAudioAlbum = "file_entity_audio_album"
+	CollectionFileEntityAudioAppServerConfigs = "file_entity_audio_app_configs_server"
 )
 const (
-	CollectionFileEntityAudioArtist = "file_entity_audio_artist"
+	CollectionFileEntityAudioAppMediaFileLibrary = "file_entity_audio_app_configs_library_media_file"
+)
+
+const (
+	CollectionFileEntityAudioSceneMediaFile = "file_entity_audio_scene_media_file"
 )
 const (
-	CollectionFileEntityAudioAnnotation = "file_entity_audio_annotation"
+	CollectionFileEntityAudioSceneMediaLyricsMetadata = "file_entity_audio_scene_media_lyrics"
 )
 const (
-	CollectionFileEntityAudioPlaylist = "file_entity_audio_playlist"
+	CollectionFileEntityAudioSceneMediaMvMetadata = "file_entity_audio_scene_media_mv"
 )
 const (
-	CollectionFileEntityAudioPlaylistTrack = "file_entity_audio_playlist_track"
+	CollectionFileEntityAudioSceneMediaTrackMetadata = "file_entity_audio_scene_media_track"
 )
 const (
-	CollectionFileEntityAudioTempMetadata = "file_entity_audio_temp_metadata"
+	CollectionFileEntityAudioSceneMediaKaraokeMetadata = "file_entity_audio_scene_media_karaoke"
+)
+const (
+	CollectionFileEntityAudioSceneAlbum = "file_entity_audio_scene_album"
+)
+const (
+	CollectionFileEntityAudioSceneArtist = "file_entity_audio_scene_artist"
+)
+const (
+	CollectionFileEntityAudioSceneAnnotation = "file_entity_audio_scene_annotation"
+)
+const (
+	CollectionFileEntityAudioScenePlaylist = "file_entity_audio_scene_playlist"
+)
+const (
+	CollectionFileEntityAudioScenePlaylistTrack = "file_entity_audio_scene_playlist_track"
+)
+const (
+	CollectionFileEntityAudioSceneTempMetadata = "file_entity_audio_scene_temp_metadata"
 )

@@ -124,7 +124,7 @@ func (uc *FileUsecase) ProcessDirectory(ctx context.Context, dirPath string, tar
 	}
 
 	// 并发处理管道
-	var wg sync.WaitGroup
+	var wgFile sync.WaitGroup
 	errChan := make(chan error, 100)
 	fileCount := 0
 
@@ -143,16 +143,16 @@ func (uc *FileUsecase) ProcessDirectory(ctx context.Context, dirPath string, tar
 				return nil
 			}
 
-			wg.Add(1)
+			wgFile.Add(1)
 			fileCount++
-			go uc.processFile(ctx, path, coverTempPath, folder.ID, &wg, errChan)
+			go uc.processFile(ctx, path, coverTempPath, folder.ID, &wgFile, errChan)
 			return nil
 		}
 	})
 
 	// 等待所有任务完成
 	go func() {
-		wg.Wait()
+		wgFile.Wait()
 		close(errChan)
 	}()
 
@@ -172,24 +172,58 @@ func (uc *FileUsecase) ProcessDirectory(ctx context.Context, dirPath string, tar
 	if err != nil {
 		return fmt.Errorf("获取艺术家ID列表失败: %w", err)
 	}
-	for _, artistID := range ids {
-		strID := artistID.Hex()
-		albumCount, err := uc.albumRepo.AlbumCountByArtist(ctx, strID)
-		if err != nil {
-			log.Printf("艺术家%s专辑统计失败: %v", strID, err)
-			continue
-		}
-		_, err = uc.artistRepo.UpdateCounter(ctx, artistID, "album_count", int(albumCount))
-		if err != nil {
-			log.Printf("艺术家%s计数更新失败: %v", strID, err)
-		}
+	maxConcurrency := 50
+	sem := make(chan struct{}, maxConcurrency)
+	var wgUpdate sync.WaitGroup
+	counters := []struct {
+		countMethod func(context.Context, string) (int64, error)
+		counterName string
+		countType   string
+	}{
+		{
+			countMethod: uc.mediaRepo.AlbumCountByArtist,
+			counterName: "album_count",
+			countType:   "专辑",
+		},
+		{
+			countMethod: uc.mediaRepo.GuestAlbumCountByArtist,
+			counterName: "guest_album_count",
+			countType:   "合作专辑",
+		},
 	}
+	for _, artistID := range ids {
+		wgUpdate.Add(1)
+		go func(id primitive.ObjectID) {
+			defer wgUpdate.Done()
+			sem <- struct{}{}        // 获取信号量
+			defer func() { <-sem }() // 释放信号量
+
+			strID := id.Hex()
+			ctx := context.Background() // 根据实际情况决定是否传递原始context
+
+			// 统一处理计数器更新
+			for _, counter := range counters {
+				count, err := counter.countMethod(ctx, strID)
+				if err != nil {
+					log.Printf("艺术家%s%s统计失败: %v", strID, counter.countType, err)
+					continue
+				}
+
+				if _, err = uc.artistRepo.UpdateCounter(ctx, id, counter.counterName, int(count)); err != nil {
+					log.Printf("艺术家%s%s计数更新失败: %v", strID, counter.countType, err)
+				}
+			}
+		}(artistID) // 传递当前artistID的副本给goroutine
+	}
+	wgUpdate.Wait()
 
 	// 更新文件夹统计
 	if updateErr := uc.folderRepo.UpdateStats(ctx, folder.ID, fileCount); updateErr != nil {
 		log.Printf("统计更新失败: %v", updateErr)
 		return fmt.Errorf("stats update failed: %w", updateErr)
 	}
+
+	log.Printf("音乐库扫描完毕。。。。。。。。。。。。。")
 
 	return finalErr
 }
@@ -462,7 +496,7 @@ func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,
 		for _, artist := range artists {
 			if artist.Name == "" {
 				log.Print("艺术家名称为空")
-				return fmt.Errorf("artist name is empty")
+				artist.Name = "Unknown"
 			}
 			if err := uc.updateAudioArtistMetadata(ctx, artist); err != nil {
 				log.Printf("艺术家处理失败: %s | %v", artist.Name, err)
@@ -475,7 +509,7 @@ func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,
 	if album != nil {
 		if album.Name == "" {
 			log.Print("专辑名称为空")
-			return fmt.Errorf("album name is empty")
+			album.Name = "Unknown"
 		}
 		if err := uc.updateAudioAlbumMetadata(ctx, album); err != nil {
 			log.Printf("专辑处理失败: %s | %v", album.Name, err)
@@ -513,11 +547,11 @@ func (uc *FileUsecase) updateAudioArtistAndAlbumStatistics(
 	var artistID, albumID primitive.ObjectID
 
 	if artists != nil {
-		for _, artist := range artists {
+		for index, artist := range artists {
 			if artist != nil && !artist.ID.IsZero() {
 				artistID = artist.ID
 			}
-			if !artistID.IsZero() {
+			if !artistID.IsZero() && index == 0 {
 				if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "song_count", 1); err != nil {
 					log.Printf("专辑统计更新失败: %v", err)
 				}
@@ -526,6 +560,10 @@ func (uc *FileUsecase) updateAudioArtistAndAlbumStatistics(
 				}
 				if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "duration", int(mediaFile.Duration)); err != nil {
 					log.Printf("专辑播放时间统计更新失败: %v", err)
+				}
+			} else if !artistID.IsZero() && index > 0 {
+				if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "guest_song_count", 1); err != nil {
+					log.Printf("专辑统计更新失败: %v", err)
 				}
 			}
 		}
