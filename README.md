@@ -1,11 +1,11 @@
 # NineSong Server
-NineSong aims to provide cloud native solutions for data sharing in various ToB and TOC businesses, used to manage various file metadata and metadata derived business attributes, and applied to various application scenarios, including but not limited to music, movies, notes, documents, photo albums, e-book readers, etc. Its goal is to become a representative work in the Github cloud native field.
+NineSong aims to provide cloud native and AI extended solutions for data sharing in various ToB and TOC businesses, used to manage various file metadata and metadata derived business attributes, and applied to various application scenarios, including but not limited to music, movies, notes, documents, photo albums, e-book readers, etc. Its goal is to become a representative work in the Github cloud native field.
 
 A Go (Golang) Backend Clean Architecture project with Gin, MongoDB, JWT Authentication Middleware, Test, and Docker.
 
 ## New Function
 NineSong Server will be released in June this year.  
-NSMusicS will support Docker deployment by default and integrate the NineSong streaming service.  
+[NSMusicS](https://github.com/Super-Badmen-Viper/NSMusicS):https://github.com/Super-Badmen-Viper/NSMusicS will support Docker deployment by default and integrate the NineSong streaming service.  
 Compared to other music servers (such as Navidrome, Jellyfin, Emby, Plex, Subsonic, Gonic), it offers the following enhanced features:
 - More detailed music library management, including remote upload, synchronization, and download.
 - More detailed music metadata TAG management, with support for remote TAG upload and synchronized editing.
@@ -18,7 +18,7 @@ Compared to other music servers (such as Navidrome, Jellyfin, Emby, Plex, Subson
 - - Phase 3(October): Build a music knowledge graph for smarter recommendations by analyzing music metadata.
 - - Phase 4(December): Combine knowledge graphs with LLM(DeepSeek) for advanced music recommendations.
 - A richer music playback experience with a variety of playback modes for a more comprehensive and refined effect.
-- Multi track sound effect settings and transmission(October)
+- Multi-track sound effect settings and transmission(October)
 
 ## NineSong | NineSong Multimedia(Server) : 九歌多媒体
 - [ ] Compatible with streaming media servers (Jellyfin、Emby、Navidrome、Plex)

@@ -29,6 +29,9 @@ type AlbumRepository interface {
 
 	GetByMBID(ctx context.Context, mbzID string) (*scene_audio_db_models.AlbumMetadata, error)
 	GetByFilter(ctx context.Context, filter interface{}) (*scene_audio_db_models.AlbumMetadata, error)
+
+	AlbumCountByArtist(ctx context.Context, artistID string) (int64, error)
+	GuestAlbumCountByArtist(ctx context.Context, artistID string) (int64, error)
 }
 
 // 查询参数结构

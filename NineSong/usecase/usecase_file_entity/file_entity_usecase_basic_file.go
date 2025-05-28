@@ -181,14 +181,24 @@ func (uc *FileUsecase) ProcessDirectory(ctx context.Context, dirPath string, tar
 		countType   string
 	}{
 		{
-			countMethod: uc.mediaRepo.AlbumCountByArtist,
+			countMethod: uc.albumRepo.AlbumCountByArtist,
 			counterName: "album_count",
 			countType:   "专辑",
 		},
 		{
-			countMethod: uc.mediaRepo.GuestAlbumCountByArtist,
+			countMethod: uc.albumRepo.GuestAlbumCountByArtist,
 			counterName: "guest_album_count",
 			countType:   "合作专辑",
+		},
+		{
+			countMethod: uc.mediaRepo.MediaCountByArtist,
+			counterName: "song_count",
+			countType:   "单曲",
+		},
+		{
+			countMethod: uc.mediaRepo.GuestMediaCountByArtist,
+			counterName: "guest_song_count",
+			countType:   "合作单曲",
 		},
 	}
 	for _, artistID := range ids {
@@ -552,18 +562,11 @@ func (uc *FileUsecase) updateAudioArtistAndAlbumStatistics(
 				artistID = artist.ID
 			}
 			if !artistID.IsZero() && index == 0 {
-				if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "song_count", 1); err != nil {
-					log.Printf("专辑统计更新失败: %v", err)
-				}
 				if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "size", mediaFile.Size); err != nil {
 					log.Printf("专辑大小统计更新失败: %v", err)
 				}
 				if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "duration", int(mediaFile.Duration)); err != nil {
 					log.Printf("专辑播放时间统计更新失败: %v", err)
-				}
-			} else if !artistID.IsZero() && index > 0 {
-				if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "guest_song_count", 1); err != nil {
-					log.Printf("专辑统计更新失败: %v", err)
 				}
 			}
 		}

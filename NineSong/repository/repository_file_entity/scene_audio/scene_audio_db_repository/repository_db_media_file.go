@@ -162,7 +162,7 @@ func (r *mediaFileRepository) UpdateByID(ctx context.Context, id primitive.Objec
 	return true, nil
 }
 
-func (r *mediaFileRepository) AlbumCountByArtist(
+func (r *mediaFileRepository) MediaCountByArtist(
 	ctx context.Context,
 	artistID string,
 ) (int64, error) {
@@ -176,13 +176,13 @@ func (r *mediaFileRepository) AlbumCountByArtist(
 
 	count, err := coll.CountDocuments(ctx, filter)
 	if err != nil {
-		return 0, fmt.Errorf("统计艺术家专辑数量失败: %w", err)
+		return 0, fmt.Errorf("统计艺术家单曲数量失败: %w", err)
 	}
 
 	return count, nil
 }
 
-func (r *mediaFileRepository) GuestAlbumCountByArtist(
+func (r *mediaFileRepository) GuestMediaCountByArtist(
 	ctx context.Context,
 	artistID string,
 ) (int64, error) {
@@ -202,7 +202,27 @@ func (r *mediaFileRepository) GuestAlbumCountByArtist(
 
 	count, err := coll.CountDocuments(ctx, filter)
 	if err != nil {
-		return 0, fmt.Errorf("统计合作专辑失败: %w", err)
+		return 0, fmt.Errorf("统计艺术家合作单曲失败: %w", err)
+	}
+
+	return count, nil
+}
+
+func (r *mediaFileRepository) MediaCountByAlbum(
+	ctx context.Context,
+	albumID string,
+) (int64, error) {
+	coll := r.db.Collection(r.collection)
+
+	filter := bson.M{
+		"$or": []bson.M{
+			{"album_id": albumID},
+		},
+	}
+
+	count, err := coll.CountDocuments(ctx, filter)
+	if err != nil {
+		return 0, fmt.Errorf("统计专辑单曲数量失败: %w", err)
 	}
 
 	return count, nil
