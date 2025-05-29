@@ -594,28 +594,19 @@ func (uc *FileUsecase) updateAudioArtistMetadata(ctx context.Context, artist *sc
 		return fmt.Errorf("系统服务异常")
 	}
 
-	if artist.MBZArtistID != "" {
-		existing, err := uc.artistRepo.GetByMBID(ctx, artist.MBZArtistID)
-		if err != nil {
-			log.Printf("MBID查询错误: %v", err)
-		}
-		if existing != nil {
-			artist.ID = existing.ID
-			return nil
-		}
-	}
-
 	existing, err := uc.artistRepo.GetByName(ctx, artist.Name)
 	if err != nil {
 		log.Printf("名称查询错误: %v", err)
 	}
 	if existing != nil {
-		artist.ID = existing.ID
+		artist = existing
+	} else {
+		if err := uc.artistRepo.Upsert(ctx, artist); err != nil {
+			log.Printf("艺术家创建失败: %s | %v", artist.Name, err)
+			return err
+		}
 	}
-	if err := uc.artistRepo.Upsert(ctx, artist); err != nil {
-		log.Printf("艺术家创建失败: %s | %v", artist.Name, err)
-		return err
-	}
+
 	return nil
 }
 
@@ -625,20 +616,10 @@ func (uc *FileUsecase) updateAudioAlbumMetadata(ctx context.Context, album *scen
 		return fmt.Errorf("系统服务异常")
 	}
 
-	if album.MBZAlbumID != "" {
-		existing, err := uc.albumRepo.GetByMBID(ctx, album.MBZAlbumID)
-		if err != nil {
-			log.Printf("MBID查询错误: %v", err)
-		}
-		if existing != nil {
-			album.ID = existing.ID
-			return nil
-		}
-	}
-
 	filter := bson.M{
-		"_id":  album.ID,
-		"name": album.Name,
+		"_id":       album.ID,
+		"artist_id": album.ArtistID,
+		"name":      album.Name,
 	}
 
 	existing, err := uc.albumRepo.GetByFilter(ctx, filter)
@@ -646,11 +627,13 @@ func (uc *FileUsecase) updateAudioAlbumMetadata(ctx context.Context, album *scen
 		log.Printf("组合查询错误: %v", err)
 	}
 	if existing != nil {
-		album.ID = existing.ID
+		album = existing
+	} else {
+		if err := uc.albumRepo.Upsert(ctx, album); err != nil {
+			log.Printf("专辑创建失败: %s | %v", album.Name, err)
+			return err
+		}
 	}
-	if err := uc.albumRepo.Upsert(ctx, album); err != nil {
-		log.Printf("专辑创建失败: %s | %v", album.Name, err)
-		return err
-	}
+
 	return nil
 }

@@ -1,7 +1,6 @@
 package scene_audio_db_usecase
 
 import (
-	"crypto/rand"
 	"crypto/sha256"
 	"fmt"
 	"io"
@@ -44,15 +43,30 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 
 	suffix := strings.ToLower(strings.TrimPrefix(filepath.Ext(path), "."))
 
+	artistTag := e.getTagString(tags, taglib.Artist)
+	albumArtistTag := e.getTagString(tags, taglib.AlbumArtist)
+	albumTag := e.getTagString(tags, taglib.Album)
+
+	artistSortTag := e.getTagString(tags, taglib.ArtistSort)
+	albumArtistSortTag := e.getTagString(tags, taglib.AlbumArtistSort)
+	albumSortTag := e.getTagString(tags, taglib.AlbumSort)
+
 	var artistID, albumID, albumArtistID primitive.ObjectID
-	albumID = generateDeterministicID(e.getTagString(tags, taglib.Album))
+
 	if suffix == "m4a" {
-		artistID = generateDeterministicID(e.getTagString(tags, taglib.ArtistSort))
-		albumArtistID = generateDeterministicID(e.getTagString(tags, taglib.AlbumArtistSort))
-	} else {
-		artistID = generateDeterministicID(e.getTagString(tags, taglib.Artist))
-		albumArtistID = generateDeterministicID(e.getTagString(tags, taglib.AlbumArtist))
+		if len(artistSortTag) > len(artistTag) {
+			artistTag = artistSortTag
+		}
+		if len(albumArtistSortTag) > len(albumArtistTag) {
+			albumArtistTag = albumArtistSortTag
+		}
+		if len(albumSortTag) > len(albumTag) {
+			albumTag = albumSortTag
+		}
 	}
+	albumID = generateDeterministicID(artistTag + albumTag)
+	artistID = generateDeterministicID(artistTag)
+	albumArtistID = generateDeterministicID(albumArtistTag)
 
 	mediaFile,
 		compilationArtist,
@@ -62,6 +76,7 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 			tags, properties, fileMetadata,
 			artistID, albumID, albumArtistID,
 			suffix,
+			artistTag, albumArtistTag, albumTag,
 		)
 
 	album := e.buildAlbum(
@@ -144,19 +159,9 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 	fm *domain_file_entity.FileMetadata,
 	artistID, albumID, albumArtistID primitive.ObjectID,
 	suffix string,
+	artistTag, albumArtistTag, albumTag string,
 ) (*scene_audio_db_models.MediaFileMetadata, bool, string, []scene_audio_db_models.ArtistIDPair, string, []scene_audio_db_models.ArtistIDPair) {
-	var artistTag string
-	var albumArtistTag string
-	if suffix == "m4a" {
-		artistTag = e.getTagString(tags, taglib.ArtistSort)
-		albumArtistTag = e.getTagString(tags, taglib.AlbumArtistSort)
-	} else {
-		artistTag = e.getTagString(tags, taglib.Artist)
-		albumArtistTag = e.getTagString(tags, taglib.AlbumArtist)
-	}
-
 	titleTag := e.getTagString(tags, taglib.Title)
-	albumTag := e.getTagString(tags, taglib.Album)
 
 	currentTrack, totalTracks := e.getTagIntPair(tags, taglib.TrackNumber)
 	currentDisc, totalDiscs := e.getTagIntPair(tags, taglib.DiscNumber)
@@ -341,14 +346,7 @@ type AudioMetadataExtractorTaglib struct {
 
 func generateDeterministicID(seed string) primitive.ObjectID {
 	hash := sha256.Sum256([]byte(seed))
-
-	randomBytes := make([]byte, 2)
-	if _, err := rand.Read(randomBytes); err != nil {
-		return primitive.ObjectID(hash[:12])
-	}
-
-	combined := append(hash[:10], randomBytes...)
-	return primitive.ObjectID(combined)
+	return primitive.ObjectID(hash[:12])
 }
 
 func (e *AudioMetadataExtractorTaglib) hasMultipleArtists(artist string) bool {
@@ -404,10 +402,9 @@ func formatMultipleArtists(artistTag string) (string, []scene_audio_db_models.Ar
 }
 
 func (e *AudioMetadataExtractorTaglib) cleanText(text string) string {
-	reg := regexp.MustCompile(`[^a-zA-Z0-9\s]`)
+	reg := regexp.MustCompile(`[^\p{L}\p{N}\s]`)
 	cleaned := reg.ReplaceAllString(text, "")
-	cleaned = strings.TrimSpace(cleaned)
-	return cleaned
+	return strings.TrimSpace(cleaned)
 }
 
 func (e *AudioMetadataExtractorTaglib) getSortTitle(title string) string {
@@ -448,7 +445,7 @@ func (e *AudioMetadataExtractorTaglib) removeArticles(s string) string {
 }
 
 func (e *AudioMetadataExtractorTaglib) removeNonAlphabeticChars(s string) string {
-	nonAlphaPattern := regexp.MustCompile(`[^a-zA-Z]`)
+	nonAlphaPattern := regexp.MustCompile(`[^\p{L}]`)
 	return nonAlphaPattern.ReplaceAllString(strings.ToLower(s), "")
 }
 
