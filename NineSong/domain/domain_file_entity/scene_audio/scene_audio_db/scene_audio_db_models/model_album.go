@@ -12,17 +12,20 @@ type AlbumMetadata struct {
 	UpdatedAt time.Time          `bson:"updated_at"` // 文档最后更新时间
 
 	// 基础元数据 (综合)
-	Name        string  `bson:"name"`         // 专辑名称
-	Artist      string  `bson:"artist"`       // 专辑艺术家名称
-	AlbumArtist string  `bson:"album_artist"` // 专辑级艺术家名称（可能不同于曲目艺术家）
-	Genre       string  `bson:"genre"`        // 音乐流派（如流行、摇滚等）
-	Comment     string  `bson:"comment"`      // 注释信息
-	SongCount   int     `bson:"song_count"`   // 专辑中的歌曲总数
-	Duration    float64 `bson:"duration"`     // 专辑总时长（秒）
-	Size        int     `bson:"size"`         // 专辑文件总大小（字节）
-	MinYear     int     `bson:"min_year"`     // 专辑中歌曲的最早发行年份
-	MaxYear     int     `bson:"max_year"`     // 专辑中歌曲的最晚发行年份
-	Compilation bool    `bson:"compilation"`  // 是否为合辑（多艺术家作品合集）
+	Name              string   `bson:"name"`                // 专辑名称
+	Artist            string   `bson:"artist"`              // 表演者名称
+	AlbumArtist       string   `bson:"album_artist"`        // 专辑级艺术家名称（可能不同于曲目艺术家）
+	NamePinyin        []string `bson:"name_pinyin"`         // 专辑名称的拼音（用于搜索和排序）
+	ArtistPinyin      []string `bson:"artist_pinyin"`       // 表演者名称的拼音表示（用于搜索和排序）
+	AlbumArtistPinyin []string `bson:"album_artist_pinyin"` // 专辑艺术家名称的拼音表示（用于搜索和排序）
+	Genre             string   `bson:"genre"`               // 音乐流派（如流行、摇滚等）
+	Comment           string   `bson:"comment"`             // 注释信息
+	SongCount         int      `bson:"song_count"`          // 专辑中的歌曲总数
+	Duration          float64  `bson:"duration"`            // 专辑总时长（秒）
+	Size              int      `bson:"size"`                // 专辑文件总大小（字节）
+	MinYear           int      `bson:"min_year"`            // 专辑中歌曲的最早发行年份
+	MaxYear           int      `bson:"max_year"`            // 专辑中歌曲的最晚发行年份
+	Compilation       bool     `bson:"compilation"`         // 是否为合辑（多艺术家作品合集）
 
 	// 关系ID索引
 	ArtistID          string         `bson:"artist_id"`            // 艺术家在系统中的唯一标识符

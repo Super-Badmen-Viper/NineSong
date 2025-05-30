@@ -3,22 +3,32 @@ NineSong aims to provide cloud native and AI extended solutions for data sharing
 
 A Go (Golang) Backend Clean Architecture project with Gin, MongoDB, JWT Authentication Middleware, Test, and Docker.
 
+For NineSong, it only needs to respond to users around the world who need it and always maintain an open source status. You can use any product you like, whether it's following NineSong or choosing a seemingly famous but actually outdated product that is no longer updated and only maintained to meet the status quo
+
 ## New Function
 NineSong Server will be released in June this year.  
 [NSMusicS](https://github.com/Super-Badmen-Viper/NSMusicS):https://github.com/Super-Badmen-Viper/NSMusicS will support Docker deployment by default and integrate the NineSong streaming service.  
 Compared to other music servers (such as Navidrome, Jellyfin, Emby, Plex, Subsonic, Gonic), it offers the following enhanced features:
-- More detailed music library management, including remote upload, synchronization, and download.
-- More detailed music metadata TAG management, with support for remote TAG upload and synchronized editing.
-- Add TAG settings (artist avatar, artist photos (multiple selections), album cover, song quality version (multiple selections), and lyrics version (single selection)).
-- Adaptation of a free music TAG API, allowing users to obtain online TAGs for their songs and choose whether to synchronize TAG data.
-- - https://musicbrainz.org/、https://www.theaudiodb.com/
-- More detailed music recommendations based on your playback data.
-- - Phase 1(June): Add tag clouds to recommend music based on user interests.
-- - Phase 2(August): Use lightweight recommendation algorithms based on usage data.
-- - Phase 3(October): Build a music knowledge graph for smarter recommendations by analyzing music metadata.
-- - Phase 4(December): Combine knowledge graphs with LLM(DeepSeek) for advanced music recommendations.
-- A richer music playback experience with a variety of playback modes for a more comprehensive and refined effect.
-- Multi-track sound effect settings and transmission(October)
+- More comprehensive music library management:
+- - Rich single-level sorting options, supporting multi-level mixed sorting and multi-level mixed filtering;
+- - deeper processing of composite tags to make the relevance between musics more comprehensive;
+- - support for Chinese pinyin fuzzy search; support for quick initial letter jumping;
+- - support for dual-page browsing mode (unlimited virtual list, paged list);
+- More comprehensive music playback experience:
+- - various elegant playback styles[cover Square、cover Rotate、cover Beaut、cover Base、cover AlbumList];
+- - exclusive playback modes for various music files[normal model、cue-music model];
+- More complete TAG import and management:
+- - support for importing complete TAGs from more types of music files (including m4a and cue);
+- - support for user-visualized TAG management, allowing remote uploads, auto-associating, manual merging of artist-album-single TAGs;
+- - support for richer TAG fields: artist profile pictures, artist photos (multiple selection), album covers, song quality versions (multiple selection), and lyrics versions (single selection);
+- Integrated free public welfare music TAG API, allowing users to obtain online TAGs for songs and choose whether to synchronize TAG data.
+- Support for multi-channel audio effects; support for Advanced/Standard/Simple EQ; (October)
+- Personalized music recommendations based on user usage data.
+- - Phase 1 (June): Add tag cloud and recommend music based on user interests.
+- - Phase 2 (August): Use lightweight recommendation algorithms based on usage data.
+- - Phase 3 (October): Build a music knowledge graph by analyzing music metadata to achieve smarter recommendations.
+- - Phase 4 (December): Combine the knowledge graph with LLM (DeepSeek) for advanced music recommendations.
+
 
 ## NineSong | NineSong Multimedia(Server) : 九歌多媒体
 - [ ] Compatible with streaming media servers (Jellyfin、Emby、Navidrome、Plex)
@@ -74,3 +84,5 @@ Import postman.json file: NineSong API.postman_collection.json
  - [go-audio](https://github.com/go-audio) : A comprehensive GO audio library with a wide range of data types
  - [go-taglib](https://github.com/sentriz/go-taglib) : GO TAG library with comprehensive coverage of media file types
  - ......
+
+The Chinese name of the project is "Nine Song | 九歌", abbreviated as NSMusicS<br> inspired by ["Chu Ci"] | 楚辞, to commemorate ["Qu Yuan"] | 屈原<br>

@@ -12,13 +12,14 @@ type ArtistMetadata struct {
 	UpdatedAt time.Time          `bson:"updated_at"` // 文档最后更新时间
 
 	// 基础元数据 (综合)
-	Name            string `bson:"name"`
-	AlbumCount      int    `bson:"album_count"`
-	GuestAlbumCount int    `bson:"guest_album_count"`
-	SongCount       int    `bson:"song_count"`
-	GuestSongCount  int    `bson:"guest_song_count"`
-	Size            int    `bson:"size"`
-	Compilation     bool   `bson:"compilation"` // 是否为合辑（多艺术家作品合集）
+	Name            string   `bson:"name"`
+	NamePinyin      []string `bson:"name_pinyin"` // 艺术家名称拼音
+	AlbumCount      int      `bson:"album_count"`
+	GuestAlbumCount int      `bson:"guest_album_count"`
+	SongCount       int      `bson:"song_count"`
+	GuestSongCount  int      `bson:"guest_song_count"`
+	Size            int      `bson:"size"`
+	Compilation     bool     `bson:"compilation"` // 是否为合辑（多艺术家作品合集）
 
 	// 关系ID索引
 	AllArtistIDs []ArtistIDPair `bson:"all_artist_ids"` // 所有参与艺术家的唯一标识符列表

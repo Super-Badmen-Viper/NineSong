@@ -3,6 +3,7 @@ package scene_audio_db_usecase
 import (
 	"crypto/sha256"
 	"fmt"
+	"github.com/mozillazg/go-pinyin"
 	"io"
 	"log"
 	"os"
@@ -20,6 +21,7 @@ import (
 func (e *AudioMetadataExtractorTaglib) Extract(
 	path string,
 	fileMetadata *domain_file_entity.FileMetadata,
+	res *scene_audio_db_models.CueConfigs,
 ) (
 	*scene_audio_db_models.MediaFileMetadata,
 	*scene_audio_db_models.AlbumMetadata,
@@ -43,40 +45,45 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 
 	suffix := strings.ToLower(strings.TrimPrefix(filepath.Ext(path), "."))
 
-	artistTag := e.getTagString(tags, taglib.Artist)
-	albumArtistTag := e.getTagString(tags, taglib.AlbumArtist)
-	albumTag := e.getTagString(tags, taglib.Album)
-
-	artistSortTag := e.getTagString(tags, taglib.ArtistSort)
-	albumArtistSortTag := e.getTagString(tags, taglib.AlbumArtistSort)
-	albumSortTag := e.getTagString(tags, taglib.AlbumSort)
-
 	var artistID, albumID, albumArtistID primitive.ObjectID
 
-	if suffix == "m4a" {
-		if len(artistSortTag) > len(artistTag) {
-			artistTag = artistSortTag
+	if res != nil {
+
+	} else {
+		artistTag := e.getTagString(tags, taglib.Artist)
+		albumArtistTag := e.getTagString(tags, taglib.AlbumArtist)
+		albumTag := e.getTagString(tags, taglib.Album)
+
+		artistSortTag := e.getTagString(tags, taglib.ArtistSort)
+		albumArtistSortTag := e.getTagString(tags, taglib.AlbumArtistSort)
+		albumSortTag := e.getTagString(tags, taglib.AlbumSort)
+
+		if suffix == "m4a" {
+			if len(artistSortTag) > len(artistTag) {
+				artistTag = artistSortTag
+			}
+			if len(albumArtistSortTag) > len(albumArtistTag) {
+				albumArtistTag = albumArtistSortTag
+			}
+			if len(albumSortTag) > len(albumTag) {
+				albumTag = albumSortTag
+			}
 		}
-		if len(albumArtistSortTag) > len(albumArtistTag) {
-			albumArtistTag = albumArtistSortTag
-		}
-		if len(albumSortTag) > len(albumTag) {
-			albumTag = albumSortTag
-		}
+		albumID = generateDeterministicID(artistTag + albumTag)
+		artistID = generateDeterministicID(artistTag)
+		albumArtistID = generateDeterministicID(albumArtistTag)
 	}
-	albumID = generateDeterministicID(artistTag + albumTag)
-	artistID = generateDeterministicID(artistTag)
-	albumArtistID = generateDeterministicID(albumArtistTag)
 
 	mediaFile,
 		compilationArtist,
 		formattedArtist, allArtistIDs,
-		formattedAlbumArtist, allAlbumArtistIDs :=
+		formattedAlbumArtist, allAlbumArtistIDs,
+		albumPinyin, artistPinyin, albumArtistPinyin :=
 		e.buildMediaFile(
 			tags, properties, fileMetadata,
 			artistID, albumID, albumArtistID,
 			suffix,
-			artistTag, albumArtistTag, albumTag,
+			albumTag, artistTag, albumArtistTag,
 		)
 
 	album := e.buildAlbum(
@@ -84,6 +91,7 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 		compilationArtist,
 		formattedArtist, allArtistIDs,
 		formattedAlbumArtist, allAlbumArtistIDs,
+		albumPinyin, artistPinyin, albumArtistPinyin,
 	)
 
 	// 这是NineSong面向音乐场景的业务特性，默认为单体艺术家，并探索其相关业务逻辑的用户友好性与数据管理增强
@@ -101,6 +109,7 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 					now, artistId, artistIDPair.ArtistName,
 					compilationArtist,
 					formattedArtist, allArtistIDs,
+					artistPinyin,
 				),
 			)
 		}
@@ -110,6 +119,7 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 				now, artistID, "",
 				compilationArtist,
 				formattedArtist, allArtistIDs,
+				artistPinyin,
 			),
 		)
 	}
@@ -159,8 +169,14 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 	fm *domain_file_entity.FileMetadata,
 	artistID, albumID, albumArtistID primitive.ObjectID,
 	suffix string,
-	artistTag, albumArtistTag, albumTag string,
-) (*scene_audio_db_models.MediaFileMetadata, bool, string, []scene_audio_db_models.ArtistIDPair, string, []scene_audio_db_models.ArtistIDPair) {
+	albumTag, artistTag, albumArtistTag string,
+) (
+	*scene_audio_db_models.MediaFileMetadata,
+	bool,
+	string, []scene_audio_db_models.ArtistIDPair,
+	string, []scene_audio_db_models.ArtistIDPair,
+	[]string, []string, []string,
+) {
 	titleTag := e.getTagString(tags, taglib.Title)
 
 	currentTrack, totalTracks := e.getTagIntPair(tags, taglib.TrackNumber)
@@ -205,59 +221,74 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 	}
 	fullText := strings.Join(parts, " ")
 
+	titlePinyin := pinyin.LazyConvert(titleTag, nil)
+	albumPinyin := pinyin.LazyConvert(albumTag, nil)
+	artistPinyin := pinyin.LazyConvert(formattedArtist, nil)
+	albumArtistPinyin := pinyin.LazyConvert(albumArtistTag, nil)
+
 	return &scene_audio_db_models.MediaFileMetadata{
-		// 系统保留字段 (综合)
-		ID:        e.mediaID,
-		CreatedAt: fm.CreatedAt,
-		UpdatedAt: fm.UpdatedAt,
-		FullText:  fullText,
-		Path:      fm.FilePath,
-		Suffix:    suffix,
-		Size:      int(fm.Size),
+			// 系统保留字段 (综合)
+			ID:        e.mediaID,
+			CreatedAt: fm.CreatedAt,
+			UpdatedAt: fm.UpdatedAt,
+			FullText:  fullText,
+			Path:      fm.FilePath,
+			Suffix:    suffix,
+			Size:      int(fm.Size),
 
-		// 基础元数据 (github.com/dhowden/tag、go.senan.xyz/taglib)
-		Title:       titleTag,
-		Artist:      formattedArtist,
-		Album:       e.getTagString(tags, taglib.Album),
-		AlbumArtist: formattedAlbumArtist,
-		Genre:       e.getTagString(tags, taglib.Genre),
-		Year:        e.getTagInt(tags, taglib.Date),
-		TrackNumber: currentTrack,
-		DiscNumber:  currentDisc,
-		TotalTracks: totalTracks,
-		TotalDiscs:  totalDiscs,
-		Composer:    e.getTagString(tags, taglib.Composer),
-		Comment:     e.getTagString(tags, taglib.Comment),
-		Lyrics:      e.getTagString(tags, taglib.Lyrics),
-		Compilation: compilationArtist,
+			// 基础元数据 (github.com/dhowden/tag、go.senan.xyz/taglib)
+			Title:       titleTag,
+			Artist:      formattedArtist,
+			Album:       albumTag,
+			AlbumArtist: formattedAlbumArtist,
 
-		// 基础元数据: 关系ID索引
-		ArtistID:          artistID.Hex(),
-		AlbumID:           albumID.Hex(),
-		AlbumArtistID:     albumArtistID.Hex(),
-		AllArtistIDs:      allArtistIDs,
-		AllAlbumArtistIDs: allAlbumArtistIDs,
-		MvID:              "",
-		KaraokeID:         "",
-		LyricsID:          "",
+			TitlePinyin:       titlePinyin,
+			AlbumPinyin:       albumPinyin,
+			ArtistPinyin:      artistPinyin,
+			AlbumArtistPinyin: albumArtistPinyin,
 
-		// 基础元数据: 索引排序信息
-		Index:                0,
-		SortTitle:            e.getSortTitle(titleTag),
-		SortAlbumName:        e.getSortAlbumName(albumTag),
-		SortArtistName:       e.getSortArtistName(formattedArtist),
-		SortAlbumArtistName:  e.getSortAlbumArtistName(formattedAlbumArtist),
-		OrderTitle:           e.getOrderTitle(titleTag),
-		OrderArtistName:      e.getOrderArtistName(formattedArtist),
-		OrderAlbumName:       e.getOrderAlbumName(albumTag),
-		OrderAlbumArtistName: e.getOrderAlbumArtistName(formattedAlbumArtist),
+			Genre:       e.getTagString(tags, taglib.Genre),
+			Year:        e.getTagInt(tags, taglib.Date),
+			TrackNumber: currentTrack,
+			DiscNumber:  currentDisc,
+			TotalTracks: totalTracks,
+			TotalDiscs:  totalDiscs,
+			Composer:    e.getTagString(tags, taglib.Composer),
+			Comment:     e.getTagString(tags, taglib.Comment),
+			Lyrics:      e.getTagString(tags, taglib.Lyrics),
+			Compilation: compilationArtist,
 
-		// 音频分析 (综合)
-		SampleRate: int(properties.SampleRate),
-		Duration:   float64(properties.Length),
-		BitRate:    int(properties.Bitrate),
-		Channels:   int(properties.Channels),
-	}, compilationArtist, formattedArtist, allArtistIDs, formattedAlbumArtist, allAlbumArtistIDs
+			// 基础元数据: 关系ID索引
+			ArtistID:          artistID.Hex(),
+			AlbumID:           albumID.Hex(),
+			AlbumArtistID:     albumArtistID.Hex(),
+			AllArtistIDs:      allArtistIDs,
+			AllAlbumArtistIDs: allAlbumArtistIDs,
+			MvID:              "",
+			KaraokeID:         "",
+			LyricsID:          "",
+
+			// 基础元数据: 索引排序信息
+			Index:                0,
+			SortTitle:            e.getSortTitle(titleTag),
+			SortAlbumName:        e.getSortAlbumName(albumTag),
+			SortArtistName:       e.getSortArtistName(formattedArtist),
+			SortAlbumArtistName:  e.getSortAlbumArtistName(formattedAlbumArtist),
+			OrderTitle:           e.getOrderTitle(titleTag),
+			OrderArtistName:      e.getOrderArtistName(formattedArtist),
+			OrderAlbumName:       e.getOrderAlbumName(albumTag),
+			OrderAlbumArtistName: e.getOrderAlbumArtistName(formattedAlbumArtist),
+
+			// 音频分析 (综合)
+			SampleRate: int(properties.SampleRate),
+			Duration:   float64(properties.Length),
+			BitRate:    int(properties.Bitrate),
+			Channels:   int(properties.Channels),
+		},
+		compilationArtist,
+		formattedArtist, allArtistIDs,
+		formattedAlbumArtist, allAlbumArtistIDs,
+		albumPinyin, artistPinyin, albumArtistPinyin
 }
 
 func (e *AudioMetadataExtractorTaglib) buildAlbum(
@@ -267,6 +298,7 @@ func (e *AudioMetadataExtractorTaglib) buildAlbum(
 	compilationArtist bool,
 	formattedArtist string, allArtistIDs []scene_audio_db_models.ArtistIDPair,
 	formattedAlbumArtist string, allAlbumArtistIDs []scene_audio_db_models.ArtistIDPair,
+	albumPinyin, artistPinyin, albumArtistPinyin []string,
 ) *scene_audio_db_models.AlbumMetadata {
 	albumTag := e.getTagString(tags, taglib.Album)
 
@@ -277,17 +309,20 @@ func (e *AudioMetadataExtractorTaglib) buildAlbum(
 		UpdatedAt: now,
 
 		// 基础元数据 (综合)
-		Name:        e.getTagString(tags, taglib.Album),
-		Artist:      formattedArtist,
-		AlbumArtist: formattedAlbumArtist,
-		Genre:       e.getTagString(tags, taglib.Genre),
-		Comment:     e.getTagString(tags, taglib.Comment),
-		SongCount:   0,
-		Duration:    0,
-		Size:        0,
-		MinYear:     e.getTagInt(tags, taglib.Date),
-		MaxYear:     e.getTagInt(tags, taglib.Date),
-		Compilation: compilationArtist,
+		Name:              e.getTagString(tags, taglib.Album),
+		Artist:            formattedArtist,
+		AlbumArtist:       formattedAlbumArtist,
+		NamePinyin:        albumPinyin,
+		ArtistPinyin:      artistPinyin,
+		AlbumArtistPinyin: albumArtistPinyin,
+		Genre:             e.getTagString(tags, taglib.Genre),
+		Comment:           e.getTagString(tags, taglib.Comment),
+		SongCount:         0,
+		Duration:          0,
+		Size:              0,
+		MinYear:           e.getTagInt(tags, taglib.Date),
+		MaxYear:           e.getTagInt(tags, taglib.Date),
+		Compilation:       compilationArtist,
 
 		// 关系ID索引
 		ArtistID:          artistID.Hex(),
@@ -310,6 +345,7 @@ func (e *AudioMetadataExtractorTaglib) buildArtist(
 	artistName string,
 	compilationArtist bool,
 	formattedArtist string, allArtistIDs []scene_audio_db_models.ArtistIDPair,
+	artistPinyin []string,
 ) *scene_audio_db_models.ArtistMetadata {
 	var artistTag string
 	if artistName != "" {
@@ -326,6 +362,7 @@ func (e *AudioMetadataExtractorTaglib) buildArtist(
 
 		// 基础元数据 (综合)
 		Name:        artistTag,
+		NamePinyin:  artistPinyin,
 		AlbumCount:  0,
 		SongCount:   0,
 		Size:        0,

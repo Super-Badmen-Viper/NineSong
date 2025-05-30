@@ -18,20 +18,24 @@ type MediaFileMetadata struct {
 	Size      int                `bson:"size"`       // 文件大小（字节）
 
 	// 基础元数据 (github.com/dhowden/tag、go.senan.xyz/taglib)
-	Title       string `bson:"title"`        // 标准曲目标题
-	Artist      string `bson:"artist"`       // 表演者名称
-	Album       string `bson:"album"`        // 所属专辑名称
-	AlbumArtist string `bson:"album_artist"` // 专辑级艺术家名称（可能不同于曲目艺术家）
-	Genre       string `bson:"genre"`        // 音乐流派（如流行、摇滚等）
-	Year        int    `bson:"year"`         // 发行年份
-	TrackNumber int    `bson:"track_number"` // 轨道序号（曲目在专辑中的编号）
-	DiscNumber  int    `bson:"disc_number"`  // 光盘编号（多光盘专辑中的编号）
-	TotalTracks int    `bson:"total_tracks"` // 专辑总轨道数
-	TotalDiscs  int    `bson:"total_discs"`  // 总光盘数
-	Composer    string `bson:"composer"`     // 作曲家名称
-	Comment     string `bson:"comment"`      // 注释信息
-	Lyrics      string `bson:"lyrics"`       // 歌词文本内容
-	Compilation bool   `bson:"compilation"`  // 是否为合辑（多艺术家作品合集）
+	Title             string   `bson:"title"`               // 标准曲目标题
+	Album             string   `bson:"album"`               // 所属专辑名称
+	Artist            string   `bson:"artist"`              // 表演者名称
+	AlbumArtist       string   `bson:"album_artist"`        // 专辑级艺术家名称（可能不同于曲目艺术家）
+	TitlePinyin       []string `bson:"title_pinyin"`        // 曲目标题的拼音表示（用于搜索和排序）
+	AlbumPinyin       []string `bson:"album_pinyin"`        // 专辑名称的拼音表示（用于搜索和排序）
+	ArtistPinyin      []string `bson:"artist_pinyin"`       // 表演者名称的拼音表示（用于搜索和排序）
+	AlbumArtistPinyin []string `bson:"album_artist_pinyin"` // 专辑艺术家名称的拼音表示（用于搜索和排序）
+	Genre             string   `bson:"genre"`               // 音乐流派（如流行、摇滚等）
+	Year              int      `bson:"year"`                // 发行年份
+	TrackNumber       int      `bson:"track_number"`        // 轨道序号（曲目在专辑中的编号）
+	DiscNumber        int      `bson:"disc_number"`         // 光盘编号（多光盘专辑中的编号）
+	TotalTracks       int      `bson:"total_tracks"`        // 专辑总轨道数
+	TotalDiscs        int      `bson:"total_discs"`         // 总光盘数
+	Composer          string   `bson:"composer"`            // 作曲家名称
+	Comment           string   `bson:"comment"`             // 注释信息
+	Lyrics            string   `bson:"lyrics"`              // 歌词文本内容
+	Compilation       bool     `bson:"compilation"`         // 是否为合辑（多艺术家作品合集）
 
 	// 基础元数据: 关系ID索引
 	ArtistID          string         `bson:"artist_id"`            // 艺术家在系统中的唯一标识符
@@ -45,6 +49,10 @@ type MediaFileMetadata struct {
 	MusicID           string         `bson:"music_id"`             // 音频对应的乐谱唯一标识符（如有）
 	GeneratorID       string         `bson:"generator_id"`         // 该音频生成的参数类型（如有）
 	TransformsID      string         `bson:"transforms_id"`        // 该音频转换的数据类型（如有）
+
+	// 基础元数据: CUE专属播放信息
+	CueComplete  bool       `bson:"cue_complete"`  // 是否为完整的 CUE 文件（包含所有曲目）
+	CueResources CueConfigs `bson:"cue_resources"` // CUE 文件相关资源信息
 
 	// 基础元数据: 索引排序信息
 	Index                int    `bson:"index" json:"Index"`      // 索引值，可用于排序或其他用途
@@ -122,4 +130,14 @@ type MediaFileMetadata struct {
 	Engineer           string    `bson:"engineer"`            // 工程师名称（如录音工程师、混音工程师等）
 	Studio             string    `bson:"studio"`              // 录音室名称
 	RecordingLocation  string    `bson:"recording_location"`  // 录音地点详细描述（如城市中的录音棚名称等）
+}
+
+type CueConfigs struct {
+	CuePath    string // .cue文件路径
+	AudioPath  string // 关联的.wav文件路径
+	BackImage  string // back.jpg路径
+	CoverImage string // cover.jpg路径
+	DiscImage  string // disc.jpg路径
+	ListFile   string // list.txt路径
+	LogFile    string // log.txt路径
 }

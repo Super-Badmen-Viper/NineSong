@@ -154,7 +154,9 @@ func (fd *FileDetectorImpl) DetectMediaType(filePath string) (FileTypeNo, error)
 	ext := strings.ToLower(filepath.Ext(filePath))
 	switch ext {
 	// 音频类型（补充无损格式和现代编码）
-	case ".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a", ".wma":
+	case
+		".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a", ".wma",
+		".cue":
 		return Audio, nil
 
 	// 视频类型（补充主流封装格式）

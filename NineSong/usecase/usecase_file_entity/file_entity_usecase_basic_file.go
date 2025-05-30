@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -128,7 +129,74 @@ func (uc *FileUsecase) ProcessDirectory(ctx context.Context, dirPath string, tar
 	errChan := make(chan error, 100)
 	fileCount := 0
 
-	// 遍历文件系统
+	// 存储需要排除的.wav文件路径
+	excludeWavs := make(map[string]struct{})
+	// 存储cue文件及其资源
+	cueResourcesMap := make(map[string]*scene_audio_db_models.CueConfigs)
+
+	// 第一次遍历：收集.cue文件和关联资源
+	err = filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			log.Printf("文件遍历错误: %v", err)
+			return err
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			if info.IsDir() {
+				return nil
+			}
+
+			ext := strings.ToLower(filepath.Ext(path))
+			dir := filepath.Dir(path)
+			baseName := strings.TrimSuffix(filepath.Base(path), ext)
+
+			// 处理.cue文件
+			if ext == ".cue" {
+				res := &scene_audio_db_models.CueConfigs{CuePath: path}
+
+				// 查找同名.wav文件
+				wavPath := filepath.Join(dir, baseName+".wav")
+				if _, err := os.Stat(wavPath); err == nil {
+					res.AudioPath = wavPath
+					excludeWavs[wavPath] = struct{}{}
+				} else {
+					return nil
+				}
+
+				// 收集相关资源文件
+				resourceFiles := []string{"back.jpg", "cover.jpg", "disc.jpg", "list.txt", "log.txt"}
+				for _, f := range resourceFiles {
+					p := filepath.Join(dir, f)
+					if _, err := os.Stat(p); err == nil {
+						switch f {
+						case "back.jpg":
+							res.BackImage = p
+						case "cover.jpg":
+							res.CoverImage = p
+						case "disc.jpg":
+							res.DiscImage = p
+						case "list.txt":
+							res.ListFile = p
+						case "log.txt":
+							res.LogFile = p
+						}
+					}
+				}
+
+				cueResourcesMap[path] = res
+			}
+			return nil
+		}
+	})
+
+	if err != nil {
+		return fmt.Errorf("cue资源收集失败: %w", err)
+	}
+
+	// 第二次遍历：处理文件
 	err = filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			log.Printf("文件遍历错误: %v", err)
@@ -143,9 +211,31 @@ func (uc *FileUsecase) ProcessDirectory(ctx context.Context, dirPath string, tar
 				return nil
 			}
 
-			wgFile.Add(1)
-			fileCount++
-			go uc.processFile(ctx, path, coverTempPath, folder.ID, &wgFile, errChan)
+			// 检查是否是被排除的.wav文件
+			if _, excluded := excludeWavs[path]; excluded {
+				return nil
+			}
+
+			// 检查是否是cue文件或普通音频文件
+			ext := strings.ToLower(filepath.Ext(path))
+			if ext == ".cue" {
+				// 获取关联资源
+				res, exists := cueResourcesMap[path]
+				if !exists {
+					log.Printf("未找到cue文件资源: %s", path)
+					return nil
+				}
+
+				wgFile.Add(1)
+				fileCount++
+				// cue的path 替换 为cue res.AudioPath，尝试读取该wav的tag信息
+				go uc.processFile(ctx, res, res.AudioPath, coverTempPath, folder.ID, &wgFile, errChan)
+			} else {
+				// 处理普通音频文件
+				wgFile.Add(1)
+				fileCount++
+				go uc.processFile(ctx, nil, path, coverTempPath, folder.ID, &wgFile, errChan)
+			}
 			return nil
 		}
 	})
@@ -253,6 +343,7 @@ func (uc *FileUsecase) shouldProcess(path string) bool {
 
 func (uc *FileUsecase) processFile(
 	ctx context.Context,
+	res *scene_audio_db_models.CueConfigs,
 	path string,
 	coverTempPath string,
 	folderID primitive.ObjectID,
@@ -303,7 +394,7 @@ func (uc *FileUsecase) processFile(
 
 	// 处理音频文件
 	if fileType == domain_file_entity.Audio {
-		mediaFile, album, artists, err := uc.audioExtractor.Extract(path, metadata)
+		mediaFile, album, artists, err := uc.audioExtractor.Extract(path, metadata, res)
 		if err != nil {
 			return
 		}
@@ -598,13 +689,14 @@ func (uc *FileUsecase) updateAudioArtistMetadata(ctx context.Context, artist *sc
 	if err != nil {
 		log.Printf("名称查询错误: %v", err)
 	}
+	// 仅同步ID，因为album会随着更新而新增字段
 	if existing != nil {
-		artist = existing
-	} else {
-		if err := uc.artistRepo.Upsert(ctx, artist); err != nil {
-			log.Printf("艺术家创建失败: %s | %v", artist.Name, err)
-			return err
-		}
+		artist.ID = existing.ID
+	}
+	// 再次插入，将版本更新的字段覆盖到现有文档
+	if err := uc.artistRepo.Upsert(ctx, artist); err != nil {
+		log.Printf("艺术家创建失败: %s | %v", artist.Name, err)
+		return err
 	}
 
 	return nil
@@ -626,13 +718,14 @@ func (uc *FileUsecase) updateAudioAlbumMetadata(ctx context.Context, album *scen
 	if err != nil {
 		log.Printf("组合查询错误: %v", err)
 	}
+	// 仅同步ID，因为album会随着更新而新增字段
 	if existing != nil {
-		album = existing
-	} else {
-		if err := uc.albumRepo.Upsert(ctx, album); err != nil {
-			log.Printf("专辑创建失败: %s | %v", album.Name, err)
-			return err
-		}
+		album.ID = existing.ID
+	}
+	// 再次插入，将版本更新的字段覆盖到现有文档
+	if err := uc.albumRepo.Upsert(ctx, album); err != nil {
+		log.Printf("专辑创建失败: %s | %v", album.Name, err)
+		return err
 	}
 
 	return nil
