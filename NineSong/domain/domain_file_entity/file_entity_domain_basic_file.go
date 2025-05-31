@@ -155,7 +155,8 @@ func (fd *FileDetectorImpl) DetectMediaType(filePath string) (FileTypeNo, error)
 	switch ext {
 	// 音频类型（补充无损格式和现代编码）
 	case
-		".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a", ".wma",
+		".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a", ".wma", ".ape",
+		".opus", ".dsd", ".dff", ".aiff",
 		".cue":
 		return Audio, nil
 

@@ -4,11 +4,14 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/mozillazg/go-pinyin"
+	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/transform"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,13 +35,21 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 		return nil, nil, nil, err
 	}
 
+	var tags map[string][]string
 	tags, err := taglib.ReadTags(path)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("标签解析失败[%s]: %w", path, err)
+		if res == nil {
+			return nil, nil, nil, fmt.Errorf("标签解析失败[%s]: %w", path, err)
+		}
+		if tags == nil {
+			tags = make(map[string][]string)
+		}
 	}
 	properties, err := taglib.ReadProperties(path)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("属性解析失败[%s]: %w", path, err)
+		if res == nil {
+			return nil, nil, nil, fmt.Errorf("属性解析失败[%s]: %w", path, err)
+		}
 	}
 
 	now := time.Now().UTC()
@@ -46,17 +57,68 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 	suffix := strings.ToLower(strings.TrimPrefix(filepath.Ext(path), "."))
 
 	var artistID, albumID, albumArtistID primitive.ObjectID
+	var artistTag, albumArtistTag, albumTag string
+	var artistSortTag, albumArtistSortTag, albumSortTag string
+	var cueTracks []scene_audio_db_models.CueTrack
+	var cueGlobalMeta scene_audio_db_models.CueGlobalMeta
 
-	if res != nil {
+	if res != nil && res.CuePath != "" && res.AudioPath != "" {
+		globalMeta, tracks, err := parseCueFile(res.CuePath)
+		if err != nil {
+			log.Printf("CUE解析警告: %v, 使用标签元数据", err)
+		} else {
+			cueTracks = tracks
 
+			if genre, ok := globalMeta["GENRE"]; ok {
+				tags["GENRE"] = []string{genre}
+			}
+			if date, ok := globalMeta["DATE"]; ok {
+				if year, err := strconv.Atoi(date); err == nil {
+					tags["DATE"] = []string{strconv.Itoa(year)}
+				}
+			}
+			if comment, ok := globalMeta["COMMENT"]; ok {
+				tags["Comment"] = []string{comment}
+			}
+			if title, ok := globalMeta["TITLE"]; ok {
+				tags["Title"] = []string{title}
+			}
+			if performer, ok := globalMeta["PERFORMER"]; ok {
+				albumArtistTag = performer
+				artistTag = performer
+			}
+			if title, ok := globalMeta["TITLE"]; ok {
+				albumTag = title
+			}
+
+			albumID = generateDeterministicID(artistTag + albumTag)
+			artistID = generateDeterministicID(artistTag)
+			albumArtistID = generateDeterministicID(albumArtistTag)
+
+			cueGlobalMeta = scene_audio_db_models.CueGlobalMeta{
+				REM: scene_audio_db_models.CueREM{
+					GENRE:   globalMeta["GENRE"],
+					DATE:    globalMeta["DATE"],
+					DISCID:  globalMeta["DISCID"],
+					COMMENT: globalMeta["COMMENT"],
+				},
+				PERFORMER: globalMeta["PERFORMER"],
+				TITLE:     globalMeta["TITLE"],
+				FILE: scene_audio_db_models.CueFile{
+					FilePath: globalMeta["FILE"],
+				},
+				CATALOG:    globalMeta["CATALOG"],
+				SONGWRITER: globalMeta["SONGWRITER"],
+			}
+		}
 	} else {
-		artistTag := e.getTagString(tags, taglib.Artist)
-		albumArtistTag := e.getTagString(tags, taglib.AlbumArtist)
-		albumTag := e.getTagString(tags, taglib.Album)
+		artistTag = e.getTagString(tags, taglib.Artist)
+		albumArtistTag = e.getTagString(tags, taglib.AlbumArtist)
+		albumTag = e.getTagString(tags, taglib.Album)
 
-		artistSortTag := e.getTagString(tags, taglib.ArtistSort)
-		albumArtistSortTag := e.getTagString(tags, taglib.AlbumArtistSort)
-		albumSortTag := e.getTagString(tags, taglib.AlbumSort)
+		artistSortTag = e.getTagString(tags, taglib.ArtistSort)
+		albumArtistSortTag = e.getTagString(tags, taglib.AlbumArtistSort)
+		albumSortTag = e.getTagString(tags, taglib.AlbumSort)
 
 		if suffix == "m4a" {
 			if len(artistSortTag) > len(artistTag) {
@@ -85,6 +147,15 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 			suffix,
 			albumTag, artistTag, albumArtistTag,
 		)
+
+	if len(cueTracks) > 0 {
+		mediaFile.CueTracks = cueTracks
+		mediaFile.CueComplete = true
+		mediaFile.CueResources = *res
+		mediaFile.CueGlobalMeta = cueGlobalMeta
+	} else {
+		mediaFile.CueComplete = false
+	}
 
 	album := e.buildAlbum(
 		tags, now, artistID, albumID, albumArtistID,
@@ -519,4 +590,191 @@ func (e *AudioMetadataExtractorTaglib) getTagIntPair(tags map[string][]string, k
 		}
 	}
 	return 0, 0
+}
+
+func parseCueFile(cuePath string) (
+	globalMeta map[string]string,
+	tracks []scene_audio_db_models.CueTrack,
+	err error,
+) {
+	data, err := os.ReadFile(cuePath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("读取CUE文件失败: %w", err)
+	}
+
+	globalMeta = make(map[string]string)
+	var currentTrack *scene_audio_db_models.CueTrack
+	inTrackBlock := false
+
+	// 自动检测编码并转换为UTF-8
+	var finalData []byte
+	if isGBK(data) {
+		decoder := simplifiedchinese.GBK.NewDecoder()
+		utf8Data, _, _ := transform.Bytes(decoder, data)
+		finalData = utf8Data
+	} else {
+		finalData = data
+	}
+
+	lines := strings.Split(string(finalData), "\n")
+	for _, rawLine := range lines {
+		// 防御性检查：跳过空行
+		if len(rawLine) == 0 {
+			continue
+		}
+
+		line := strings.TrimSpace(rawLine)
+		if line == "" {
+			continue
+		}
+
+		// 1. TRACK行处理
+		if strings.HasPrefix(line, "TRACK ") {
+			inTrackBlock = true
+			if currentTrack != nil {
+				tracks = append(tracks, *currentTrack)
+			}
+
+			parts := strings.Fields(line)
+			if len(parts) < 3 {
+				continue
+			}
+			trackNum, _ := strconv.Atoi(parts[1])
+			currentTrack = &scene_audio_db_models.CueTrack{
+				TRACK:     trackNum,
+				TYPE:      parts[2],
+				INDEXES:   []scene_audio_db_models.CueIndex{},
+				TITLE:     "",
+				PERFORMER: "",
+			}
+			continue
+		}
+
+		// 2. 全局元数据解析
+		if !inTrackBlock {
+			switch {
+			case strings.HasPrefix(line, "REM "):
+				// 支持多种REM类型：GENRE/DATE/DISCID/COMMENT
+				remParts := strings.SplitN(line[4:], " ", 2)
+				if len(remParts) == 2 {
+					key := strings.TrimSpace(remParts[0])
+					value := strings.Trim(strings.TrimSpace(remParts[1]), `"`)
+					globalMeta[key] = value
+				}
+			case strings.HasPrefix(line, "PERFORMER "):
+				globalMeta["PERFORMER"] = extractQuotedValueSimple(line[10:])
+			case strings.HasPrefix(line, "TITLE "):
+				globalMeta["TITLE"] = extractQuotedValueSimple(line[6:])
+			case strings.HasPrefix(line, "FILE "):
+				if value, ok := extractQuotedValue(rawLine, "FILE"); ok {
+					globalMeta["FILE"] = value
+				}
+			case strings.HasPrefix(line, "CATALOG "):
+				globalMeta["CATALOG"] = strings.TrimSpace(line[8:])
+			case strings.HasPrefix(line, "SONGWRITER "):
+				globalMeta["SONGWRITER"] = extractQuotedValueSimple(line[11:])
+			}
+			continue
+		}
+
+		// 3. 音轨元数据解析
+		if rawLine[0] == ' ' || rawLine[0] == '\t' {
+			trimmedLine := strings.TrimSpace(line)
+			switch {
+			case strings.HasPrefix(trimmedLine, "TITLE "):
+				if value, ok := extractQuotedValue(rawLine, "TITLE"); ok {
+					currentTrack.TITLE = value
+				}
+			case strings.HasPrefix(trimmedLine, "PERFORMER "):
+				if value, ok := extractQuotedValue(rawLine, "PERFORMER"); ok {
+					currentTrack.PERFORMER = value
+				}
+			case strings.HasPrefix(trimmedLine, "FLAGS "):
+				currentTrack.FLAGS = strings.TrimSpace(trimmedLine[6:])
+			case strings.HasPrefix(trimmedLine, "INDEX "):
+				parts := strings.Fields(trimmedLine)
+				if len(parts) >= 3 {
+					indexNum, _ := strconv.Atoi(parts[1])
+					currentTrack.INDEXES = append(currentTrack.INDEXES,
+						scene_audio_db_models.CueIndex{
+							INDEX: indexNum,
+							TIME:  parts[2],
+						})
+				}
+			case strings.HasPrefix(trimmedLine, "ISRC "):
+				currentTrack.ISRC = strings.TrimSpace(trimmedLine[5:])
+			case strings.HasPrefix(trimmedLine, "REM REPLAYGAIN_TRACK_GAIN "):
+				if gainStr := strings.TrimPrefix(trimmedLine, "REM REPLAYGAIN_TRACK_GAIN "); gainStr != "" {
+					if gain, err := strconv.ParseFloat(strings.TrimSuffix(gainStr, " dB"), 64); err == nil {
+						currentTrack.GAIN = gain
+					}
+				}
+			case strings.HasPrefix(trimmedLine, "REM REPLAYGAIN_TRACK_PEAK "):
+				if peakStr := strings.TrimPrefix(trimmedLine, "REM REPLAYGAIN_TRACK_PEAK "); peakStr != "" {
+					if peak, err := strconv.ParseFloat(peakStr, 64); err == nil {
+						currentTrack.PEAK = peak
+					}
+				}
+			}
+		}
+	}
+
+	// 添加最后一个音轨
+	if currentTrack != nil {
+		tracks = append(tracks, *currentTrack)
+	}
+
+	return globalMeta, tracks, nil
+}
+
+// 检测是否为GBK编码
+func isGBK(data []byte) bool {
+	length := len(data)
+	var i int
+	for i < length {
+		if data[i] <= 0x7f {
+			i++
+			continue
+		}
+
+		if i+1 >= length {
+			return false
+		}
+
+		if data[i] >= 0x81 && data[i] <= 0xfe &&
+			data[i+1] >= 0x40 && data[i+1] <= 0xfe && data[i+1] != 0x7f {
+			i += 2
+			continue
+		}
+
+		return false
+	}
+	return true
+}
+
+// 提取带引号的值（兼容中英文引号）
+func extractQuotedValue(rawLine, key string) (string, bool) {
+	keyIdx := strings.Index(rawLine, key)
+	if keyIdx == -1 {
+		return "", false
+	}
+
+	// 定位起始引号（兼容中英文引号）
+	start := strings.IndexAny(rawLine[keyIdx:], `"'“”`)
+	if start == -1 {
+		return "", false
+	}
+	start += keyIdx + 1
+
+	// 定位结束引号
+	end := strings.IndexAny(rawLine[start:], `"'“”`)
+	if end == -1 {
+		return "", false
+	}
+	return rawLine[start : start+end], true
+}
+
+func extractQuotedValueSimple(s string) string {
+	quotes := `"'“”`
+	return strings.TrimSpace(strings.Trim(s, quotes))
 }

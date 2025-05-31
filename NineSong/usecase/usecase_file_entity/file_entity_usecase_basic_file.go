@@ -157,16 +157,25 @@ func (uc *FileUsecase) ProcessDirectory(ctx context.Context, dirPath string, tar
 			if ext == ".cue" {
 				res := &scene_audio_db_models.CueConfigs{CuePath: path}
 
-				// 查找同名.wav文件
-				wavPath := filepath.Join(dir, baseName+".wav")
-				if _, err := os.Stat(wavPath); err == nil {
-					res.AudioPath = wavPath
-					excludeWavs[wavPath] = struct{}{}
-				} else {
+				// 查找同名音频文件
+				audioFound := false
+				audioExts := []string{".wav", ".ape", ".flac"} // 扩展支持的音频格式
+				for _, audioExt := range audioExts {
+					audioPath := filepath.Join(dir, baseName+audioExt)
+					if _, err := os.Stat(audioPath); err == nil {
+						res.AudioPath = audioPath
+						excludeWavs[audioPath] = struct{}{} // 添加到排除列表
+						audioFound = true
+						break // 找到一种音频格式即停止
+					}
+				}
+
+				// 未找到音频文件则跳过
+				if !audioFound {
 					return nil
 				}
 
-				// 收集相关资源文件
+				// 收集相关资源文件[9](@ref)
 				resourceFiles := []string{"back.jpg", "cover.jpg", "disc.jpg", "list.txt", "log.txt"}
 				for _, f := range resourceFiles {
 					p := filepath.Join(dir, f)

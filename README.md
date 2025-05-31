@@ -3,7 +3,7 @@ NineSong aims to provide cloud native and AI extended solutions for data sharing
 
 A Go (Golang) Backend Clean Architecture project with Gin, MongoDB, JWT Authentication Middleware, Test, and Docker.
 
-For NineSong, it only needs to respond to users around the world who need it and always maintain an open source status. You can use any product you like, whether it's following NineSong or choosing a seemingly famous but actually outdated product that is no longer updated and only maintained to meet the status quo
+For NineSong, it only needs to respond to users around the world who need it and always maintain an open source status. You can use any product you like, whether it's following NineSong or choosing a seemingly famous but actually outdated product
 
 ## New Function
 NineSong Server will be released in June this year.  
@@ -14,11 +14,15 @@ Compared to other music servers (such as Navidrome, Jellyfin, Emby, Plex, Subson
 - - deeper processing of composite tags to make the relevance between musics more comprehensive;
 - - support for Chinese pinyin fuzzy search; support for quick initial letter jumping;
 - - support for dual-page browsing mode (unlimited virtual list, paged list);
+- - support uploading, downloading, and synchronizing music files between the server and client;
 - More comprehensive music playback experience:
 - - various elegant playback styles[cover Square、cover Rotate、cover Beaut、cover Base、cover AlbumList];
 - - exclusive playback modes for various music files[normal model、cue-music model];
+- CUE exclusive playback (CUE: wav、ape、flac) and CUE file management:
+- - Exclusive management page for music disc image (mirror) auxiliary files. 
+- - CUE playback styles suitable for music disc image features
 - More complete TAG import and management:
-- - support for importing complete TAGs from more types of music files (including m4a and cue);
+- - support for importing complete TAGs from more types of music files (including m4a、cue(wav、ape、flac));
 - - support for user-visualized TAG management, allowing remote uploads, auto-associating, manual merging of artist-album-single TAGs;
 - - support for richer TAG fields: artist profile pictures, artist photos (multiple selection), album covers, song quality versions (multiple selection), and lyrics versions (single selection);
 - Integrated free public welfare music TAG API, allowing users to obtain online TAGs for songs and choose whether to synchronize TAG data.
@@ -28,7 +32,6 @@ Compared to other music servers (such as Navidrome, Jellyfin, Emby, Plex, Subson
 - - Phase 2 (August): Use lightweight recommendation algorithms based on usage data.
 - - Phase 3 (October): Build a music knowledge graph by analyzing music metadata to achieve smarter recommendations.
 - - Phase 4 (December): Combine the knowledge graph with LLM (DeepSeek) for advanced music recommendations.
-
 
 ## NineSong | NineSong Multimedia(Server) : 九歌多媒体
 - [ ] Compatible with streaming media servers (Jellyfin、Emby、Navidrome、Plex)

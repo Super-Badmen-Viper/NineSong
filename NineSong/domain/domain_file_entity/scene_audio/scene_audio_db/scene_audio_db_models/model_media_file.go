@@ -51,8 +51,10 @@ type MediaFileMetadata struct {
 	TransformsID      string         `bson:"transforms_id"`        // 该音频转换的数据类型（如有）
 
 	// 基础元数据: CUE专属播放信息
-	CueComplete  bool       `bson:"cue_complete"`  // 是否为完整的 CUE 文件（包含所有曲目）
-	CueResources CueConfigs `bson:"cue_resources"` // CUE 文件相关资源信息
+	CueComplete   bool          `bson:"cue_complete"`    // 是否为完整的 CUE 文件（包含所有曲目）
+	CueResources  CueConfigs    `bson:"cue_resources"`   // CUE 文件相关资源信息
+	CueGlobalMeta CueGlobalMeta `bson:"cue_global_meta"` // CUE 文件全局元数据
+	CueTracks     []CueTrack    `bson:"cue_tracks"`      // CUE 文件中的曲目信息列表
 
 	// 基础元数据: 索引排序信息
 	Index                int    `bson:"index" json:"Index"`      // 索引值，可用于排序或其他用途
@@ -140,4 +142,37 @@ type CueConfigs struct {
 	DiscImage  string // disc.jpg路径
 	ListFile   string // list.txt路径
 	LogFile    string // log.txt路径
+}
+type CueREM struct {
+	GENRE   string
+	DATE    string
+	DISCID  string
+	COMMENT string
+}
+type CueFile struct {
+	FilePath string
+	FileType string
+}
+type CueIndex struct {
+	INDEX int
+	TIME  string
+}
+type CueGlobalMeta struct {
+	REM        CueREM  `json:"cue_rem"`
+	PERFORMER  string  `json:"cue_performer"`
+	TITLE      string  `json:"cue_title"`
+	FILE       CueFile `json:"cue_file"`
+	CATALOG    string  `json:"cue_catalog"`    // 新增：唱片唯一EAN编号[8](@ref)
+	SONGWRITER string  `json:"cue_songwriter"` // 新增：乐曲编曲者[8](@ref)
+}
+type CueTrack struct {
+	TRACK     int        `json:"cue_track_track"`
+	TYPE      string     `json:"cue_track_type"`
+	TITLE     string     `json:"cue_track_title"`
+	PERFORMER string     `json:"cue_track_performer"`
+	FLAGS     string     `json:"cue_track_flags"`
+	INDEXES   []CueIndex `json:"cue_track_indexes"`
+	ISRC      string     `json:"cue_track_isrc"` // 新增：国际标准录音代码[9](@ref)
+	GAIN      float64    `json:"cue_track_gain"` // 新增：ReplayGain增益值
+	PEAK      float64    `json:"cue_track_peak"` // 新增：ReplayGain峰值
 }
