@@ -24,22 +24,23 @@ import (
 func (e *AudioMetadataExtractorTaglib) Extract(
 	path string,
 	fileMetadata *domain_file_entity.FileMetadata,
-	res *scene_audio_db_models.CueConfigs,
+	res *scene_audio_db_models.CueConfig,
 ) (
 	*scene_audio_db_models.MediaFileMetadata,
 	*scene_audio_db_models.AlbumMetadata,
 	[]*scene_audio_db_models.ArtistMetadata,
+	*scene_audio_db_models.MediaFileCueMetadata,
 	error,
 ) {
 	if err := e.enrichFileMetadata(path, fileMetadata); err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	var tags map[string][]string
 	tags, err := taglib.ReadTags(path)
 	if err != nil {
 		if res == nil {
-			return nil, nil, nil, fmt.Errorf("标签解析失败[%s]: %w", path, err)
+			return nil, nil, nil, nil, fmt.Errorf("标签解析失败[%s]: %w", path, err)
 		}
 		if tags == nil {
 			tags = make(map[string][]string)
@@ -48,7 +49,7 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 	properties, err := taglib.ReadProperties(path)
 	if err != nil {
 		if res == nil {
-			return nil, nil, nil, fmt.Errorf("属性解析失败[%s]: %w", path, err)
+			return nil, nil, nil, nil, fmt.Errorf("属性解析失败[%s]: %w", path, err)
 		}
 	}
 
@@ -59,56 +60,42 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 	var artistID, albumID, albumArtistID primitive.ObjectID
 	var artistTag, albumArtistTag, albumTag string
 	var artistSortTag, albumArtistSortTag, albumSortTag string
-	var cueTracks []scene_audio_db_models.CueTrack
-	var cueGlobalMeta scene_audio_db_models.CueGlobalMeta
+
+	var mediaFile *scene_audio_db_models.MediaFileMetadata
+	var compilationArtist bool
+	var formattedArtist string
+	var allArtistIDs []scene_audio_db_models.ArtistIDPair
+	var formattedAlbumArtist string
+	var allAlbumArtistIDs []scene_audio_db_models.ArtistIDPair
+	var albumPinyin []string
+	var artistPinyin []string
+	var albumArtistPinyin []string
+
+	var album *scene_audio_db_models.AlbumMetadata
+
+	var artist []*scene_audio_db_models.ArtistMetadata
+
+	var mediaFileCue *scene_audio_db_models.MediaFileCueMetadata
 
 	if res != nil && res.CuePath != "" && res.AudioPath != "" {
 		globalMeta, tracks, err := parseCueFile(res.CuePath)
 		if err != nil {
 			log.Printf("CUE解析警告: %v, 使用标签元数据", err)
 		} else {
-			cueTracks = tracks
-
-			if genre, ok := globalMeta["GENRE"]; ok {
-				tags["GENRE"] = []string{genre}
-			}
-			if date, ok := globalMeta["DATE"]; ok {
-				if year, err := strconv.Atoi(date); err == nil {
-					tags["DATE"] = []string{strconv.Itoa(year)}
-				}
-			}
-			if comment, ok := globalMeta["COMMENT"]; ok {
-				tags["Comment"] = []string{comment}
-			}
-			if title, ok := globalMeta["TITLE"]; ok {
-				tags["Title"] = []string{title}
-			}
-			if performer, ok := globalMeta["PERFORMER"]; ok {
-				albumArtistTag = performer
-				artistTag = performer
-			}
-			if title, ok := globalMeta["TITLE"]; ok {
-				albumTag = title
-			}
-
-			albumID = generateDeterministicID(artistTag + albumTag)
-			artistID = generateDeterministicID(artistTag)
-			albumArtistID = generateDeterministicID(albumArtistTag)
-
-			cueGlobalMeta = scene_audio_db_models.CueGlobalMeta{
-				REM: scene_audio_db_models.CueREM{
-					GENRE:   globalMeta["GENRE"],
-					DATE:    globalMeta["DATE"],
-					DISCID:  globalMeta["DISCID"],
-					COMMENT: globalMeta["COMMENT"],
-				},
-				PERFORMER: globalMeta["PERFORMER"],
-				TITLE:     globalMeta["TITLE"],
-				FILE: scene_audio_db_models.CueFile{
-					FilePath: globalMeta["FILE"],
-				},
-				CATALOG:    globalMeta["CATALOG"],
-				SONGWRITER: globalMeta["SONGWRITER"],
+			mediaFileCue, albumTag, artistTag, albumArtistTag, allArtistIDs = e.buildMediaFileCue(
+				tags, properties, fileMetadata,
+				globalMeta, mediaFileCue,
+				tracks, suffix,
+				albumTag, artistTag, albumArtistTag,
+			)
+			mediaFileCue.CueResources = scene_audio_db_models.CueConfig{
+				CuePath:    res.CuePath,
+				AudioPath:  res.AudioPath,
+				BackImage:  res.BackImage,
+				CoverImage: res.CoverImage,
+				DiscImage:  res.DiscImage,
+				ListFile:   res.ListFile,
+				LogFile:    res.LogFile,
 			}
 		}
 	} else {
@@ -131,16 +118,17 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 				albumTag = albumSortTag
 			}
 		}
-		albumID = generateDeterministicID(artistTag + albumTag)
-		artistID = generateDeterministicID(artistTag)
-		albumArtistID = generateDeterministicID(albumArtistTag)
 	}
+
+	albumID = generateDeterministicID(artistTag + albumTag)
+	artistID = generateDeterministicID(artistTag)
+	albumArtistID = generateDeterministicID(albumArtistTag)
 
 	mediaFile,
 		compilationArtist,
 		formattedArtist, allArtistIDs,
 		formattedAlbumArtist, allAlbumArtistIDs,
-		albumPinyin, artistPinyin, albumArtistPinyin :=
+		albumPinyin, artistPinyin, albumArtistPinyin =
 		e.buildMediaFile(
 			tags, properties, fileMetadata,
 			artistID, albumID, albumArtistID,
@@ -148,16 +136,7 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 			albumTag, artistTag, albumArtistTag,
 		)
 
-	if len(cueTracks) > 0 {
-		mediaFile.CueTracks = cueTracks
-		mediaFile.CueComplete = true
-		mediaFile.CueResources = *res
-		mediaFile.CueGlobalMeta = cueGlobalMeta
-	} else {
-		mediaFile.CueComplete = false
-	}
-
-	album := e.buildAlbum(
+	album = e.buildAlbum(
 		tags, now, artistID, albumID, albumArtistID,
 		compilationArtist,
 		formattedArtist, allArtistIDs,
@@ -166,23 +145,24 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 	)
 
 	// 这是NineSong面向音乐场景的业务特性，默认为单体艺术家，并探索其相关业务逻辑的用户友好性与数据管理增强
-	var artist []*scene_audio_db_models.ArtistMetadata
 	if compilationArtist {
-		for index, artistIDPair := range mediaFile.AllArtistIDs {
-			if index == 0 {
-				// 出现复合艺术家的情况，那么单曲-专辑的艺术家ID，应该为主艺术家的ID，而不是复合艺术家的复合ID
-				mediaFile.ArtistID = artistIDPair.ArtistID
-				album.ArtistID = artistIDPair.ArtistID
+		if mediaFile != nil {
+			for index, artistIDPair := range mediaFile.AllArtistIDs {
+				if index == 0 {
+					// 出现复合艺术家的情况，那么单曲-专辑的艺术家ID，应该为主艺术家的ID，而不是复合艺术家的复合ID
+					mediaFile.ArtistID = artistIDPair.ArtistID
+					album.ArtistID = artistIDPair.ArtistID
+				}
+				artistId, _ := primitive.ObjectIDFromHex(artistIDPair.ArtistID)
+				artist = append(
+					artist, e.buildArtist(
+						now, artistId, artistIDPair.ArtistName,
+						compilationArtist,
+						formattedArtist, allArtistIDs,
+						artistPinyin,
+					),
+				)
 			}
-			artistId, _ := primitive.ObjectIDFromHex(artistIDPair.ArtistID)
-			artist = append(
-				artist, e.buildArtist(
-					now, artistId, artistIDPair.ArtistName,
-					compilationArtist,
-					formattedArtist, allArtistIDs,
-					artistPinyin,
-				),
-			)
 		}
 	} else {
 		artist = append(
@@ -195,10 +175,13 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 		)
 	}
 
-	return mediaFile, album, artist, nil
+	if mediaFileCue != nil {
+		return nil, nil, artist, mediaFileCue, nil
+	}
+	return mediaFile, album, artist, nil, nil
 }
 
-func (e *AudioMetadataExtractorTaglib) enrichFileMetadata(path string, fm *domain_file_entity.FileMetadata) error {
+func (e *AudioMetadataExtractorTaglib) enrichFileMetadata(path string, fileMetadata *domain_file_entity.FileMetadata) error {
 	file, err := os.Open(path)
 	if err != nil {
 		return err
@@ -214,30 +197,130 @@ func (e *AudioMetadataExtractorTaglib) enrichFileMetadata(path string, fm *domai
 	if _, err := io.Copy(hash, file); err != nil {
 		return fmt.Errorf("校验和计算失败: %w", err)
 	}
-	fm.Checksum = fmt.Sprintf("%x", hash.Sum(nil))
+	fileMetadata.Checksum = fmt.Sprintf("%x", hash.Sum(nil))
 
 	info, err := file.Stat()
 	if err != nil {
 		return fmt.Errorf("文件状态获取失败: %w", err)
 	}
 
-	fm.FilePath = path
-	fm.Size = info.Size()
-	fm.ModTime = info.ModTime().UTC()
-	fm.FileType = domain_file_entity.Audio
+	fileMetadata.FilePath = path
+	fileMetadata.Size = info.Size()
+	fileMetadata.ModTime = info.ModTime().UTC()
+	fileMetadata.FileType = domain_file_entity.Audio
 
-	if fm.CreatedAt.IsZero() {
-		fm.CreatedAt = time.Now().UTC()
+	if fileMetadata.CreatedAt.IsZero() {
+		fileMetadata.CreatedAt = time.Now().UTC()
 	}
-	fm.UpdatedAt = time.Now().UTC()
+	fileMetadata.UpdatedAt = time.Now().UTC()
 
 	return nil
+}
+
+func (e *AudioMetadataExtractorTaglib) buildMediaFileCue(
+	tags map[string][]string,
+	properties taglib.Properties,
+	fileMetadata *domain_file_entity.FileMetadata,
+	globalMeta map[string]string,
+	mediaFileCue *scene_audio_db_models.MediaFileCueMetadata,
+	tracks []scene_audio_db_models.CueTrack,
+	suffix string,
+	albumTag, artistTag, albumArtistTag string,
+) (
+	*scene_audio_db_models.MediaFileCueMetadata,
+	string, string, string,
+	[]scene_audio_db_models.ArtistIDPair,
+) {
+	if genre, ok := globalMeta["GENRE"]; ok {
+		tags["GENRE"] = []string{genre}
+	}
+	if date, ok := globalMeta["DATE"]; ok {
+		if year, err := strconv.Atoi(date); err == nil {
+			tags["DATE"] = []string{strconv.Itoa(year)}
+		}
+	}
+	if comment, ok := globalMeta["COMMENT"]; ok {
+		tags["Comment"] = []string{comment}
+	}
+	if title, ok := globalMeta["TITLE"]; ok {
+		tags["Title"] = []string{title}
+	}
+	if performer, ok := globalMeta["PERFORMER"]; ok {
+		albumArtistTag = performer
+		artistTag = performer
+	}
+	if title, ok := globalMeta["TITLE"]; ok {
+		albumTag = title
+	}
+
+	artistID := generateDeterministicID(artistTag)
+
+	compilationArtist := e.hasMultipleArtists(artistTag)
+	formattedArtist := artistTag
+	var allArtistIDs []scene_audio_db_models.ArtistIDPair
+	if compilationArtist {
+		formattedArtist, allArtistIDs = formatMultipleArtists(artistTag)
+	} else {
+		allArtistIDs = append(allArtistIDs, scene_audio_db_models.ArtistIDPair{
+			ArtistName: artistTag,
+			ArtistID:   artistID.Hex(),
+		})
+	}
+
+	titleText := e.cleanText(globalMeta["TITLE"])
+	artistText := e.cleanText(formattedArtist)
+	albumText := e.cleanText(albumTag)
+	var parts []string
+	if titleText != "" {
+		parts = append(parts, titleText)
+	}
+	if artistText != "" {
+		parts = append(parts, artistText)
+	}
+	if albumText != "" {
+		parts = append(parts, albumText)
+	}
+	fullText := strings.Join(parts, " ")
+
+	mediaFileCue = &scene_audio_db_models.MediaFileCueMetadata{
+		// 系统保留字段 (综合)
+		ID:        fileMetadata.ID,
+		CreatedAt: fileMetadata.CreatedAt,
+		UpdatedAt: fileMetadata.UpdatedAt,
+		FullText:  fullText,
+		Path:      fileMetadata.FilePath,
+		Suffix:    suffix,
+		Size:      int(fileMetadata.Size),
+	}
+
+	mediaFileCue.CueTracks = tracks
+
+	mediaFileCue.REM = scene_audio_db_models.CueREM{
+		GENRE:   globalMeta["GENRE"],
+		DATE:    globalMeta["DATE"],
+		DISCID:  globalMeta["DISCID"],
+		COMMENT: globalMeta["COMMENT"],
+	}
+	mediaFileCue.PERFORMER = globalMeta["PERFORMER"]
+	mediaFileCue.TITLE = globalMeta["TITLE"]
+	mediaFileCue.FILE = scene_audio_db_models.CueFile{
+		FilePath: globalMeta["FILE"],
+	}
+	mediaFileCue.CATALOG = globalMeta["CATALOG"]
+	mediaFileCue.SONGWRITER = globalMeta["SONGWRITER"]
+
+	mediaFileCue.CueSampleRate = int(properties.SampleRate)
+	mediaFileCue.CueDuration = float64(properties.Length)
+	mediaFileCue.CueBitRate = int(properties.Bitrate)
+	mediaFileCue.CueChannels = int(properties.Channels)
+
+	return mediaFileCue, albumTag, formattedArtist, albumArtistTag, allArtistIDs
 }
 
 func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 	tags map[string][]string,
 	properties taglib.Properties,
-	fm *domain_file_entity.FileMetadata,
+	fileMetadata *domain_file_entity.FileMetadata,
 	artistID, albumID, albumArtistID primitive.ObjectID,
 	suffix string,
 	albumTag, artistTag, albumArtistTag string,
@@ -277,18 +360,18 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 		})
 	}
 
-	title := e.cleanText(titleTag)
-	artist := e.cleanText(formattedArtist)
-	album := e.cleanText(albumTag)
+	titleText := e.cleanText(titleTag)
+	artistText := e.cleanText(formattedArtist)
+	albumText := e.cleanText(albumTag)
 	var parts []string
-	if title != "" {
-		parts = append(parts, title)
+	if titleText != "" {
+		parts = append(parts, titleText)
 	}
-	if artist != "" {
-		parts = append(parts, artist)
+	if artistText != "" {
+		parts = append(parts, artistText)
 	}
-	if album != "" {
-		parts = append(parts, album)
+	if albumText != "" {
+		parts = append(parts, albumText)
 	}
 	fullText := strings.Join(parts, " ")
 
@@ -300,12 +383,12 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 	return &scene_audio_db_models.MediaFileMetadata{
 			// 系统保留字段 (综合)
 			ID:        e.mediaID,
-			CreatedAt: fm.CreatedAt,
-			UpdatedAt: fm.UpdatedAt,
+			CreatedAt: fileMetadata.CreatedAt,
+			UpdatedAt: fileMetadata.UpdatedAt,
 			FullText:  fullText,
-			Path:      fm.FilePath,
+			Path:      fileMetadata.FilePath,
 			Suffix:    suffix,
-			Size:      int(fm.Size),
+			Size:      int(fileMetadata.Size),
 
 			// 基础元数据 (github.com/dhowden/tag、go.senan.xyz/taglib)
 			Title:       titleTag,

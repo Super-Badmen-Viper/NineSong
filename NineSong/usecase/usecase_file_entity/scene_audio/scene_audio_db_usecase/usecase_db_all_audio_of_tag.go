@@ -27,7 +27,6 @@ func (e *AudioMetadataExtractorTag) Extract(
 	*scene_audio_db_models.ArtistMetadata,
 	error,
 ) {
-	e.mediaID = primitive.NewObjectID()
 	if err := e.enrichFileMetadata(path, fileMetadata); err != nil {
 		return nil, nil, nil, err
 	}
@@ -135,7 +134,7 @@ func (e *AudioMetadataExtractorTag) buildMediaFile(
 
 	return &scene_audio_db_models.MediaFileMetadata{
 		// 系统保留字段 (综合)
-		ID:        e.mediaID,
+		ID:        fm.ID,
 		CreatedAt: fm.CreatedAt,
 		UpdatedAt: fm.UpdatedAt,
 		FullText:  fullText,

@@ -1,0 +1,21 @@
+package scene_audio_route_interface
+
+import (
+	"context"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
+)
+
+type MediaFileCueRepository interface {
+	GetMediaFileCueItems(
+		ctx context.Context,
+		start, end, sort, order,
+		search, starred,
+		albumId, artistId,
+		year string,
+	) ([]scene_audio_route_models.MediaFileCueMetadata, error)
+
+	GetMediaFileCueFilterItemsCount(
+		ctx context.Context,
+		search, starred, albumId, artistId, year string,
+	) (*scene_audio_route_models.MediaFileCueFilterCounts, error)
+}

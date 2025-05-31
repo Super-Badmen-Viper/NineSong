@@ -38,6 +38,7 @@ type FileUsecase struct {
 	albumRepo      scene_audio_db_interface.AlbumRepository
 	mediaRepo      scene_audio_db_interface.MediaFileRepository
 	tempRepo       scene_audio_db_interface.TempRepository
+	mediaCueRepo   scene_audio_db_interface.MediaFileCueRepository
 }
 
 func NewFileUsecase(
@@ -51,6 +52,7 @@ func NewFileUsecase(
 	albumRepo scene_audio_db_interface.AlbumRepository,
 	mediaRepo scene_audio_db_interface.MediaFileRepository,
 	tempRepo scene_audio_db_interface.TempRepository,
+	mediaCueRepo scene_audio_db_interface.MediaFileCueRepository,
 ) *FileUsecase {
 	workerCount := runtime.NumCPU() * 2
 	if workerCount < 4 {
@@ -58,15 +60,16 @@ func NewFileUsecase(
 	}
 
 	return &FileUsecase{
-		fileRepo:    fileRepo,
-		folderRepo:  folderRepo,
-		detector:    detector,
-		workerPool:  make(chan struct{}, workerCount),
-		scanTimeout: time.Duration(timeoutMinutes) * time.Minute,
-		artistRepo:  artistRepo,
-		albumRepo:   albumRepo,
-		mediaRepo:   mediaRepo,
-		tempRepo:    tempRepo,
+		fileRepo:     fileRepo,
+		folderRepo:   folderRepo,
+		detector:     detector,
+		workerPool:   make(chan struct{}, workerCount),
+		scanTimeout:  time.Duration(timeoutMinutes) * time.Minute,
+		artistRepo:   artistRepo,
+		albumRepo:    albumRepo,
+		mediaRepo:    mediaRepo,
+		tempRepo:     tempRepo,
+		mediaCueRepo: mediaCueRepo,
 	}
 }
 
@@ -132,7 +135,7 @@ func (uc *FileUsecase) ProcessDirectory(ctx context.Context, dirPath string, tar
 	// 存储需要排除的.wav文件路径
 	excludeWavs := make(map[string]struct{})
 	// 存储cue文件及其资源
-	cueResourcesMap := make(map[string]*scene_audio_db_models.CueConfigs)
+	cueResourcesMap := make(map[string]*scene_audio_db_models.CueConfig)
 
 	// 第一次遍历：收集.cue文件和关联资源
 	err = filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
@@ -155,7 +158,7 @@ func (uc *FileUsecase) ProcessDirectory(ctx context.Context, dirPath string, tar
 
 			// 处理.cue文件
 			if ext == ".cue" {
-				res := &scene_audio_db_models.CueConfigs{CuePath: path}
+				res := &scene_audio_db_models.CueConfig{CuePath: path}
 
 				// 查找同名音频文件
 				audioFound := false
@@ -352,7 +355,7 @@ func (uc *FileUsecase) shouldProcess(path string) bool {
 
 func (uc *FileUsecase) processFile(
 	ctx context.Context,
-	res *scene_audio_db_models.CueConfigs,
+	res *scene_audio_db_models.CueConfig,
 	path string,
 	coverTempPath string,
 	folderID primitive.ObjectID,
@@ -403,12 +406,12 @@ func (uc *FileUsecase) processFile(
 
 	// 处理音频文件
 	if fileType == domain_file_entity.Audio {
-		mediaFile, album, artists, err := uc.audioExtractor.Extract(path, metadata, res)
+		mediaFile, album, artists, mediaFileCue, err := uc.audioExtractor.Extract(path, metadata, res)
 		if err != nil {
 			return
 		}
 
-		if err := uc.processAudioHierarchy(ctx, artists, album, mediaFile); err != nil {
+		if err := uc.processAudioHierarchy(ctx, artists, album, mediaFile, mediaFileCue); err != nil {
 			return
 		}
 
@@ -416,6 +419,7 @@ func (uc *FileUsecase) processFile(
 			ctx,
 			mediaFile,
 			album,
+			mediaFileCue,
 			path,
 			coverTempPath,
 		); err != nil {
@@ -491,84 +495,99 @@ func (uc *FileUsecase) processAudioMediaFilesAndAlbumCover(
 	ctx context.Context,
 	media *scene_audio_db_models.MediaFileMetadata,
 	album *scene_audio_db_models.AlbumMetadata,
+	mediaCue *scene_audio_db_models.MediaFileCueMetadata,
 	path string,
 	coverBasePath string,
 ) error {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil
-	}
-	defer func(file *os.File) {
-		err := file.Close()
+	if mediaCue != nil {
+		mediaCueUpdate := bson.M{
+			"$set": bson.M{
+				"back_image_url":  mediaCue.CueResources.BackImage,
+				"cover_image_url": mediaCue.CueResources.CoverImage,
+				"disc_image_url":  mediaCue.CueResources.DiscImage,
+				"has_cover_art":   mediaCue.CueResources.CoverImage != "",
+			},
+		}
+		if _, err := uc.mediaCueRepo.UpdateByID(ctx, mediaCue.ID, mediaCueUpdate); err != nil {
+			return fmt.Errorf("媒体更新失败: %w", err)
+		}
+	} else {
+		file, err := os.Open(path)
 		if err != nil {
-			log.Printf("文件关闭失败[%s]: %v", path, err)
+			return nil
 		}
-	}(file)
-	metadata, err := tag.ReadFrom(file)
-	if err != nil {
-		return nil
-	}
-
-	mediaCoverDir := filepath.Join(coverBasePath, "media", media.ID.Hex())
-	if err := os.MkdirAll(mediaCoverDir, 0755); err != nil {
-		return fmt.Errorf("媒体目录创建失败: %w", err)
-	}
-
-	var coverPath string
-	defer func() {
-		if coverPath == "" {
-			err := os.RemoveAll(mediaCoverDir)
+		defer func(file *os.File) {
+			err := file.Close()
 			if err != nil {
-				log.Printf("[WARN] 媒体目录删除失败 | 路径:%s | 错误:%v", mediaCoverDir, err)
-				return
+				log.Printf("文件关闭失败[%s]: %v", path, err)
 			}
+		}(file)
+		metadata, err := tag.ReadFrom(file)
+		if err != nil {
+			return nil
 		}
-	}()
 
-	if pic := metadata.Picture(); pic != nil && len(pic.Data) > 0 {
-		targetPath := filepath.Join(mediaCoverDir, "cover.jpg")
-		if err := os.WriteFile(targetPath, pic.Data, 0644); err != nil {
-			return fmt.Errorf("封面写入失败: %w", err)
+		mediaCoverDir := filepath.Join(coverBasePath, "media", media.ID.Hex())
+		if err := os.MkdirAll(mediaCoverDir, 0755); err != nil {
+			return fmt.Errorf("媒体目录创建失败: %w", err)
 		}
-		coverPath = targetPath
-	}
 
-	mediaUpdate := bson.M{
-		"$set": bson.M{
-			"medium_image_url": coverPath,
-			"has_cover_art":    coverPath != "",
-		},
-	}
-	if _, err := uc.mediaRepo.UpdateByID(ctx, media.ID, mediaUpdate); err != nil {
-		return fmt.Errorf("媒体更新失败: %w", err)
-	}
-
-	if album != nil && coverPath != "" {
-		if album.MediumImageURL == "" {
-			albumCoverDir := filepath.Join(coverBasePath, "album", album.ID.Hex())
-			if err := os.MkdirAll(albumCoverDir, 0755); err != nil {
-				log.Printf("[WARN] 专辑封面目录创建失败 | AlbumID:%s | 错误:%v",
-					album.ID.Hex(), err)
-			} else if pic := metadata.Picture(); pic != nil && len(pic.Data) > 0 {
-				albumCoverPath := filepath.Join(albumCoverDir, "cover.jpg")
-				if err := os.WriteFile(albumCoverPath, pic.Data, 0644); err != nil {
-					log.Printf("[WARN] 专辑封面写入失败 | AlbumID:%s | 路径:%s | 错误:%v",
-						album.ID.Hex(), albumCoverPath, err)
-				} else {
-					coverPath = albumCoverPath // 优先使用专辑级封面路径
+		var coverPath string
+		defer func() {
+			if coverPath == "" {
+				err := os.RemoveAll(mediaCoverDir)
+				if err != nil {
+					log.Printf("[WARN] 媒体目录删除失败 | 路径:%s | 错误:%v", mediaCoverDir, err)
+					return
 				}
 			}
+		}()
 
-			albumUpdate := bson.M{
-				"$set": bson.M{
-					"medium_image_url": coverPath,
-					"has_cover_art":    true,
-					"updated_at":       time.Now().UTC(),
-				},
+		if pic := metadata.Picture(); pic != nil && len(pic.Data) > 0 {
+			targetPath := filepath.Join(mediaCoverDir, "cover.jpg")
+			if err := os.WriteFile(targetPath, pic.Data, 0644); err != nil {
+				return fmt.Errorf("封面写入失败: %w", err)
 			}
-			if _, err := uc.albumRepo.UpdateByID(ctx, album.ID, albumUpdate); err != nil {
-				log.Printf("[WARN] 专辑元数据更新失败 | ID:%s | 错误:%v",
-					album.ID.Hex(), err)
+			coverPath = targetPath
+		}
+
+		mediaUpdate := bson.M{
+			"$set": bson.M{
+				"medium_image_url": coverPath,
+				"has_cover_art":    coverPath != "",
+			},
+		}
+		if _, err := uc.mediaRepo.UpdateByID(ctx, media.ID, mediaUpdate); err != nil {
+			return fmt.Errorf("媒体更新失败: %w", err)
+		}
+
+		if album != nil && coverPath != "" {
+			if album.MediumImageURL == "" {
+				albumCoverDir := filepath.Join(coverBasePath, "album", album.ID.Hex())
+				if err := os.MkdirAll(albumCoverDir, 0755); err != nil {
+					log.Printf("[WARN] 专辑封面目录创建失败 | AlbumID:%s | 错误:%v",
+						album.ID.Hex(), err)
+				} else if pic := metadata.Picture(); pic != nil && len(pic.Data) > 0 {
+					albumCoverPath := filepath.Join(albumCoverDir, "cover.jpg")
+					if err := os.WriteFile(albumCoverPath, pic.Data, 0644); err != nil {
+						log.Printf("[WARN] 专辑封面写入失败 | AlbumID:%s | 路径:%s | 错误:%v",
+							album.ID.Hex(), albumCoverPath, err)
+					} else {
+						coverPath = albumCoverPath // 优先使用专辑级封面路径
+					}
+				}
+
+				albumUpdate := bson.M{
+					"$set": bson.M{
+						"medium_image_url": coverPath,
+						"has_cover_art":    true,
+						"updated_at":       time.Now().UTC(),
+					},
+				}
+				if _, err := uc.albumRepo.UpdateByID(ctx, album.ID, albumUpdate); err != nil {
+					log.Printf("[WARN] 专辑元数据更新失败 | ID:%s | 错误:%v",
+						album.ID.Hex(), err)
+				}
 			}
 		}
 	}
@@ -580,23 +599,35 @@ func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,
 	artists []*scene_audio_db_models.ArtistMetadata,
 	album *scene_audio_db_models.AlbumMetadata,
 	mediaFile *scene_audio_db_models.MediaFileMetadata,
+	mediaFileCue *scene_audio_db_models.MediaFileCueMetadata,
 ) error {
 	// 关键依赖检查
-	if uc.mediaRepo == nil || uc.artistRepo == nil || uc.albumRepo == nil {
+	if uc.mediaRepo == nil || uc.artistRepo == nil || uc.albumRepo == nil || uc.mediaCueRepo == nil {
 		log.Print("音频仓库未初始化")
 		return fmt.Errorf("系统服务异常")
 	}
 
-	if mediaFile == nil {
+	if mediaFile == nil && mediaFileCue == nil {
 		log.Print("媒体文件元数据为空")
 		return fmt.Errorf("mediaFile cannot be nil")
 	}
 
 	// 直接保存无关联数据
 	if artists == nil && album == nil {
-		if mediaFile, err := uc.mediaRepo.Upsert(ctx, mediaFile); err != nil {
-			log.Printf("歌曲保存失败: %s | %v", mediaFile.Path, err)
-			return fmt.Errorf("歌曲元数据保存失败 | 路径:%s | %w", mediaFile.Path, err)
+		if mediaFile != nil {
+			if mediaFile, err := uc.mediaRepo.Upsert(ctx, mediaFile); err != nil {
+				log.Printf("歌曲保存失败: %s | %v", mediaFile.Path, err)
+				return fmt.Errorf("歌曲元数据保存失败 | 路径:%s | %w", mediaFile.Path, err)
+			}
+		}
+		if mediaFileCue != nil {
+			if mediaFileCue, err := uc.mediaCueRepo.Upsert(ctx, mediaFileCue); err != nil {
+				if mediaFileCue != nil {
+					log.Printf("CUE文件保存失败: %s | %v", mediaFileCue.CueResources.CuePath, err)
+				} else {
+					log.Printf("CUE文件保存失败: %s | %v", mediaFileCue, err)
+				}
+			}
 		}
 		return nil
 	}
@@ -628,17 +659,32 @@ func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,
 	}
 
 	// 保存媒体文件
-	if mediaFile, err := uc.mediaRepo.Upsert(ctx, mediaFile); err != nil {
-		errorInfo := fmt.Sprintf("路径:%s", mediaFile.Path)
-		if album != nil {
-			errorInfo += fmt.Sprintf(" 专辑:%s", album.Name)
+	if mediaFile != nil {
+		if mediaFile, err := uc.mediaRepo.Upsert(ctx, mediaFile); err != nil {
+			errorInfo := fmt.Sprintf("路径:%s", mediaFile.Path)
+			if album != nil {
+				errorInfo += fmt.Sprintf(" 专辑:%s", album.Name)
+			}
+			log.Printf("最终保存失败: %s | %v", errorInfo, err)
+			return fmt.Errorf("歌曲写入失败 %s | %w", errorInfo, err)
 		}
-		log.Printf("最终保存失败: %s | %v", errorInfo, err)
-		return fmt.Errorf("歌曲写入失败 %s | %w", errorInfo, err)
+	}
+	if mediaFileCue != nil {
+		if mediaFileCue, err := uc.mediaCueRepo.Upsert(ctx, mediaFileCue); err != nil {
+			if mediaFileCue != nil {
+				errorInfo := fmt.Sprintf("路径:%s", mediaFileCue.CueResources.CuePath)
+				if album != nil {
+					errorInfo += fmt.Sprintf(" 专辑:%s", album.Name)
+				}
+			} else {
+				log.Printf("最终保存失败: %s | %v", mediaFileCue, err)
+			}
+			return fmt.Errorf("歌曲写入失败 %s | %w", mediaFileCue, err)
+		}
 	}
 
 	// 异步统计更新
-	go uc.updateAudioArtistAndAlbumStatistics(artists, album, mediaFile)
+	go uc.updateAudioArtistAndAlbumStatistics(artists, album, mediaFile, mediaFileCue)
 	return nil
 }
 
@@ -646,6 +692,7 @@ func (uc *FileUsecase) updateAudioArtistAndAlbumStatistics(
 	artists []*scene_audio_db_models.ArtistMetadata,
 	album *scene_audio_db_models.AlbumMetadata,
 	mediaFile *scene_audio_db_models.MediaFileMetadata,
+	mediaFileCue *scene_audio_db_models.MediaFileCueMetadata,
 ) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -662,11 +709,21 @@ func (uc *FileUsecase) updateAudioArtistAndAlbumStatistics(
 				artistID = artist.ID
 			}
 			if !artistID.IsZero() && index == 0 {
-				if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "size", mediaFile.Size); err != nil {
-					log.Printf("专辑大小统计更新失败: %v", err)
+				if mediaFileCue != nil {
+					if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "size", mediaFileCue.Size); err != nil {
+						log.Printf("专辑大小统计更新失败: %v", err)
+					}
+					if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "duration", int(mediaFileCue.CueDuration)); err != nil {
+						log.Printf("专辑播放时间统计更新失败: %v", err)
+					}
 				}
-				if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "duration", int(mediaFile.Duration)); err != nil {
-					log.Printf("专辑播放时间统计更新失败: %v", err)
+				if mediaFile != nil {
+					if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "size", mediaFile.Size); err != nil {
+						log.Printf("专辑大小统计更新失败: %v", err)
+					}
+					if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "duration", int(mediaFile.Duration)); err != nil {
+						log.Printf("专辑播放时间统计更新失败: %v", err)
+					}
 				}
 			}
 		}
@@ -676,14 +733,16 @@ func (uc *FileUsecase) updateAudioArtistAndAlbumStatistics(
 		albumID = album.ID
 	}
 	if !albumID.IsZero() {
-		if _, err := uc.albumRepo.UpdateCounter(ctx, albumID, "song_count", 1); err != nil {
-			log.Printf("专辑单曲数量统计更新失败: %v", err)
-		}
-		if _, err := uc.albumRepo.UpdateCounter(ctx, albumID, "size", mediaFile.Size); err != nil {
-			log.Printf("专辑大小统计更新失败: %v", err)
-		}
-		if _, err := uc.albumRepo.UpdateCounter(ctx, albumID, "duration", int(mediaFile.Duration)); err != nil {
-			log.Printf("专辑播放时间统计更新失败: %v", err)
+		if mediaFile != nil {
+			if _, err := uc.albumRepo.UpdateCounter(ctx, albumID, "song_count", 1); err != nil {
+				log.Printf("专辑单曲数量统计更新失败: %v", err)
+			}
+			if _, err := uc.albumRepo.UpdateCounter(ctx, albumID, "size", mediaFile.Size); err != nil {
+				log.Printf("专辑大小统计更新失败: %v", err)
+			}
+			if _, err := uc.albumRepo.UpdateCounter(ctx, albumID, "duration", int(mediaFile.Duration)); err != nil {
+				log.Printf("专辑播放时间统计更新失败: %v", err)
+			}
 		}
 	}
 }

@@ -47,6 +47,7 @@ func NewInitializer(env *Env, db mongo.Database) *Initializer {
 			domain.CollectionFileEntityAudioAppServerConfigs,
 			domain.CollectionFileEntityAudioAppMediaFileLibrary,
 			domain.CollectionFileEntityAudioSceneMediaFile,
+			domain.CollectionFileEntityAudioSceneMediaFileCue,
 			domain.CollectionFileEntityAudioSceneMediaLyricsMetadata,
 			domain.CollectionFileEntityAudioSceneMediaMvMetadata,
 			domain.CollectionFileEntityAudioSceneMediaTrackMetadata,
