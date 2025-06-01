@@ -823,11 +823,14 @@ func (si *Initializer) initAppMediaFileLibrary(ctx context.Context) error {
 func (si *Initializer) initFileEntityFolder(ctx context.Context) error {
 	coll := si.db.Collection(domain.CollectionFileEntityFolderInfo)
 
-	initConfigs := []*domain_file_entity.FolderMetadata{
+	initConfigs := []*domain_file_entity.LibraryFolderMetadata{
 		// 音频文件夹示例（包含多文件元数据）
 		{
 			ID:         primitive.NewObjectID(),
 			FolderPath: "c:/users/17741/Music",
+			FileTypes: []domain_file_entity.FileTypeNo{
+				1,
+			},
 			FolderMeta: domain_file_entity.FolderMeta{
 				FileCount:   0,
 				LastScanned: time.Now(),
@@ -837,6 +840,9 @@ func (si *Initializer) initFileEntityFolder(ctx context.Context) error {
 		{
 			ID:         primitive.NewObjectID(),
 			FolderPath: "c:/users/17741/Videos",
+			FileTypes: []domain_file_entity.FileTypeNo{
+				2,
+			},
 			FolderMeta: domain_file_entity.FolderMeta{
 				FileCount:   0,
 				LastScanned: time.Now(),
@@ -846,6 +852,9 @@ func (si *Initializer) initFileEntityFolder(ctx context.Context) error {
 		{
 			ID:         primitive.NewObjectID(),
 			FolderPath: "c:/users/17741/Pictures",
+			FileTypes: []domain_file_entity.FileTypeNo{
+				3,
+			},
 			FolderMeta: domain_file_entity.FolderMeta{
 				FileCount:   0,
 				LastScanned: time.Now(),

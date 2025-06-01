@@ -80,19 +80,17 @@ func (uc *FileUsecase) ProcessDirectory(ctx context.Context, dirPath string, tar
 		return fmt.Errorf("系统未正确初始化")
 	}
 
-	coverTempPath, _ := uc.tempRepo.GetTempPath(ctx, "cover")
-	//steamPath, _ := uc.tempRepo.GetTempPath(ctx, "stream")
-
-	folder, err := uc.folderRepo.FindByPath(ctx, dirPath)
+	folder, err := uc.folderRepo.FindLibrary(ctx, dirPath, targetTypes)
 	if err != nil {
 		log.Printf("文件夹查询失败: %v", err)
 		return fmt.Errorf("folder query failed: %w", err)
 	}
 
 	if folder == nil {
-		newFolder := &domain_file_entity.FolderMetadata{
+		newFolder := &domain_file_entity.LibraryFolderMetadata{
 			ID:         primitive.NewObjectID(),
 			FolderPath: dirPath,
+			FileTypes:  targetTypes,
 			FolderMeta: domain_file_entity.FolderMeta{
 				FileCount:   0,
 				LastScanned: time.Now(),
@@ -113,7 +111,32 @@ func (uc *FileUsecase) ProcessDirectory(ctx context.Context, dirPath string, tar
 	}
 	uc.targetMutex.Unlock()
 
+	if isFileTypeSliceEqual(targetTypes, domain_file_entity.LibraryMusicType) {
+		err = uc.ProcessMusicDirectory(ctx, dirPath, folder)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+func isFileTypeSliceEqual(a, b []domain_file_entity.FileTypeNo) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func (uc *FileUsecase) ProcessMusicDirectory(ctx context.Context, dirPath string, folder *domain_file_entity.LibraryFolderMetadata) error {
+	coverTempPath, _ := uc.tempRepo.GetTempPath(ctx, "cover")
+	//steamPath, _ := uc.tempRepo.GetTempPath(ctx, "stream")
+
 	// 扫描前先清空下数据库表内的统计数据，扫描过程中会重新统计一次
+	var err error
 	_, err = uc.albumRepo.ResetALLField(ctx)
 	if err != nil {
 		return err

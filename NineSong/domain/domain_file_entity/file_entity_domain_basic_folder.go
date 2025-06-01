@@ -11,14 +11,19 @@ type FolderMeta struct {
 	LastScanned time.Time `bson:"last_scanned"`
 }
 
-type FolderMetadata struct {
+type LibraryFolderMetadata struct {
 	ID         primitive.ObjectID `bson:"_id,omitempty"`
-	FolderPath string             `bson:"folder_path" validate:"dirpath"`
+	FolderPath string             `bson:"folder_path"`
+	FileTypes  []FileTypeNo       `bson:"file_types"`
 	FolderMeta FolderMeta         `bson:"folder_meta"`
 }
 
 type FolderRepository interface {
-	Insert(ctx context.Context, folder *FolderMetadata) error
-	FindByPath(ctx context.Context, path string) (*FolderMetadata, error)
+	Insert(ctx context.Context, folder *LibraryFolderMetadata) error
+	FindLibrary(ctx context.Context, folderPath string, fileTypes []FileTypeNo) (*LibraryFolderMetadata, error)
 	UpdateStats(ctx context.Context, folderID primitive.ObjectID, fileCount int) error
+}
+
+var LibraryMusicType = []FileTypeNo{
+	1, // Music
 }
