@@ -2203,7 +2203,7 @@
 											"response": []
 										},
 										{
-											"name": "GetDownload ID",
+											"name": "GetDownloadPath ID",
 											"protocolProfileBehavior": {
 												"disableBodyPruning": true
 											},

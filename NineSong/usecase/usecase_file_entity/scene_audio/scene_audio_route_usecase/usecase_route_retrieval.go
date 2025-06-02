@@ -20,24 +20,24 @@ func NewRetrievalUsecase(repo scene_audio_route_interface.RetrievalRepository, t
 	}
 }
 
-func (uc *retrievalUsecase) GetStream(ctx context.Context, mediaFileId string) (string, error) {
+func (uc *retrievalUsecase) GetStreamPath(ctx context.Context, mediaFileId string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
 	defer cancel()
 
 	if _, err := primitive.ObjectIDFromHex(mediaFileId); err != nil {
 		return "", errors.New("invalid media file id format")
 	}
-	return uc.repo.GetStream(ctx, mediaFileId)
+	return uc.repo.GetStreamPath(ctx, mediaFileId)
 }
 
-func (uc *retrievalUsecase) GetDownload(ctx context.Context, mediaFileId string) (string, error) {
+func (uc *retrievalUsecase) GetDownloadPath(ctx context.Context, mediaFileId string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
 	defer cancel()
 
 	if _, err := primitive.ObjectIDFromHex(mediaFileId); err != nil {
 		return "", errors.New("invalid media file id format")
 	}
-	return uc.repo.GetDownload(ctx, mediaFileId)
+	return uc.repo.GetDownloadPath(ctx, mediaFileId)
 }
 
 func (uc *retrievalUsecase) GetCoverArt(ctx context.Context, fileType string, targetID string) (string, error) {

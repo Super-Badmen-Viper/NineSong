@@ -554,7 +554,7 @@ func (si *Initializer) initAppUIConfigs(ctx context.Context) error {
 		{ConfigKey: "player_theme_Styles_Selected", ConfigValue: "0"},
 		{ConfigKey: "player_background_model_num", ConfigValue: "0"},
 		{ConfigKey: "player_use_lottie_animation", ConfigValue: "true"},
-		{ConfigKey: "player_use_lyric_skip_forward", ConfigValue: "true"},
+		{ConfigKey: "player_use_lyric_skip_forward", ConfigValue: "false"},
 		{ConfigKey: "player_use_background_filter_blur", ConfigValue: "true"},
 		{ConfigKey: "player_use_background_automatic_rotation", ConfigValue: "true"},
 		{ConfigKey: "player_use_background_repeat_fill", ConfigValue: "false"},

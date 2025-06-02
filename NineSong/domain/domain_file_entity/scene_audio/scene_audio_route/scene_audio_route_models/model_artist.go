@@ -12,6 +12,8 @@ type ArtistMetadata struct {
 	GuestAlbumCount int                `bson:"guest_album_count"`
 	SongCount       int                `bson:"song_count"`
 	GuestSongCount  int                `bson:"guest_song_count"`
+	CueCount        int                `bson:"cue_count"`
+	GuestCueCount   int                `bson:"guest_cue_count"`
 	Size            int                `bson:"size"`
 	HasCoverArt     bool               `bson:"has_cover_art"`
 

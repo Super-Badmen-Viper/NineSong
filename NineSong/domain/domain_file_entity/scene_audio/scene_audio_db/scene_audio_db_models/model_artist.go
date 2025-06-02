@@ -18,6 +18,8 @@ type ArtistMetadata struct {
 	GuestAlbumCount int      `bson:"guest_album_count"`
 	SongCount       int      `bson:"song_count"`
 	GuestSongCount  int      `bson:"guest_song_count"`
+	CueCount        int      `bson:"cue_count"`
+	GuestCueCount   int      `bson:"guest_cue_count"`
 	Size            int      `bson:"size"`
 	Compilation     bool     `bson:"compilation"` // 是否为合辑（多艺术家作品合集）
 

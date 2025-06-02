@@ -1,12 +1,16 @@
 package scene_audio_route_api_controller
 
 import (
+	"errors"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
 	"github.com/gin-gonic/gin"
+	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+	"syscall"
 )
 
 type RetrievalController struct {
@@ -30,7 +34,7 @@ func (c *RetrievalController) StreamHandler(ctx *gin.Context) {
 		return
 	}
 
-	filePath, err := c.RetrievalUsecase.GetStream(ctx.Request.Context(), req.MediaFileID)
+	filePath, err := c.RetrievalUsecase.GetStreamPath(ctx.Request.Context(), req.MediaFileID)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{
 			"code":    "RESOURCE_NOT_FOUND",
@@ -38,7 +42,7 @@ func (c *RetrievalController) StreamHandler(ctx *gin.Context) {
 		})
 		return
 	}
-	serveMediaFile(ctx, filePath, "audio/mpeg")
+	serveFixedMediaFile(ctx, filePath)
 }
 
 func (c *RetrievalController) DownloadHandler(ctx *gin.Context) {
@@ -54,7 +58,7 @@ func (c *RetrievalController) DownloadHandler(ctx *gin.Context) {
 		return
 	}
 
-	filePath, err := c.RetrievalUsecase.GetStream(ctx.Request.Context(), req.MediaFileID)
+	filePath, err := c.RetrievalUsecase.GetStreamPath(ctx.Request.Context(), req.MediaFileID)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{
 			"code":    "RESOURCE_NOT_FOUND",
@@ -62,7 +66,7 @@ func (c *RetrievalController) DownloadHandler(ctx *gin.Context) {
 		})
 		return
 	}
-	serveMediaFile(ctx, filePath, "audio/mpeg")
+	serveFixedMediaFile(ctx, filePath)
 }
 
 func (c *RetrievalController) CoverArtHandler(ctx *gin.Context) {
@@ -140,11 +144,11 @@ func (c *RetrievalController) LyricsHandlerFile(ctx *gin.Context) {
 	serveTextFile(ctx, filePath)
 }
 
-func serveMediaFile(ctx *gin.Context, path string, contentType string) {
+func serveFixedMediaFile(ctx *gin.Context, path string) {
 	// 增加范围请求支持
 	file, err := os.Open(path)
 	if err != nil {
-		handleFileError(ctx, err)
+		handleFileError(ctx, path, err)
 		return
 	}
 	defer func(file *os.File) {
@@ -170,13 +174,50 @@ func serveMediaFile(ctx *gin.Context, path string, contentType string) {
 	ctx.Header("Cache-Control", "public, max-age=86400") // 24小时缓存
 
 	// 自动识别内容类型
-	if contentType == "" {
-		contentType = detectContentType(path)
-	}
-	ctx.Header("Content-Type", contentType)
+	ctx.Header("Content-Type", detectContentType(path))
 
 	// 支持直接文件服务
 	ctx.File(path)
+}
+func serveStreamMediaFile(ctx *gin.Context, path string) {
+	//safePath := strings.ReplaceAll(path, `\`, `/`)
+	//if vol := filepath.VolumeName(safePath); vol != "" {
+	//	safePath = strings.TrimPrefix(safePath, vol)
+	//	safePath = strings.TrimPrefix(safePath, "/")
+	//}
+	//safePath = strings.Replace(safePath, "e:/0_Music/", "", -1)
+	//path = filepath.Join("/data/library", safePath)
+	//log.Printf("转换后路径: %s", path)
+
+	file, err := os.Open(path)
+	if err != nil {
+		handleFileError(ctx, path, err)
+		return
+	}
+	defer file.Close()
+
+	// 设置流式传输头
+	ctx.Header("Transfer-Encoding", "chunked")
+	ctx.Header("Content-Type", detectContentType(path)) // 确保返回正确MIME类型
+	ctx.Header("Cache-Control", "public, max-age=86400")
+
+	// 分块流式传输
+	ctx.Stream(func(w io.Writer) bool {
+		buf := make([]byte, 32*1024)
+		n, err := file.Read(buf)
+		if n > 0 {
+			if _, wErr := w.Write(buf[:n]); wErr != nil {
+				return false // 写入失败终止
+			}
+		}
+		if err != nil {
+			if err != io.EOF {
+				log.Printf("流读取错误: %v", err) // 记录非EOF错误
+			}
+			return false // 遇到错误或EOF终止
+		}
+		return true
+	})
 }
 func detectContentType(path string) string {
 	ext := filepath.Ext(path)
@@ -193,21 +234,26 @@ func detectContentType(path string) string {
 		return "application/octet-stream"
 	}
 }
-func handleFileError(ctx *gin.Context, err error) {
-	if os.IsNotExist(err) {
-		ctx.JSON(http.StatusNotFound, gin.H{
+func handleFileError(ctx *gin.Context, path string, err error) {
+	var pathErr *os.PathError
+	var sysErr syscall.Errno
+
+	switch {
+	case errors.As(err, &pathErr) && os.IsNotExist(pathErr.Err):
+		ctx.JSON(404, gin.H{
 			"code":    "FILE_NOT_FOUND",
-			"message": "请求的资源不存在",
+			"message": "文件不存在: " + path,
+			"detail":  pathErr.Error(),
 		})
-	} else if os.IsPermission(err) {
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"code":    "FILE_PERMISSION_DENIED",
-			"message": "无权访问该资源",
+	case errors.As(err, &sysErr) && sysErr == syscall.EACCES:
+		ctx.JSON(403, gin.H{
+			"code":    "PERMISSION_DENIED",
+			"message": "无访问权限: " + path,
 		})
-	} else {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"code":    "FILE_SYSTEM_ERROR",
-			"message": "文件系统错误",
+	default:
+		ctx.JSON(500, gin.H{
+			"code":    "SERVER_ERROR",
+			"message": "系统错误: " + err.Error(),
 		})
 	}
 }

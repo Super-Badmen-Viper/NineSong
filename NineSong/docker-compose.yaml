@@ -57,7 +57,8 @@ services:
       data_net:
         ipv4_address: 172.20.3.30
     volumes:
-      - dbdata:/data/db
+#      - dbdata:/data/db
+      - C:/Users/Public/Documents/NineSong/MongoDB:/data/db
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh --quiet -u $${MONGO_INITDB_ROOT_USERNAME} -p $${MONGO_INITDB_ROOT_PASSWORD} --authenticationDatabase admin | grep 1
       interval: 10s
@@ -70,7 +71,7 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: /e/Video/待分类/ex10
+      device: /e/0_Music
       o: bind
   dbdata:
 

@@ -5,9 +5,9 @@ import (
 )
 
 type RetrievalRepository interface {
-	GetStream(ctx context.Context, mediaFileId string) (string, error)
+	GetStreamPath(ctx context.Context, mediaFileId string) (string, error)
 
-	GetDownload(ctx context.Context, mediaFileId string) (string, error)
+	GetDownloadPath(ctx context.Context, mediaFileId string) (string, error)
 
 	GetCoverArt(ctx context.Context, fileType string, targetID string) (string, error)
 

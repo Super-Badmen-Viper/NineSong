@@ -47,7 +47,6 @@ func NewFileUsecase(
 	detector domain_file_entity.FileDetector,
 	timeoutMinutes int,
 
-	// 音频处理依赖项
 	artistRepo scene_audio_db_interface.ArtistRepository,
 	albumRepo scene_audio_db_interface.AlbumRepository,
 	mediaRepo scene_audio_db_interface.MediaFileRepository,
@@ -324,6 +323,16 @@ func (uc *FileUsecase) ProcessMusicDirectory(ctx context.Context, dirPath string
 			countMethod: uc.mediaRepo.GuestMediaCountByArtist,
 			counterName: "guest_song_count",
 			countType:   "合作单曲",
+		},
+		{
+			countMethod: uc.mediaCueRepo.MediaCountByArtist,
+			counterName: "cue_count",
+			countType:   "光盘",
+		},
+		{
+			countMethod: uc.mediaCueRepo.GuestMediaCountByArtist,
+			counterName: "guest_cue_count",
+			countType:   "合作光盘",
 		},
 	}
 	for _, artistID := range ids {

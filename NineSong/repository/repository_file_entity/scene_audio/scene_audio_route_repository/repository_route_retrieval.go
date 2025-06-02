@@ -23,7 +23,7 @@ func NewRetrievalRepository(db mongo.Database) scene_audio_route_interface.Retri
 	return &retrievalRepository{db: db}
 }
 
-func (r *retrievalRepository) GetStream(ctx context.Context, mediaFileId string) (string, error) {
+func (r *retrievalRepository) GetStreamPath(ctx context.Context, mediaFileId string) (string, error) {
 	objID, err := primitive.ObjectIDFromHex(mediaFileId)
 	if err != nil {
 		return "", errors.New("invalid media file id format")
@@ -38,7 +38,7 @@ func (r *retrievalRepository) GetStream(ctx context.Context, mediaFileId string)
 	return result.Path, nil
 }
 
-func (r *retrievalRepository) GetDownload(ctx context.Context, mediaFileId string) (string, error) {
+func (r *retrievalRepository) GetDownloadPath(ctx context.Context, mediaFileId string) (string, error) {
 	objID, err := primitive.ObjectIDFromHex(mediaFileId)
 	if err != nil {
 		return "", errors.New("invalid media file id format")
