@@ -764,6 +764,14 @@ func parseCueFile(cuePath string) (
 		// 3. 音轨元数据解析
 		if rawLine[0] == ' ' || rawLine[0] == '\t' {
 			trimmedLine := strings.TrimSpace(line)
+
+			// 确保currentTrack非空指针[1,5](@ref)
+			if currentTrack == nil {
+				currentTrack = &scene_audio_db_models.CueTrack{
+					INDEXES: make([]scene_audio_db_models.CueIndex, 0), // 初始化切片[6,7](@ref)
+				}
+			}
+
 			switch {
 			case strings.HasPrefix(trimmedLine, "TITLE "):
 				if value, ok := extractQuotedValue(rawLine, "TITLE"); ok {
@@ -790,14 +798,20 @@ func parseCueFile(cuePath string) (
 				currentTrack.ISRC = strings.TrimSpace(trimmedLine[5:])
 			case strings.HasPrefix(trimmedLine, "REM REPLAYGAIN_TRACK_GAIN "):
 				if gainStr := strings.TrimPrefix(trimmedLine, "REM REPLAYGAIN_TRACK_GAIN "); gainStr != "" {
-					if gain, err := strconv.ParseFloat(strings.TrimSuffix(gainStr, " dB"), 64); err == nil {
+					// 移除单位并转换[1](@ref)
+					cleanGainStr := strings.TrimSuffix(gainStr, " dB")
+					if gain, err := strconv.ParseFloat(cleanGainStr, 64); err == nil {
 						currentTrack.GAIN = gain
+					} else {
+						log.Printf("无效GAIN值: %s", gainStr)
 					}
 				}
 			case strings.HasPrefix(trimmedLine, "REM REPLAYGAIN_TRACK_PEAK "):
 				if peakStr := strings.TrimPrefix(trimmedLine, "REM REPLAYGAIN_TRACK_PEAK "); peakStr != "" {
 					if peak, err := strconv.ParseFloat(peakStr, 64); err == nil {
 						currentTrack.PEAK = peak
+					} else {
+						log.Printf("无效PEAK值: %s", peakStr)
 					}
 				}
 			}
