@@ -22,7 +22,7 @@ type MediaFileCueRepository interface {
 	GetByID(ctx context.Context, id primitive.ObjectID) (*scene_audio_db_models.MediaFileCueMetadata, error)
 	GetByPath(ctx context.Context, path string) (*scene_audio_db_models.MediaFileCueMetadata, error)
 
-	MediaCountByArtist(ctx context.Context, artistID string) (int64, error)
-	GuestMediaCountByArtist(ctx context.Context, artistID string) (int64, error)
+	MediaCueCountByArtist(ctx context.Context, artistID string) (int64, error)
+	GuestMediaCueCountByArtist(ctx context.Context, artistID string) (int64, error)
 	MediaCountByAlbum(ctx context.Context, albumID string) (int64, error)
 }

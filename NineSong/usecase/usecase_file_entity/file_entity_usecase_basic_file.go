@@ -325,12 +325,12 @@ func (uc *FileUsecase) ProcessMusicDirectory(ctx context.Context, dirPath string
 			countType:   "合作单曲",
 		},
 		{
-			countMethod: uc.mediaCueRepo.MediaCountByArtist,
+			countMethod: uc.mediaCueRepo.MediaCueCountByArtist,
 			counterName: "cue_count",
 			countType:   "光盘",
 		},
 		{
-			countMethod: uc.mediaCueRepo.GuestMediaCountByArtist,
+			countMethod: uc.mediaCueRepo.GuestMediaCueCountByArtist,
 			counterName: "guest_cue_count",
 			countType:   "合作光盘",
 		},

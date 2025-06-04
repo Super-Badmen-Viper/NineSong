@@ -295,19 +295,20 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFileCue(
 
 	mediaFileCue.CueTracks = tracks
 
-	mediaFileCue.REM = scene_audio_db_models.CueREM{
+	mediaFileCue.Rem = scene_audio_db_models.CueREM{
 		GENRE:   globalMeta["GENRE"],
 		DATE:    globalMeta["DATE"],
 		DISCID:  globalMeta["DISCID"],
 		COMMENT: globalMeta["COMMENT"],
 	}
-	mediaFileCue.PERFORMER = globalMeta["PERFORMER"]
-	mediaFileCue.TITLE = globalMeta["TITLE"]
-	mediaFileCue.FILE = scene_audio_db_models.CueFile{
+	mediaFileCue.Performer = globalMeta["PERFORMER"]
+	mediaFileCue.PerformerID = generateDeterministicID(globalMeta["PERFORMER"]).Hex()
+	mediaFileCue.Title = globalMeta["TITLE"]
+	mediaFileCue.File = scene_audio_db_models.CueFile{
 		FilePath: globalMeta["FILE"],
 	}
-	mediaFileCue.CATALOG = globalMeta["CATALOG"]
-	mediaFileCue.SONGWRITER = globalMeta["SONGWRITER"]
+	mediaFileCue.Catalog = globalMeta["CATALOG"]
+	mediaFileCue.SongWriter = globalMeta["SONGWRITER"]
 
 	mediaFileCue.CueSampleRate = int(properties.SampleRate)
 	mediaFileCue.CueDuration = float64(properties.Length)
@@ -727,8 +728,8 @@ func parseCueFile(cuePath string) (
 				TRACK:     trackNum,
 				TYPE:      parts[2],
 				INDEXES:   []scene_audio_db_models.CueIndex{},
-				TITLE:     "",
-				PERFORMER: "",
+				Title:     "",
+				Performer: "",
 			}
 			continue
 		}
@@ -766,11 +767,12 @@ func parseCueFile(cuePath string) (
 			switch {
 			case strings.HasPrefix(trimmedLine, "TITLE "):
 				if value, ok := extractQuotedValue(rawLine, "TITLE"); ok {
-					currentTrack.TITLE = value
+					currentTrack.Title = value
 				}
 			case strings.HasPrefix(trimmedLine, "PERFORMER "):
 				if value, ok := extractQuotedValue(rawLine, "PERFORMER"); ok {
-					currentTrack.PERFORMER = value
+					currentTrack.Performer = value
+					currentTrack.PerformerID = generateDeterministicID(value).Hex()
 				}
 			case strings.HasPrefix(trimmedLine, "FLAGS "):
 				currentTrack.FLAGS = strings.TrimSpace(trimmedLine[6:])

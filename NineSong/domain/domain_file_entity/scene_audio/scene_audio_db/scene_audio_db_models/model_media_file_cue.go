@@ -17,13 +17,14 @@ type MediaFileCueMetadata struct {
 	Size      int                `bson:"size"`       // 文件大小（字节）
 
 	// CUE记录信息
-	REM        CueREM     `json:"rem"`
-	PERFORMER  string     `json:"performer"`
-	TITLE      string     `json:"title"`
-	FILE       CueFile    `json:"file"`
-	CATALOG    string     `json:"catalog"`    // 新增：唱片唯一EAN编号[8](@ref)
-	SONGWRITER string     `json:"songwriter"` // 新增：乐曲编曲者[8](@ref)
-	CueTracks  []CueTrack `bson:"cue_tracks"` // CUE 文件中的曲目信息列表
+	Rem         CueREM     `bson:"rem"`
+	Performer   string     `bson:"performer"`
+	PerformerID string     `bson:"performer_id"`
+	Title       string     `bson:"title"`
+	File        CueFile    `bson:"file"`
+	Catalog     string     `bson:"catalog"`    // 新增：唱片唯一EAN编号[8](@ref)
+	SongWriter  string     `bson:"songwriter"` // 新增：乐曲编曲者[8](@ref)
+	CueTracks   []CueTrack `bson:"cue_tracks"` // CUE 文件中的曲目信息列表
 
 	CueTrackCount int       `bson:"cue_track_count"` // CUE 文件中的曲目数量
 	CueResources  CueConfig `bson:"cue_resources"`   // CUE 文件相关资源信息
@@ -46,48 +47,49 @@ type MediaFileCueMetadata struct {
 }
 
 type CueConfig struct {
-	CuePath    string `json:"cue_path"`
-	AudioPath  string `json:"audio_path"`
-	BackImage  string `json:"back_image"`  // 背景图片路径
-	CoverImage string `json:"cover_image"` // 封面图片路径
-	DiscImage  string `json:"disc_image"`  // 光盘图片路径
-	ListFile   string `json:"list_file"`   // 列表文件路径
-	LogFile    string `json:"log_file"`    // 日志文件路径
+	CuePath    string `bson:"cue_path"`
+	AudioPath  string `bson:"audio_path"`
+	BackImage  string `bson:"back_image"`  // 背景图片路径
+	CoverImage string `bson:"cover_image"` // 封面图片路径
+	DiscImage  string `bson:"disc_image"`  // 光盘图片路径
+	ListFile   string `bson:"list_file"`   // 列表文件路径
+	LogFile    string `bson:"log_file"`    // 日志文件路径
 }
 type MediaFileCueFilterCounts struct {
-	Total      int `json:"total"`
-	Starred    int `json:"starred"`
-	RecentPlay int `json:"recent_play"`
+	Total      int `bson:"total"`
+	Starred    int `bson:"starred"`
+	RecentPlay int `bson:"recent_play"`
 }
 
 type MediaFileCueListResponse struct {
-	MediaFiles []MediaFileCueMetadata `json:"media_files_cue"`
-	Count      int                    `json:"count"`
+	MediaFiles []MediaFileCueMetadata `bson:"media_files_cue"`
+	Count      int                    `bson:"count"`
 }
 
 type CueREM struct {
-	GENRE   string `json:"genre"`
-	DATE    string `json:"date"`
-	DISCID  string `json:"discid"`
-	COMMENT string `json:"comment"`
+	GENRE   string `bson:"genre"`
+	DATE    string `bson:"date"`
+	DISCID  string `bson:"discid"`
+	COMMENT string `bson:"comment"`
 }
 type CueFile struct {
-	FilePath string `json:"file_path"`
-	FileType string `json:"file_type"`
+	FilePath string `bson:"file_path"`
+	FileType string `bson:"file_type"`
 }
 type CueIndex struct {
-	INDEX int    `json:"index"`
-	TIME  string `json:"time"`
+	INDEX int    `bson:"index"`
+	TIME  string `bson:"time"`
 }
 type CueTrack struct {
-	TRACK     int               `json:"track"`
-	TYPE      string            `json:"track_type"`
-	TITLE     string            `json:"track_title"`
-	PERFORMER string            `json:"track_performer"`
-	FLAGS     string            `json:"track_flags"`
-	INDEXES   []CueIndex        `json:"track_indexes"`
-	ISRC      string            `json:"track_isrc"`
-	GAIN      float64           `json:"track_gain"`
-	PEAK      float64           `json:"track_peak"`
-	Extended  MediaFileMetadata `bson:"cue_track_extended"` // 嵌入 MediaFileMetadata 以复用通用字段
+	TRACK       int               `bson:"track"`
+	TYPE        string            `bson:"track_type"`
+	Title       string            `bson:"track_title"`
+	Performer   string            `bson:"track_performer"`
+	PerformerID string            `bson:"track_performer_id"`
+	FLAGS       string            `bson:"track_flags"`
+	INDEXES     []CueIndex        `bson:"track_indexes"`
+	ISRC        string            `bson:"track_isrc"`
+	GAIN        float64           `bson:"track_gain"`
+	PEAK        float64           `bson:"track_peak"`
+	Extended    MediaFileMetadata `bson:"cue_track_extended"` // 嵌入 MediaFileMetadata 以复用通用字段
 }

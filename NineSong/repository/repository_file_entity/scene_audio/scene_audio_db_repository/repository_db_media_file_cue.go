@@ -33,36 +33,13 @@ func (r *mediaFileCueRepository) Upsert(ctx context.Context, file *scene_audio_d
 	coll := r.db.Collection(r.collection)
 	now := time.Now().UTC()
 
-	filter := bson.M{"path": file.Path}
-	update := bson.M{
-		"$set": bson.M{
-			"rem":             file.REM,
-			"performer":       file.PERFORMER,
-			"title":           file.TITLE,
-			"file":            file.FILE,
-			"catalog":         file.CATALOG,
-			"songwriter":      file.SONGWRITER,
-			"cue_tracks":      file.CueTracks,
-			"cue_track_count": file.CueTrackCount,
-			"cue_resources":   file.CueResources,
-			"has_cover_art":   file.HasCoverArt,
-			"back_image_url":  file.BackImageURL,
-			"cover_image_url": file.CoverImageURL,
-			"disc_image_url":  file.DiscImageURL,
-			"cue_sample_rate": file.CueSampleRate,
-			"cue_duration":    file.CueDuration,
-			"cue_bit_rate":    file.CueBitRate,
-			"cue_channels":    file.CueChannels,
-			"bit_depth":       file.BitDepth,
-			"channel_layout":  file.ChannelLayout,
-			"full_text":       file.FullText,
-			"suffix":          file.Suffix,
-			"size":            file.Size,
-			"updated_at":      now,
-		},
-		"$setOnInsert": bson.M{
-			"created_at": now,
-		},
+	filter := bson.M{
+		"path": file.Path,
+	}
+
+	update := file.ToUpdateDoc()
+	update["$setOnInsert"] = bson.M{
+		"created_at": now,
 	}
 
 	opts := options.Update().SetUpsert(true)
@@ -188,14 +165,12 @@ func (r *mediaFileCueRepository) UpdateByID(ctx context.Context, id primitive.Ob
 	return result.ModifiedCount > 0, nil
 }
 
-// MediaCountByArtist 统计艺术家参与的CUE文件数量
-func (r *mediaFileCueRepository) MediaCountByArtist(ctx context.Context, artistID string) (int64, error) {
+func (r *mediaFileCueRepository) MediaCueCountByArtist(ctx context.Context, artistID string) (int64, error) {
 	coll := r.db.Collection(r.collection)
 
 	filter := bson.M{
 		"$or": []bson.M{
-			{"performer": artistID},                  // 主表演者
-			{"cue_tracks.track_performer": artistID}, // 曲目表演者
+			{"performer_id": artistID}, // 主表演者
 		},
 	}
 
@@ -207,14 +182,14 @@ func (r *mediaFileCueRepository) MediaCountByArtist(ctx context.Context, artistI
 	return count, nil
 }
 
-// GuestMediaCountByArtist 统计艺术家作为嘉宾参与的CUE文件数量
-func (r *mediaFileCueRepository) GuestMediaCountByArtist(ctx context.Context, artistID string) (int64, error) {
+func (r *mediaFileCueRepository) GuestMediaCueCountByArtist(ctx context.Context, artistID string) (int64, error) {
 	coll := r.db.Collection(r.collection)
 
+	// 复合查询条件：排除主表演者 + 匹配嘉宾表演者
 	filter := bson.M{
 		"$and": []bson.M{
-			{"performer": bson.M{"$ne": artistID}},   // 排除主表演者
-			{"cue_tracks.track_performer": artistID}, // 仅作为曲目表演者
+			{"performer_id": bson.M{"$ne": artistID}},   // 排除主表演者[3,5](@ref)
+			{"cue_tracks.track_performer_id": artistID}, // 匹配嘉宾表演者[1,4](@ref)
 		},
 	}
 
