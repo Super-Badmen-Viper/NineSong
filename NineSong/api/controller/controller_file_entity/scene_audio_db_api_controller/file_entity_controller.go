@@ -22,16 +22,17 @@ func (ctrl *FileController) ScanDirectory(c *gin.Context) {
 	var req struct {
 		FolderPath string                          `json:"folder_path" binding:"required"`
 		FileTypes  []domain_file_entity.FileTypeNo `json:"file_types" binding:"required"`
+		ScanModel  int                             `json:"scan_model" binding:"oneof=0 1 2"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		scene_audio_route_api_controller.ErrorResponse(c, http.StatusBadRequest, "INVALID_REQUEST", "无效的请求格式")
+		scene_audio_route_api_controller.ErrorResponse(c, http.StatusBadRequest, "INVALID_REQUEST", "无效的请求格式: "+err.Error())
 		return
 	}
 
 	bgCtx := context.Background()
 	go func() {
-		if err := ctrl.usecase.ProcessDirectory(bgCtx, req.FolderPath, req.FileTypes); err != nil {
+		if err := ctrl.usecase.ProcessDirectory(bgCtx, req.FolderPath, req.FileTypes, req.ScanModel); err != nil {
 			log.Printf("Scan failed: %v", err)
 		}
 	}()

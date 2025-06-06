@@ -12,6 +12,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	driver "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"log"
+	"regexp"
+	"strings"
 	"time"
 )
 
@@ -110,6 +113,23 @@ func (r *mediaFileRepository) DeleteByPath(ctx context.Context, path string) err
 		return fmt.Errorf("delete by path failed: %w", err)
 	}
 	return nil
+}
+
+func (r *mediaFileRepository) DeleteAllInvalid(ctx context.Context, folderPath string) (int64, error) {
+	coll := r.db.Collection(r.collection)
+
+	filter := bson.M{
+		"$or": []bson.M{
+			{"artist_id": folderPath},
+		},
+	}
+
+	count, err := coll.CountDocuments(ctx, filter)
+	if err != nil {
+		return 0, fmt.Errorf("统计艺术家单曲数量失败: %w", err)
+	}
+
+	return count, nil
 }
 
 func (r *mediaFileRepository) GetByID(ctx context.Context, id primitive.ObjectID) (*scene_audio_db_models.MediaFileMetadata, error) {
@@ -226,4 +246,127 @@ func (r *mediaFileRepository) MediaCountByAlbum(
 	}
 
 	return count, nil
+}
+
+func takeMin(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func (r *mediaFileRepository) inspectMedia(
+	ctx context.Context,
+	filter bson.M,
+	validFilePaths []string,
+	folderPath string,
+	collection string,
+) (int, error) {
+	// 构建有效路径集合（只包含指定目录下的文件）
+	validPathSet := make(map[string]struct{})
+	for _, path := range validFilePaths {
+		if strings.HasPrefix(path, folderPath) {
+			validPathSet[path] = struct{}{}
+		}
+	}
+
+	if validPathSet != nil && len(validPathSet) > 0 {
+		coll := r.db.Collection(collection)
+
+		// 精确查询条件（三重过滤）
+		invalidDocsFilter := bson.M{
+			"$and": []bson.M{
+				filter, // 原始过滤条件
+				{"path": bson.M{"$regex": "^" + regexp.QuoteMeta(folderPath)}}, // 路径必须在指定目录下
+				{"path": bson.M{"$nin": validFilePaths}},                       // 路径不在有效列表中
+			},
+		}
+
+		// 直接获取需要删除的文档ID
+		cur, err := coll.Find(
+			ctx,
+			invalidDocsFilter,
+			options.Find().SetProjection(bson.M{"_id": 1, "path": 1}),
+		)
+		if err != nil {
+			return 0, fmt.Errorf("查询无效文档失败: %w", err)
+		}
+		defer cur.Close(ctx)
+
+		// 批量收集无效文档ID
+		var toDelete []primitive.ObjectID
+		var invalidPaths []string
+		for cur.Next(ctx) {
+			var doc struct {
+				ID   primitive.ObjectID `bson:"_id"`
+				Path string             `bson:"path"`
+			}
+			if err := cur.Decode(&doc); err != nil {
+				continue
+			}
+			toDelete = append(toDelete, doc.ID)
+			invalidPaths = append(invalidPaths, doc.Path)
+		}
+
+		// 记录无效路径日志
+		if len(invalidPaths) > 0 {
+			log.Printf("在目录[%s]下检测到 %d 个无效媒体项: %v...",
+				folderPath,
+				len(invalidPaths),
+				invalidPaths[:takeMin(5, len(invalidPaths))])
+		}
+
+		// 批量删除无效文档
+		if len(toDelete) > 0 {
+			batchSize := 1000
+			for i := 0; i < len(toDelete); i += batchSize {
+				end := i + batchSize
+				if end > len(toDelete) {
+					end = len(toDelete)
+				}
+				_, err = coll.DeleteMany(
+					ctx,
+					bson.M{"_id": bson.M{"$in": toDelete[i:end]}},
+				)
+				if err != nil {
+					log.Printf("部分删除失败: %v", err)
+				}
+			}
+			return len(toDelete), nil
+		}
+	}
+	return 0, nil
+}
+
+func (r *mediaFileRepository) InspectMediaCountByArtist(
+	ctx context.Context,
+	artistID string,
+	filePaths []string,
+	folderPath string,
+) (int, error) {
+	filter := bson.M{"artist_id": artistID}
+	return r.inspectMedia(ctx, filter, filePaths, folderPath, r.collection)
+}
+
+func (r *mediaFileRepository) InspectGuestMediaCountByArtist(
+	ctx context.Context,
+	artistID string,
+	filePaths []string,
+	folderPath string,
+) (int, error) {
+	filter := bson.M{
+		"artist_id":      bson.M{"$ne": artistID},
+		"all_artist_ids": bson.M{"$elemMatch": bson.M{"artist_id": artistID}},
+	}
+	return r.inspectMedia(ctx, filter, filePaths, folderPath, r.collection)
+}
+
+func (r *mediaFileRepository) InspectMediaCountByAlbum(
+	ctx context.Context,
+	albumID string,
+	filePaths []string,
+	folderPath string,
+) (int, error) {
+	filter := bson.M{"album_id": albumID}
+	return r.inspectMedia(ctx, filter, filePaths, folderPath, r.collection)
 }

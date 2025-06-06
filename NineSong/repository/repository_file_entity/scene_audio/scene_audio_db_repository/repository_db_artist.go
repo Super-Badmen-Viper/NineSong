@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"log"
 	"strings"
 )
 
@@ -209,7 +210,7 @@ func (r *artistRepository) UpdateCounter(
 	return result.ModifiedCount, nil
 }
 
-func (r *artistRepository) GetByMBID(ctx context.Context, mbzID string) (*scene_audio_db_models.ArtistMetadata, error) {
+func (r *artistRepository) GetByMbzID(ctx context.Context, mbzID string) (*scene_audio_db_models.ArtistMetadata, error) {
 	coll := r.db.Collection(r.collection)
 	result := coll.FindOne(ctx, bson.M{"mbz_artist_id": mbzID})
 
@@ -218,4 +219,128 @@ func (r *artistRepository) GetByMBID(ctx context.Context, mbzID string) (*scene_
 		return nil, fmt.Errorf("通过MBID获取艺术家失败: %w", err)
 	}
 	return &artist, nil
+}
+
+func (r *artistRepository) DeleteAllInvalid(ctx context.Context) (int64, error) {
+	coll := r.db.Collection(r.collection)
+
+	filter := bson.M{
+		"$and": []bson.M{
+			{"album_count": bson.M{"$eq": 0, "$exists": true}},
+			{"guest_album_count": bson.M{"$eq": 0, "$exists": true}},
+			{"song_count": bson.M{"$eq": 0, "$exists": true}},
+			{"guest_song_count": bson.M{"$eq": 0, "$exists": true}},
+			{"cue_count": bson.M{"$eq": 0, "$exists": true}},
+			{"guest_cue_count": bson.M{"$eq": 0, "$exists": true}},
+		},
+	}
+
+	result, err := coll.DeleteMany(ctx, filter)
+	if err != nil {
+		return 0, fmt.Errorf("删除无效艺术家失败: %w", err)
+	}
+
+	if result > 0 {
+		log.Printf("已删除 %d 个无效艺术家", result)
+	}
+	return result, nil
+}
+
+func (r *artistRepository) inspectCounter(
+	ctx context.Context,
+	artistID string,
+	field string,
+	operand int,
+) (int, error) {
+	objID, err := primitive.ObjectIDFromHex(artistID)
+	if err != nil {
+		return 0, fmt.Errorf("无效的艺术家ID格式: %w", err)
+	}
+
+	artist, err := r.GetByID(ctx, objID)
+	if err != nil {
+		return 0, fmt.Errorf("获取艺术家信息失败: %w", err)
+	}
+	if artist == nil {
+		return 0, fmt.Errorf("艺术家不存在")
+	}
+
+	deleteArtist := false
+	if field == "song_count" {
+		deleteArtist = artist.SongCount-operand <= 0
+	} else if field == "guest_song_count" {
+		deleteArtist = artist.GuestSongCount-operand <= 0
+	} else if field == "album_count" {
+		deleteArtist = artist.AlbumCount-operand <= 0
+	} else if field == "guest_album_count" {
+		deleteArtist = artist.GuestAlbumCount-operand <= 0
+	} else if field == "cue_count" {
+		deleteArtist = artist.CueCount-operand <= 0
+	} else if field == "guest_cue_count" {
+		deleteArtist = artist.GuestCueCount-operand <= 0
+	} else {
+		return 0, fmt.Errorf("未知的计数字段: %s", field)
+	}
+
+	if deleteArtist {
+		_, err := r.UpdateCounter(ctx, objID, field, 0)
+		if err != nil {
+			return 0, err
+		}
+		return 0, nil
+	} else {
+		modifiedCount, err := r.UpdateCounter(ctx, objID, field, -operand)
+		if err != nil {
+			return 0, fmt.Errorf("更新%s失败: %w", field, err)
+		}
+		return int(modifiedCount), nil
+	}
+}
+
+func (r *artistRepository) InspectAlbumCountByArtist(
+	ctx context.Context,
+	artistID string,
+	operand int,
+) (int, error) {
+	return r.inspectCounter(ctx, artistID, "album_count", operand)
+}
+
+func (r *artistRepository) InspectGuestAlbumCountByArtist(
+	ctx context.Context,
+	artistID string,
+	operand int,
+) (int, error) {
+	return r.inspectCounter(ctx, artistID, "guest_album_count", operand)
+}
+
+func (r *artistRepository) InspectMediaCountByArtist(
+	ctx context.Context,
+	artistID string,
+	operand int,
+) (int, error) {
+	return r.inspectCounter(ctx, artistID, "song_count", operand)
+}
+
+func (r *artistRepository) InspectGuestMediaCountByArtist(
+	ctx context.Context,
+	artistID string,
+	operand int,
+) (int, error) {
+	return r.inspectCounter(ctx, artistID, "guest_song_count", operand)
+}
+
+func (r *artistRepository) InspectMediaCueCountByArtist(
+	ctx context.Context,
+	artistID string,
+	operand int,
+) (int, error) {
+	return r.inspectCounter(ctx, artistID, "cue_count", operand)
+}
+
+func (r *artistRepository) InspectGuestMediaCueCountByArtist(
+	ctx context.Context,
+	artistID string,
+	operand int,
+) (int, error) {
+	return r.inspectCounter(ctx, artistID, "guest_cue_count", operand)
 }

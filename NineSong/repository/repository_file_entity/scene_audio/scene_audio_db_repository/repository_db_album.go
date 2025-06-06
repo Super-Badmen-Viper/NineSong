@@ -229,7 +229,7 @@ func (r *albumRepository) UpdateCounter(
 	return result.ModifiedCount, nil
 }
 
-func (r *albumRepository) GetByMBID(ctx context.Context, mbzID string) (*scene_audio_db_models.AlbumMetadata, error) {
+func (r *albumRepository) GetByMbzID(ctx context.Context, mbzID string) (*scene_audio_db_models.AlbumMetadata, error) {
 	coll := r.db.Collection(r.collection)
 	result := coll.FindOne(ctx, bson.M{"mbz_album_id": mbzID})
 
@@ -262,6 +262,41 @@ func (r *albumRepository) GetByFilter(
 	}
 
 	return &album, nil
+}
+
+func (r *albumRepository) GetAllIDs(ctx context.Context) ([]primitive.ObjectID, error) {
+	coll := r.db.Collection(r.collection)
+
+	// 使用聚合管道只获取ID字段
+	pipeline := []bson.D{
+		{
+			{Key: "$project", Value: bson.D{
+				{Key: "_id", Value: 1}, // 只返回ID字段
+			}},
+		},
+	}
+
+	cursor, err := coll.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("专辑ID查询失败: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var results []struct {
+		ID primitive.ObjectID `bson:"_id"`
+	}
+
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, fmt.Errorf("专辑ID解码失败: %w", err)
+	}
+
+	// 提取ID到切片
+	ids := make([]primitive.ObjectID, len(results))
+	for i, item := range results {
+		ids[i] = item.ID
+	}
+
+	return ids, nil
 }
 
 func (r *albumRepository) AlbumCountByArtist(
@@ -308,4 +343,51 @@ func (r *albumRepository) GuestAlbumCountByArtist(
 	}
 
 	return count, nil
+}
+
+func (r *albumRepository) InspectAlbumMediaCountByAlbum(ctx context.Context, albumID string, operand int) (bool, error) {
+	if operand == 0 {
+		return false, fmt.Errorf("操作数不能为零")
+	}
+
+	coll := r.db.Collection(r.collection)
+
+	objID, err := primitive.ObjectIDFromHex(albumID)
+	if err != nil {
+		return false, fmt.Errorf("无效的专辑ID格式: %w", err)
+	}
+
+	album, err := r.GetByID(ctx, objID)
+	if err != nil {
+		return false, fmt.Errorf("获取专辑信息失败: %w", err)
+	}
+	if album == nil {
+		return false, fmt.Errorf("专辑不存在")
+	}
+
+	if operand > -1 {
+		newCount := album.SongCount - operand
+		if newCount <= 0 {
+			if err := r.DeleteByID(ctx, objID); err != nil {
+				return false, fmt.Errorf("删除专辑失败: %w", err)
+			}
+			return true, nil
+		} else {
+			update := bson.M{"$set": bson.M{"song_count": newCount}}
+			_, err := coll.UpdateByID(
+				ctx,
+				objID,
+				update,
+			)
+			if err != nil {
+				return false, fmt.Errorf("更新歌曲计数失败: %w", err)
+			}
+			return false, nil
+		}
+	} else {
+		if err := r.DeleteByID(ctx, objID); err != nil {
+			return false, fmt.Errorf("删除专辑失败: %w", err)
+		}
+		return true, nil
+	}
 }

@@ -18,7 +18,9 @@ type MediaFileMetadata struct {
 	HasCoverArt   bool               `bson:"has_cover_art"`
 	Year          int                `bson:"year"`
 	Size          int                `bson:"size"`
-	Suffix        string             `bson:"suffix"` // 文件后缀
+	Suffix        string             `bson:"suffix"`       // 文件后缀
+	FileName      string             `bson:"file_name"`    // 文件名（不包含路径）
+	LibraryPath   string             `bson:"library_path"` // 音频文件所在的音乐库路径
 	Duration      float64            `bson:"duration"`
 	BitRate       int                `bson:"bit_rate"`
 	Genre         string             `bson:"genre"`

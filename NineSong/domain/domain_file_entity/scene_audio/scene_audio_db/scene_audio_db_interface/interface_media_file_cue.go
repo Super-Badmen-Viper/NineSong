@@ -17,6 +17,7 @@ type MediaFileCueRepository interface {
 	// 删除
 	DeleteByID(ctx context.Context, id primitive.ObjectID) error
 	DeleteByPath(ctx context.Context, path string) error
+	DeleteAllInvalid(ctx context.Context, folderPath string) (int64, error)
 
 	// 查询
 	GetByID(ctx context.Context, id primitive.ObjectID) (*scene_audio_db_models.MediaFileCueMetadata, error)
@@ -25,4 +26,7 @@ type MediaFileCueRepository interface {
 	MediaCueCountByArtist(ctx context.Context, artistID string) (int64, error)
 	GuestMediaCueCountByArtist(ctx context.Context, artistID string) (int64, error)
 	MediaCountByAlbum(ctx context.Context, albumID string) (int64, error)
+
+	InspectMediaCueCountByArtist(ctx context.Context, artistID string, filePaths []string, folderPath string) (int, error)
+	InspectGuestMediaCueCountByArtist(ctx context.Context, artistID string, filePaths []string, folderPath string) (int, error)
 }

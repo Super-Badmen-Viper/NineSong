@@ -9,13 +9,15 @@ import (
 // MediaFileMetadata 核心元数据结构
 type MediaFileMetadata struct {
 	// 系统保留字段 (综合)
-	ID        primitive.ObjectID `bson:"_id"`        // 文档唯一标识符
-	CreatedAt time.Time          `bson:"created_at"` // 文档创建时间
-	UpdatedAt time.Time          `bson:"updated_at"` // 文档最后更新时间
-	FullText  string             `bson:"full_text"`  // 音频文件全文文本内容，用于搜索
-	Path      string             `bson:"path"`       // 音频文件的存储路径
-	Suffix    string             `bson:"suffix"`     // 文件格式后缀（如 mp3、flac 等）
-	Size      int                `bson:"size"`       // 文件大小（字节）
+	ID          primitive.ObjectID `bson:"_id"`          // 文档唯一标识符
+	CreatedAt   time.Time          `bson:"created_at"`   // 文档创建时间
+	UpdatedAt   time.Time          `bson:"updated_at"`   // 文档最后更新时间
+	FullText    string             `bson:"full_text"`    // 音频文件全文文本内容，用于搜索
+	Path        string             `bson:"path"`         // 音频文件的存储路径
+	Suffix      string             `bson:"suffix"`       // 文件格式后缀（如 mp3、flac 等）
+	Size        int                `bson:"size"`         // 文件大小（字节）
+	FileName    string             `bson:"file_name"`    // 文件名（不包含路径）
+	LibraryPath string             `bson:"library_path"` // 音频文件所在的音乐库路径
 
 	// 基础元数据 (github.com/dhowden/tag、go.senan.xyz/taglib)
 	Title             string   `bson:"title"`               // 标准曲目标题

@@ -22,7 +22,7 @@ import (
 )
 
 func (e *AudioMetadataExtractorTaglib) Extract(
-	path string,
+	path string, libraryPath string,
 	fileMetadata *domain_file_entity.FileMetadata,
 	res *scene_audio_db_models.CueConfig,
 ) (
@@ -32,7 +32,7 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 	*scene_audio_db_models.MediaFileCueMetadata,
 	error,
 ) {
-	if err := e.enrichFileMetadata(path, fileMetadata); err != nil {
+	if err := e.enrichFileMetadata(path, libraryPath, fileMetadata); err != nil {
 		return nil, nil, nil, nil, err
 	}
 
@@ -181,7 +181,10 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 	return mediaFile, album, artist, nil, nil
 }
 
-func (e *AudioMetadataExtractorTaglib) enrichFileMetadata(path string, fileMetadata *domain_file_entity.FileMetadata) error {
+func (e *AudioMetadataExtractorTaglib) enrichFileMetadata(
+	path string, libraryPath string,
+	fileMetadata *domain_file_entity.FileMetadata,
+) error {
 	file, err := os.Open(path)
 	if err != nil {
 		return err
@@ -205,6 +208,8 @@ func (e *AudioMetadataExtractorTaglib) enrichFileMetadata(path string, fileMetad
 	}
 
 	fileMetadata.FilePath = path
+	fileMetadata.FileName = filepath.Base(path)
+	fileMetadata.LibraryPath = libraryPath
 	fileMetadata.Size = info.Size()
 	fileMetadata.ModTime = info.ModTime().UTC()
 	fileMetadata.FileType = domain_file_entity.Audio
@@ -284,13 +289,15 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFileCue(
 
 	mediaFileCue = &scene_audio_db_models.MediaFileCueMetadata{
 		// 系统保留字段 (综合)
-		ID:        fileMetadata.ID,
-		CreatedAt: fileMetadata.CreatedAt,
-		UpdatedAt: fileMetadata.UpdatedAt,
-		FullText:  fullText,
-		Path:      fileMetadata.FilePath,
-		Suffix:    suffix,
-		Size:      int(fileMetadata.Size),
+		ID:          fileMetadata.ID,
+		CreatedAt:   fileMetadata.CreatedAt,
+		UpdatedAt:   fileMetadata.UpdatedAt,
+		FullText:    fullText,
+		Path:        fileMetadata.FilePath,
+		Suffix:      suffix,
+		Size:        int(fileMetadata.Size),
+		FileName:    fileMetadata.FileName,
+		LibraryPath: fileMetadata.LibraryPath,
 	}
 
 	mediaFileCue.CueTracks = tracks
@@ -383,13 +390,15 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 
 	return &scene_audio_db_models.MediaFileMetadata{
 			// 系统保留字段 (综合)
-			ID:        e.mediaID,
-			CreatedAt: fileMetadata.CreatedAt,
-			UpdatedAt: fileMetadata.UpdatedAt,
-			FullText:  fullText,
-			Path:      fileMetadata.FilePath,
-			Suffix:    suffix,
-			Size:      int(fileMetadata.Size),
+			ID:          e.mediaID,
+			CreatedAt:   fileMetadata.CreatedAt,
+			UpdatedAt:   fileMetadata.UpdatedAt,
+			FullText:    fullText,
+			Path:        fileMetadata.FilePath,
+			Suffix:      suffix,
+			Size:        int(fileMetadata.Size),
+			FileName:    fileMetadata.FileName,
+			LibraryPath: fileMetadata.LibraryPath,
 
 			// 基础元数据 (github.com/dhowden/tag、go.senan.xyz/taglib)
 			Title:       titleTag,

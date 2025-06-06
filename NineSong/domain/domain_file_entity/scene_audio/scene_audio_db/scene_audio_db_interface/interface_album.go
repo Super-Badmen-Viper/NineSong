@@ -27,11 +27,15 @@ type AlbumRepository interface {
 	ResetField(ctx context.Context, field string) (int64, error)
 	UpdateCounter(ctx context.Context, albumID primitive.ObjectID, field string, increment int) (int64, error)
 
-	GetByMBID(ctx context.Context, mbzID string) (*scene_audio_db_models.AlbumMetadata, error)
+	GetByMbzID(ctx context.Context, mbzID string) (*scene_audio_db_models.AlbumMetadata, error)
 	GetByFilter(ctx context.Context, filter interface{}) (*scene_audio_db_models.AlbumMetadata, error)
+
+	GetAllIDs(ctx context.Context) ([]primitive.ObjectID, error)
 
 	AlbumCountByArtist(ctx context.Context, artistID string) (int64, error)
 	GuestAlbumCountByArtist(ctx context.Context, artistID string) (int64, error)
+
+	InspectAlbumMediaCountByAlbum(ctx context.Context, albumID string, operand int) (bool, error)
 }
 
 // 查询参数结构

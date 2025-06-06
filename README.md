@@ -12,7 +12,11 @@ Compared to other music servers (such as Navidrome, Jellyfin, Emby, Plex, Subson
 - More comprehensive music library management:
 - - Rich single-level sorting options, supporting multi-level mixed sorting and multi-level mixed filtering;
 - - deeper processing of composite tags to make the relevance between musics more comprehensive;
-- - support for Chinese pinyin fuzzy search; support for quick initial letter jumping;
+- - search jump optimization
+- - - support for Chinese pinyin fuzzy search;
+- - - support searching based on lyrics;
+- - - support for quick initial letter jumping;
+- - - recommended similar search results;
 - - support for dual-page browsing mode (unlimited virtual list, paged list);
 - - support uploading, downloading, and synchronizing music files between the server and client;
 - More comprehensive music playback experience:

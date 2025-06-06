@@ -15,6 +15,7 @@ type ArtistRepository interface {
 	// 删除
 	DeleteByID(ctx context.Context, id primitive.ObjectID) error
 	DeleteByName(ctx context.Context, name string) error
+	DeleteAllInvalid(ctx context.Context) (int64, error)
 
 	// 查询
 	GetByID(ctx context.Context, id primitive.ObjectID) (*scene_audio_db_models.ArtistMetadata, error)
@@ -25,5 +26,12 @@ type ArtistRepository interface {
 	ResetField(ctx context.Context, field string) (int64, error)
 	UpdateCounter(ctx context.Context, artistID primitive.ObjectID, field string, increment int) (int64, error)
 
-	GetByMBID(ctx context.Context, mbzID string) (*scene_audio_db_models.ArtistMetadata, error)
+	GetByMbzID(ctx context.Context, mbzID string) (*scene_audio_db_models.ArtistMetadata, error)
+
+	InspectAlbumCountByArtist(ctx context.Context, artistID string, operand int) (int, error)
+	InspectGuestAlbumCountByArtist(ctx context.Context, artistID string, operand int) (int, error)
+	InspectMediaCountByArtist(ctx context.Context, artistID string, operand int) (int, error)
+	InspectGuestMediaCountByArtist(ctx context.Context, artistID string, operand int) (int, error)
+	InspectMediaCueCountByArtist(ctx context.Context, artistID string, operand int) (int, error)
+	InspectGuestMediaCueCountByArtist(ctx context.Context, artistID string, operand int) (int, error)
 }

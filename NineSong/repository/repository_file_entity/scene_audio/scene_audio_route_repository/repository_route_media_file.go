@@ -223,7 +223,7 @@ func validateSortField(sort string) string {
 		return mapped
 	}
 
-	return "_id"
+	return "file_name"
 }
 
 func buildMatchStage(search, starred, albumId, artistId, year string) bson.D {
