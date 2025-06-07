@@ -30,7 +30,8 @@ type AlbumRepository interface {
 	GetByMbzID(ctx context.Context, mbzID string) (*scene_audio_db_models.AlbumMetadata, error)
 	GetByFilter(ctx context.Context, filter interface{}) (*scene_audio_db_models.AlbumMetadata, error)
 
-	GetAllIDs(ctx context.Context) ([]primitive.ObjectID, error)
+	GetArtistAlbumsMap(ctx context.Context) (map[primitive.ObjectID][]primitive.ObjectID, error)
+	GetArtistGuestAlbumsMap(ctx context.Context) (map[primitive.ObjectID][]primitive.ObjectID, error)
 
 	AlbumCountByArtist(ctx context.Context, artistID string) (int64, error)
 	GuestAlbumCountByArtist(ctx context.Context, artistID string) (int64, error)

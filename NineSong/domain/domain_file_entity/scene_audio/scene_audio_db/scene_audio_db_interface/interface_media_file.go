@@ -17,7 +17,10 @@ type MediaFileRepository interface {
 	// 删除
 	DeleteByID(ctx context.Context, id primitive.ObjectID) error
 	DeleteByPath(ctx context.Context, path string) error
-	DeleteAllInvalid(ctx context.Context, folderPath string) (int64, error)
+	DeleteAllInvalid(ctx context.Context, filePaths []string, folderPath string) (int64, []struct {
+		ArtistID primitive.ObjectID
+		Count    int64
+	}, error)
 
 	// 查询
 	GetByID(ctx context.Context, id primitive.ObjectID) (*scene_audio_db_models.MediaFileMetadata, error)
@@ -30,4 +33,5 @@ type MediaFileRepository interface {
 	InspectMediaCountByArtist(ctx context.Context, artistID string, filePaths []string, folderPath string) (int, error)
 	InspectGuestMediaCountByArtist(ctx context.Context, artistID string, filePaths []string, folderPath string) (int, error)
 	InspectMediaCountByAlbum(ctx context.Context, albumID string, filePaths []string, folderPath string) (int, error)
+	InspectGuestMediaCountByAlbum(ctx context.Context, artistID string, filePaths []string, folderPath string) (int, error)
 }

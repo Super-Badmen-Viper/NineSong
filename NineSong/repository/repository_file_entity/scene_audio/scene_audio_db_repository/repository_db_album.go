@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"log"
 )
 
 type albumRepository struct {
@@ -264,39 +265,119 @@ func (r *albumRepository) GetByFilter(
 	return &album, nil
 }
 
-func (r *albumRepository) GetAllIDs(ctx context.Context) ([]primitive.ObjectID, error) {
+func (r *albumRepository) GetArtistAlbumsMap(ctx context.Context) (map[primitive.ObjectID][]primitive.ObjectID, error) {
 	coll := r.db.Collection(r.collection)
 
-	// 使用聚合管道只获取ID字段
+	// 优化聚合管道：分组艺术家并收集专辑ID[6,8](@ref)
 	pipeline := []bson.D{
 		{
-			{Key: "$project", Value: bson.D{
-				{Key: "_id", Value: 1}, // 只返回ID字段
+			{Key: "$group", Value: bson.D{
+				{Key: "_id", Value: "$artist_id"}, // 按艺术家ID分组[6](@ref)
+				{Key: "album_ids", Value: bson.D{
+					{Key: "$push", Value: "$_id"}, // 收集专辑ID列表[8](@ref)
+				}},
 			}},
 		},
 	}
 
 	cursor, err := coll.Aggregate(ctx, pipeline)
 	if err != nil {
-		return nil, fmt.Errorf("专辑ID查询失败: %w", err)
+		return nil, fmt.Errorf("聚合查询失败: %w", err)
 	}
 	defer cursor.Close(ctx)
 
-	var results []struct {
-		ID primitive.ObjectID `bson:"_id"`
+	// 解析为临时结构体
+	type groupResult struct {
+		ArtistID primitive.ObjectID   `bson:"_id"`
+		Albums   []primitive.ObjectID `bson:"album_ids"`
 	}
 
+	var results []groupResult
 	if err := cursor.All(ctx, &results); err != nil {
-		return nil, fmt.Errorf("专辑ID解码失败: %w", err)
+		return nil, fmt.Errorf("结果解析失败: %w", err)
 	}
 
-	// 提取ID到切片
-	ids := make([]primitive.ObjectID, len(results))
-	for i, item := range results {
-		ids[i] = item.ID
+	// 构建二维映射结构[4,6](@ref)
+	artistAlbumsMap := make(map[primitive.ObjectID][]primitive.ObjectID)
+	for _, res := range results {
+		artistAlbumsMap[res.ArtistID] = res.Albums
 	}
 
-	return ids, nil
+	return artistAlbumsMap, nil
+}
+
+func (r *albumRepository) GetArtistGuestAlbumsMap(ctx context.Context) (map[primitive.ObjectID][]primitive.ObjectID, error) {
+	coll := r.db.Collection(r.collection)
+
+	// 优化聚合管道：提取合作艺术家并分组
+	pipeline := []bson.D{
+		// 1. 过滤掉all_artist_ids为空的文档
+		{
+			{Key: "$match", Value: bson.D{
+				{Key: "all_artist_ids", Value: bson.D{
+					{Key: "$exists", Value: true},
+					{Key: "$not", Value: bson.D{
+						{Key: "$size", Value: 0},
+					}},
+				}},
+			}},
+		},
+		// 2. 展开all_artist_ids数组（从索引1开始跳过主艺术家）
+		{
+			{Key: "$unwind", Value: bson.D{
+				{Key: "path", Value: "$all_artist_ids"},
+				{Key: "includeArrayIndex", Value: "artist_index"},
+			}},
+		},
+		// 3. 过滤只保留索引>=1的合作艺术家
+		{
+			{Key: "$match", Value: bson.D{
+				{Key: "artist_index", Value: bson.D{
+					{Key: "$gte", Value: 1},
+				}},
+			}},
+		},
+		// 4. 按合作艺术家ID分组并收集专辑ID
+		{
+			{Key: "$group", Value: bson.D{
+				{Key: "_id", Value: "$all_artist_ids.artist_id"},
+				{Key: "album_ids", Value: bson.D{
+					{Key: "$addToSet", Value: "$_id"}, // 使用addToSet避免重复
+				}},
+			}},
+		},
+	}
+
+	cursor, err := coll.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("聚合查询失败: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	// 解析为临时结构体
+	type groupResult struct {
+		ArtistID string               `bson:"_id"`
+		AlbumIDs []primitive.ObjectID `bson:"album_ids"`
+	}
+
+	var results []groupResult
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, fmt.Errorf("结果解析失败: %w", err)
+	}
+
+	// 构建二维映射结构
+	artistAlbumsMap := make(map[primitive.ObjectID][]primitive.ObjectID)
+	for _, res := range results {
+		// 将字符串ID转换为ObjectID
+		objID, err := primitive.ObjectIDFromHex(res.ArtistID)
+		if err != nil {
+			log.Printf("无效的艺术家ID格式: %s", res.ArtistID)
+			continue
+		}
+		artistAlbumsMap[objID] = res.AlbumIDs
+	}
+
+	return artistAlbumsMap, nil
 }
 
 func (r *albumRepository) AlbumCountByArtist(
