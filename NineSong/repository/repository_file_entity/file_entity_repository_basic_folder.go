@@ -8,6 +8,8 @@ import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"log"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -78,6 +80,53 @@ func (r *folderRepo) FindLibrary(
 
 	fmt.Printf("DEBUG - 找到匹配记录: ID=%s\n", folder.ID.Hex())
 	return &folder, nil
+}
+
+func (r *folderRepo) GetAllLibrary(ctx context.Context, fileType domain_file_entity.FileTypeNo) ([]*domain_file_entity.LibraryFolderMetadata, error) {
+	collection := r.db.Collection(r.collection)
+	filter := bson.M{"file_types": fileType}
+
+	cursor, err := collection.Find(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("获取所有库失败: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var allFolders []*domain_file_entity.LibraryFolderMetadata
+	for cursor.Next(ctx) {
+		var folder domain_file_entity.LibraryFolderMetadata
+		if err := cursor.Decode(&folder); err != nil {
+			return nil, fmt.Errorf("解码库数据失败: %w", err)
+		}
+		allFolders = append(allFolders, &folder)
+	}
+
+	// 检查路径存在性并过滤
+	validFolders := make([]*domain_file_entity.LibraryFolderMetadata, 0, len(allFolders))
+	for _, folder := range allFolders {
+		exists, err := pathExists(folder.FolderPath)
+		if err != nil {
+			log.Printf("路径检查错误: %s - %v", folder.FolderPath, err)
+			continue
+		}
+		if exists {
+			validFolders = append(validFolders, folder)
+		} else {
+			log.Printf("跳过不存在路径: %s", folder.FolderPath)
+		}
+	}
+
+	return validFolders, nil
+}
+func pathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil // 路径存在
+	}
+	if os.IsNotExist(err) {
+		return false, nil // 路径不存在
+	}
+	return false, err // 其他错误（权限问题等）
 }
 
 func (r *folderRepo) UpdateStats(ctx context.Context, folderID primitive.ObjectID, fileCount int) error {

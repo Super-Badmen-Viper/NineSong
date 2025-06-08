@@ -21,6 +21,7 @@ type LibraryFolderMetadata struct {
 type FolderRepository interface {
 	Insert(ctx context.Context, folder *LibraryFolderMetadata) error
 	FindLibrary(ctx context.Context, folderPath string, fileTypes []FileTypeNo) (*LibraryFolderMetadata, error)
+	GetAllLibrary(ctx context.Context, fileType FileTypeNo) ([]*LibraryFolderMetadata, error)
 	UpdateStats(ctx context.Context, folderID primitive.ObjectID, fileCount int) error
 }
 

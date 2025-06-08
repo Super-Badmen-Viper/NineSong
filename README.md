@@ -25,6 +25,7 @@ Compared to other music servers (such as Navidrome, Jellyfin, Emby, Plex, Subson
 - CUE exclusive playback (CUE: wav、ape、flac) and CUE file management:
 - - Exclusive management page for music disc image (mirror) auxiliary files. 
 - - CUE playback styles suitable for music disc image features
+- - Visualized virtual track playback of CUE
 - More complete TAG import and management:
 - - support for importing complete TAGs from more types of music files (including m4a、cue(wav、ape、flac));
 - - support for user-visualized TAG management, allowing remote uploads, auto-associating, manual merging of artist-album-single TAGs;

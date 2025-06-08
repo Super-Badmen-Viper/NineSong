@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
-	"regexp"
-	"strings"
 	"time"
 
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
@@ -117,66 +115,35 @@ func (r *mediaFileCueRepository) DeleteByPath(ctx context.Context, path string) 
 func (r *mediaFileCueRepository) DeleteAllInvalid(
 	ctx context.Context,
 	filePaths []string,
-	folderPath string,
 ) (int64, []struct {
 	ArtistID primitive.ObjectID
 	Count    int64
 }, error) {
 	coll := r.db.Collection(r.collection)
-	// 创建返回结构：艺术家ID与删除数量的键值对数组
 	deletedArtists := make([]struct {
 		ArtistID primitive.ObjectID
 		Count    int64
 	}, 0)
 
-	// 场景1：全量删除
+	// 场景1：全量删除（无需folderPath过滤）
 	if len(filePaths) == 0 {
-		filter := bson.M{"library_path": folderPath}
-
-		// 先查询艺术家关联信息
-		artistCounts := make(map[primitive.ObjectID]int64)
-		cur, err := coll.Find(ctx, filter, options.Find().SetProjection(bson.M{"artist_id": 1}))
-		if err == nil {
-			defer cur.Close(ctx)
-			for cur.Next(ctx) {
-				var doc struct {
-					ArtistID primitive.ObjectID `bson:"artist_id"`
-				}
-				if err := cur.Decode(&doc); err == nil {
-					artistCounts[doc.ArtistID]++
-				}
-			}
-		}
-
-		// 执行删除
-		delResult, err := coll.DeleteMany(ctx, filter)
+		// 直接删除所有文档
+		delResult, err := coll.DeleteMany(ctx, bson.M{})
 		if err != nil {
 			return 0, deletedArtists, fmt.Errorf("全量删除失败: %w", err)
-		}
-
-		// 构建艺术家统计
-		for artistID, count := range artistCounts {
-			deletedArtists = append(deletedArtists, struct {
-				ArtistID primitive.ObjectID
-				Count    int64
-			}{ArtistID: artistID, Count: count})
 		}
 		return delResult, deletedArtists, nil
 	}
 
-	// 场景2：路径比对删除
-	validPathSet := make(map[string]struct{})
+	// 场景2：路径比对删除（全局处理）
+	validFilePaths := make(map[string]struct{})
 	for _, rawPath := range filePaths {
 		cleanPath := filepath.Clean(rawPath)
-		if strings.HasPrefix(cleanPath, folderPath) {
-			validPathSet[cleanPath] = struct{}{}
-		}
+		validFilePaths[cleanPath] = struct{}{}
 	}
 
-	// 查询待删除文档（增加artist_id字段）
-	filter := bson.M{"library_path": folderPath}
-	opts := options.Find().SetProjection(bson.M{"_id": 1, "path": 1, "artist_id": 1})
-	cur, err := coll.Find(ctx, filter, opts)
+	// 查询所有文档（移除folderPath过滤条件）
+	cur, err := coll.Find(ctx, bson.M{}, options.Find().SetProjection(bson.M{"_id": 1, "path": 1, "artist_id": 1}))
 	if err != nil {
 		return 0, deletedArtists, fmt.Errorf("查询失败: %w", err)
 	}
@@ -197,17 +164,23 @@ func (r *mediaFileCueRepository) DeleteAllInvalid(
 		}
 
 		cleanPath := filepath.Clean(doc.Path)
-		if _, valid := validPathSet[cleanPath]; !valid {
+		if _, valid := validFilePaths[cleanPath]; !valid {
 			toDelete = append(toDelete, doc.ID)
 			artistToIDs[doc.ArtistID] = append(artistToIDs[doc.ArtistID], doc.ID)
 		}
 	}
 
-	// 批量删除并统计
+	// 批量删除并统计（优化性能）
 	totalDeleted := int64(0)
 	const batchSize = 500
 	artistCounts := make(map[primitive.ObjectID]int64)
 
+	// 直接使用artistToIDs统计，避免嵌套循环
+	for artistID, ids := range artistToIDs {
+		artistCounts[artistID] = int64(len(ids))
+	}
+
+	// 批量删除
 	for i := 0; i < len(toDelete); i += batchSize {
 		end := i + batchSize
 		if end > len(toDelete) {
@@ -220,18 +193,6 @@ func (r *mediaFileCueRepository) DeleteAllInvalid(
 			return totalDeleted, deletedArtists, fmt.Errorf("批量删除失败: %w", err)
 		}
 		totalDeleted += delResult
-
-		// 统计本批次艺术家删除量
-		for _, id := range batch {
-			for artistID, ids := range artistToIDs {
-				for _, artistDocID := range ids {
-					if artistDocID == id {
-						artistCounts[artistID]++
-						break // 找到后跳出内层循环
-					}
-				}
-			}
-		}
 	}
 
 	// 构建艺术家删除统计
@@ -379,103 +340,120 @@ func (r *mediaFileCueRepository) MediaCountByAlbum(ctx context.Context, albumID 
 	return 0, nil
 }
 
-// 重构Inspect方法使用统一逻辑
 func (r *mediaFileCueRepository) inspectMediaCue(
 	ctx context.Context,
 	filter bson.M,
 	filePaths []string,
-	folderPath string,
+	clean bool, // 是否清理无效路径
 ) (int, error) {
-	// 构建有效路径集合（只包含指定目录下的文件）
+	// 构建全局有效路径集合
 	pathSet := make(map[string]struct{})
 	for _, path := range filePaths {
-		if strings.HasPrefix(path, folderPath) {
-			pathSet[path] = struct{}{}
+		cleanPath := filepath.Clean(path)
+		pathSet[cleanPath] = struct{}{}
+	}
+
+	// 没有有效路径时直接返回
+	if len(pathSet) == 0 {
+		return -1, nil
+	}
+
+	coll := r.db.Collection(r.collection)
+
+	// 查询所有可能的文档（移除folderPath过滤）
+	cur, err := coll.Find(ctx, filter, options.Find().SetProjection(bson.M{"_id": 1, "path": 1}))
+	if err != nil {
+		return 0, fmt.Errorf("查询失败: %w", err)
+	}
+	defer cur.Close(ctx)
+
+	var toDelete []primitive.ObjectID
+	var invalidPaths []string
+
+	for cur.Next(ctx) {
+		var doc struct {
+			ID   primitive.ObjectID `bson:"_id"`
+			Path string             `bson:"path"`
+		}
+		if err := cur.Decode(&doc); err != nil {
+			continue // 跳过错误项
+		}
+
+		cleanPath := filepath.Clean(doc.Path)
+		if _, exists := pathSet[cleanPath]; !exists {
+			if clean {
+				toDelete = append(toDelete, doc.ID)
+			}
+			invalidPaths = append(invalidPaths, doc.Path)
 		}
 	}
 
-	if pathSet != nil && len(pathSet) > 0 {
-		coll := r.db.Collection(r.collection)
+	// 记录无效路径日志
+	if len(invalidPaths) > 0 {
+		log.Printf("检测到 %d 个无效媒体项: %v...",
+			len(invalidPaths),
+			invalidPaths[:min(5, len(invalidPaths))])
+	} else {
+		return 0, nil // 没有无效项
+	}
 
-		// 添加目录路径过滤条件
-		filter["path"] = bson.M{"$regex": "^" + regexp.QuoteMeta(folderPath)}
-
-		cur, err := coll.Find(ctx, filter, options.Find().SetProjection(bson.M{"_id": 1, "path": 1}))
-		if err != nil {
-			return 0, fmt.Errorf("查询失败: %w", err)
-		}
-		defer cur.Close(ctx)
-
-		var toDelete []primitive.ObjectID
-		var invalidPaths []string
-
-		for cur.Next(ctx) {
-			var doc struct {
-				ID   primitive.ObjectID `bson:"_id"`
-				Path string             `bson:"path"`
-			}
-			if err := cur.Decode(&doc); err != nil {
-				continue // 跳过错误项
-			}
-
-			if _, exists := pathSet[doc.Path]; !exists {
-				toDelete = append(toDelete, doc.ID)
-				invalidPaths = append(invalidPaths, doc.Path)
-			}
-		}
-
-		// 记录无效路径日志
-		if len(invalidPaths) > 0 {
-			log.Printf("在目录[%s]下检测到 %d 个无效媒体项: %v...",
-				folderPath,
-				len(invalidPaths),
-				invalidPaths[:takeMin(5, len(invalidPaths))])
-		}
-
-		// 批量删除无效文档
+	// 批量删除无效文档
+	if clean {
 		if len(toDelete) > 0 {
 			batchSize := 1000
+			totalDeleted := 0
+
 			for i := 0; i < len(toDelete); i += batchSize {
 				end := i + batchSize
 				if end > len(toDelete) {
 					end = len(toDelete)
 				}
 
-				_, err = coll.DeleteMany(
-					ctx,
-					bson.M{"_id": bson.M{"$in": toDelete[i:end]}},
-				)
+				batch := toDelete[i:end]
+				_, err = coll.DeleteMany(ctx, bson.M{"_id": bson.M{"$in": batch}})
 				if err != nil {
 					log.Printf("部分删除失败: %v", err)
+				} else {
+					totalDeleted += len(batch)
 				}
 			}
-			return len(toDelete), nil
-		} else {
-			return 0, nil // 没有无效项
+			return totalDeleted, nil
+		}
+	} else {
+		if len(invalidPaths) > 0 {
+			return len(invalidPaths), nil
 		}
 	}
-	return -1, nil // 无效路径集合为空，返回-1表示直接标记删除
+	return 0, nil // 没有无效项
 }
 
 func (r *mediaFileCueRepository) InspectMediaCueCountByArtist(
 	ctx context.Context,
 	artistID string,
 	filePaths []string,
-	folderPath string,
 ) (int, error) {
-	filter := bson.M{"performer_id": artistID}
-	return r.inspectMediaCue(ctx, filter, filePaths, folderPath)
+	objID, err := primitive.ObjectIDFromHex(artistID)
+	if err != nil {
+		return 0, fmt.Errorf("无效的艺术家ID格式: %w", err)
+	}
+
+	filter := bson.M{"performer_id": objID}
+	return r.inspectMediaCue(ctx, filter, filePaths, false)
 }
 
 func (r *mediaFileCueRepository) InspectGuestMediaCueCountByArtist(
 	ctx context.Context,
 	artistID string,
 	filePaths []string,
-	folderPath string,
 ) (int, error) {
-	filter := bson.M{
-		"performer_id":                  bson.M{"$ne": artistID},
-		"cue_tracks.track_performer_id": artistID,
+	objID, err := primitive.ObjectIDFromHex(artistID)
+	if err != nil {
+		return 0, fmt.Errorf("无效的艺术家ID格式: %w", err)
 	}
-	return r.inspectMediaCue(ctx, filter, filePaths, folderPath)
+
+	filter := bson.M{
+		"performer_id":                  bson.M{"$ne": objID},
+		"cue_tracks.track_performer_id": objID,
+	}
+	return r.inspectMediaCue(ctx, filter, filePaths, false)
 }

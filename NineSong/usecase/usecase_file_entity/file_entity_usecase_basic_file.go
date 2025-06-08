@@ -78,11 +78,12 @@ func (uc *FileUsecase) ProcessDirectory(
 	targetTypes []domain_file_entity.FileTypeNo,
 	ScanModel int,
 ) error {
-	// 防御性检查
 	if uc.folderRepo == nil {
 		log.Printf("folderRepo未初始化")
 		return fmt.Errorf("系统未正确初始化")
 	}
+
+	var folders []*domain_file_entity.LibraryFolderMetadata
 
 	folder, err := uc.folderRepo.FindLibrary(ctx, dirPath, targetTypes)
 	if err != nil {
@@ -90,21 +91,47 @@ func (uc *FileUsecase) ProcessDirectory(
 		return fmt.Errorf("folder query failed: %w", err)
 	}
 
-	if folder == nil {
-		newFolder := &domain_file_entity.LibraryFolderMetadata{
-			ID:         primitive.NewObjectID(),
-			FolderPath: dirPath,
-			FileTypes:  targetTypes,
-			FolderMeta: domain_file_entity.FolderMeta{
-				FileCount:   0,
-				LastScanned: time.Now(),
-			},
+	if ScanModel == 1 {
+		library, err := uc.folderRepo.GetAllLibrary(ctx, 1)
+		if err != nil {
+			log.Printf("文件夹查询失败: %v", err)
+			return fmt.Errorf("folder query failed: %w", err)
 		}
-		if err := uc.folderRepo.Insert(ctx, newFolder); err != nil {
-			log.Printf("文件夹创建失败: %v", err)
-			return fmt.Errorf("folder creation failed: %w", err)
+		folders = library
+
+		if folder == nil {
+			newFolder := &domain_file_entity.LibraryFolderMetadata{
+				ID:         primitive.NewObjectID(),
+				FolderPath: dirPath,
+				FileTypes:  targetTypes,
+				FolderMeta: domain_file_entity.FolderMeta{
+					FileCount:   0,
+					LastScanned: time.Now(),
+				},
+			}
+			if err := uc.folderRepo.Insert(ctx, newFolder); err != nil {
+				log.Printf("文件夹创建失败: %v", err)
+				return fmt.Errorf("folder creation failed: %w", err)
+			}
+			folders = append(folders, newFolder)
 		}
-		folder = newFolder
+	} else {
+		if folder == nil {
+			newFolder := &domain_file_entity.LibraryFolderMetadata{
+				ID:         primitive.NewObjectID(),
+				FolderPath: dirPath,
+				FileTypes:  targetTypes,
+				FolderMeta: domain_file_entity.FolderMeta{
+					FileCount:   0,
+					LastScanned: time.Now(),
+				},
+			}
+			if err := uc.folderRepo.Insert(ctx, newFolder); err != nil {
+				log.Printf("文件夹创建失败: %v", err)
+				return fmt.Errorf("folder creation failed: %w", err)
+			}
+			folders = append(folders, newFolder)
+		}
 	}
 
 	// 设置目标文件类型
@@ -116,7 +143,7 @@ func (uc *FileUsecase) ProcessDirectory(
 	uc.targetMutex.Unlock()
 
 	if isFileTypeSliceEqual(targetTypes, domain_file_entity.LibraryMusicType) {
-		err = uc.ProcessMusicDirectory(ctx, dirPath, folder, ScanModel)
+		err = uc.ProcessMusicDirectory(ctx, folders, ScanModel)
 		if err != nil {
 			return err
 		}
@@ -137,14 +164,10 @@ func isFileTypeSliceEqual(a, b []domain_file_entity.FileTypeNo) bool {
 
 func (uc *FileUsecase) ProcessMusicDirectory(
 	ctx context.Context,
-	dirPath string,
-	folder *domain_file_entity.LibraryFolderMetadata,
+	folders []*domain_file_entity.LibraryFolderMetadata,
 	ScanModel int,
 ) error {
-	folderPath := strings.Replace(folder.FolderPath, "/", "\\", -1)
-	if !strings.HasSuffix(folderPath, "\\") {
-		folderPath += "\\"
-	}
+	var finalErr error
 
 	coverTempPath, _ := uc.tempRepo.GetTempPath(ctx, "cover")
 	//steamPath, _ := uc.tempRepo.GetTempPath(ctx, "stream")
@@ -167,155 +190,180 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 	// 路径收集容器
 	regularAudioPaths := make([]string, 0) // 常规音频路径
 	cueAudioPaths := make([]string, 0)     // CUE音频路径
+	// 路径去重容器
+	addedCuePaths := make(map[string]bool)
+	addedRegularPaths := make(map[string]bool)
 
-	// 并发处理管道
-	var wgFile sync.WaitGroup
-	errChan := make(chan error, 100)
-	fileCount := 0
-
-	// 存储需要排除的.wav文件路径
-	excludeWavs := make(map[string]struct{})
-	// 存储cue文件及其资源
-	cueResourcesMap := make(map[string]*scene_audio_db_models.CueConfig)
-
-	// 第一次遍历：收集.cue文件和关联资源
-	err = filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			log.Printf("文件遍历错误: %v", err)
-			return err
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			if info.IsDir() {
-				return nil
-			}
-
-			ext := strings.ToLower(filepath.Ext(path))
-			dir := filepath.Dir(path)
-			baseName := strings.TrimSuffix(filepath.Base(path), ext)
-
-			// 处理.cue文件
-			if ext == ".cue" {
-				res := &scene_audio_db_models.CueConfig{CuePath: path}
-
-				// 查找同名音频文件
-				audioFound := false
-				audioExts := []string{".wav", ".ape", ".flac"} // 扩展支持的音频格式
-				for _, audioExt := range audioExts {
-					audioPath := filepath.Join(dir, baseName+audioExt)
-					if _, err := os.Stat(audioPath); err == nil {
-						res.AudioPath = audioPath
-						excludeWavs[audioPath] = struct{}{} // 添加到排除列表
-						audioFound = true
-						break // 找到一种音频格式即停止
-					}
-				}
-
-				// 未找到音频文件则跳过
-				if !audioFound {
-					return nil
-				}
-
-				// 收集相关资源文件[9](@ref)
-				resourceFiles := []string{"back.jpg", "cover.jpg", "disc.jpg", "list.txt", "log.txt"}
-				for _, f := range resourceFiles {
-					p := filepath.Join(dir, f)
-					if _, err := os.Stat(p); err == nil {
-						switch f {
-						case "back.jpg":
-							res.BackImage = p
-						case "cover.jpg":
-							res.CoverImage = p
-						case "disc.jpg":
-							res.DiscImage = p
-						case "list.txt":
-							res.ListFile = p
-						case "log.txt":
-							res.LogFile = p
-						}
-					}
-				}
-
-				cueResourcesMap[path] = res
-
-				// 收集CUE音频路径[1,4](@ref)
-				if res.AudioPath != "" {
-					cueAudioPaths = append(cueAudioPaths, res.AudioPath)
-				}
-			}
-			return nil
-		}
-	})
-
-	if err != nil {
-		return fmt.Errorf("cue资源收集失败: %w", err)
+	var folderInfos []struct {
+		folderID        primitive.ObjectID
+		folderPath      string
+		folderFileCount int
 	}
 
-	// 第二次遍历：处理文件
-	err = filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			log.Printf("文件遍历错误: %v", err)
-			return err
+	for _, folder := range folders {
+		folderPath := strings.Replace(folder.FolderPath, "/", "\\", -1)
+		if !strings.HasSuffix(folderPath, "\\") {
+			folderPath += "\\"
 		}
 
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			if info.IsDir() || !uc.shouldProcess(path) {
-				return nil
-			}
+		folderInfo := struct {
+			folderID        primitive.ObjectID
+			folderPath      string
+			folderFileCount int
+		}{
+			folderID:        folder.ID,
+			folderPath:      folderPath,
+			folderFileCount: 0,
+		}
 
-			// 检查是否是被排除的.wav文件
-			if _, excluded := excludeWavs[path]; excluded {
-				return nil
-			}
+		// 并发处理管道
+		var wgFile sync.WaitGroup
+		errChan := make(chan error, 100)
 
-			// 检查是否是cue文件或普通音频文件
-			ext := strings.ToLower(filepath.Ext(path))
-			if ext == ".cue" {
-				// 获取关联资源
-				res, exists := cueResourcesMap[path]
-				if !exists {
-					log.Printf("未找到cue文件资源: %s", path)
+		// 存储需要排除的.wav文件路径
+		excludeWavs := make(map[string]struct{})
+		// 存储cue文件及其资源
+		cueResourcesMap := make(map[string]*scene_audio_db_models.CueConfig)
+
+		// 第一次遍历：收集.cue文件和关联资源
+		err = filepath.Walk(folder.FolderPath, func(path string, info os.FileInfo, err error) error {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+				if info.IsDir() {
 					return nil
 				}
 
-				wgFile.Add(1)
-				fileCount++
-				// cue的path 替换 为cue res.AudioPath，尝试读取该wav的tag信息
-				go uc.processFile(ctx, res, res.AudioPath, folderPath, coverTempPath, folder.ID, &wgFile, errChan)
-			} else {
-				// 收集常规音频路径[1,4](@ref)
-				regularAudioPaths = append(regularAudioPaths, path)
+				ext := strings.ToLower(filepath.Ext(path))
+				dir := filepath.Dir(path)
+				baseName := strings.TrimSuffix(filepath.Base(path), ext)
 
-				// 处理普通音频文件
-				wgFile.Add(1)
-				fileCount++
-				go uc.processFile(ctx, nil, path, folderPath, coverTempPath, folder.ID, &wgFile, errChan)
+				// 处理.cue文件
+				if ext == ".cue" {
+					res := &scene_audio_db_models.CueConfig{CuePath: path}
+
+					// 查找同名音频文件
+					audioFound := false
+					audioExts := []string{".wav", ".ape", ".flac"} // 扩展支持的音频格式
+					for _, audioExt := range audioExts {
+						audioPath := filepath.Join(dir, baseName+audioExt)
+						if _, err := os.Stat(audioPath); err == nil {
+							res.AudioPath = audioPath
+							excludeWavs[audioPath] = struct{}{} // 添加到排除列表
+							audioFound = true
+							break // 找到一种音频格式即停止
+						}
+					}
+
+					// 未找到音频文件则跳过
+					if !audioFound {
+						return nil
+					}
+
+					// 收集相关资源文件[9](@ref)
+					resourceFiles := []string{"back.jpg", "cover.jpg", "disc.jpg", "list.txt", "log.txt"}
+					for _, f := range resourceFiles {
+						p := filepath.Join(dir, f)
+						if _, err := os.Stat(p); err == nil {
+							switch f {
+							case "back.jpg":
+								res.BackImage = p
+							case "cover.jpg":
+								res.CoverImage = p
+							case "disc.jpg":
+								res.DiscImage = p
+							case "list.txt":
+								res.ListFile = p
+							case "log.txt":
+								res.LogFile = p
+							}
+						}
+					}
+
+					cueResourcesMap[path] = res
+				}
+				return nil
 			}
-			return nil
+		})
+		if err != nil {
+			log.Printf("文件夹%v，文件遍历错误: %v，请检查该文件夹是否存在", folder.FolderPath, err)
 		}
-	})
 
-	// 等待所有任务完成
-	go func() {
-		wgFile.Wait()
-		close(errChan)
-	}()
+		// 第二次遍历：处理文件
+		err = filepath.Walk(folder.FolderPath, func(path string, info os.FileInfo, err error) error {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+				if info.IsDir() || !uc.shouldProcess(path) {
+					return nil
+				}
 
-	// 收集错误
-	var finalErr error
-	for err := range errChan {
-		log.Printf("文件处理错误: %v", err)
-		if finalErr == nil {
-			finalErr = err
-		} else {
-			finalErr = fmt.Errorf("%v; %w", finalErr, err)
+				// 检查是否是被排除的.wav文件
+				if _, excluded := excludeWavs[path]; excluded {
+					return nil
+				}
+
+				// 检查是否是cue文件或普通音频文件
+				ext := strings.ToLower(filepath.Ext(path))
+				if ext == ".cue" {
+					// 获取关联资源
+					res, exists := cueResourcesMap[path]
+					if !exists {
+						log.Printf("未找到cue文件资源: %s", path)
+						return nil
+					}
+
+					// 检查并收集CUE音频路径（避免重复添加）
+					if res.AudioPath != "" {
+						// 检查是否已添加过相同路径[6,7](@ref)
+						if _, existsAdded := addedCuePaths[res.AudioPath]; !existsAdded {
+							cueAudioPaths = append(cueAudioPaths, res.AudioPath)
+							addedCuePaths[res.AudioPath] = true // 标记为已添加
+						}
+					}
+
+					wgFile.Add(1)
+					folderInfo.folderFileCount++
+					// 启动goroutine处理cue文件（使用音频路径）
+					go uc.processFile(ctx, res, res.AudioPath, folderPath, coverTempPath, folder.ID, &wgFile, errChan)
+				} else {
+					// 检查并收集常规音频路径（避免重复添加）
+					if _, existsAdded := addedRegularPaths[path]; !existsAdded {
+						regularAudioPaths = append(regularAudioPaths, path)
+						addedRegularPaths[path] = true // 标记为已添加
+					}
+
+					// 处理普通音频文件
+					wgFile.Add(1)
+					folderInfo.folderFileCount++
+					go uc.processFile(ctx, nil, path, folderPath, coverTempPath, folder.ID, &wgFile, errChan)
+				}
+				return nil
+			}
+		})
+		if err != nil {
+			log.Printf("文件夹%v，文件遍历错误: %v，请检查该文件夹是否存在", folder.FolderPath, err)
 		}
+
+		// 等待所有任务完成
+		go func() {
+			wgFile.Wait()
+			close(errChan)
+		}()
+
+		// 收集错误
+		for err := range errChan {
+			log.Printf("文件处理错误: %v", err)
+			if finalErr == nil {
+				finalErr = err
+			} else {
+				finalErr = fmt.Errorf("%v; %w", finalErr, err)
+			}
+		}
+
+		folderInfos = append(folderInfos, folderInfo)
 	}
 
 	// 计算媒体库所有统计信息
@@ -425,12 +473,12 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 			}
 
 			// 处理主艺术家统计
-			mediaCount, err := uc.mediaRepo.InspectMediaCountByArtist(ctx, artistID, regularAudioPaths, folderPath)
+			mediaCount, err := uc.mediaRepo.InspectMediaCountByArtist(ctx, artistID, regularAudioPaths)
 			if err != nil {
 				log.Printf("常规音频主艺术家统计失败 (ID %s): %v", artistID, err)
 			} else {
 				if mediaCount >= 0 {
-					invalidArtistCounts[artistID].mediaCount = mediaCount
+					invalidArtistCounts[artistID].mediaCount += mediaCount
 				} else {
 					invalidArtistCounts[artistID].mediaCount++
 					deleteArtistCounts[artistID]++
@@ -438,12 +486,12 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 			}
 
 			// 处理合作艺术家统计
-			guestMediaCount, err := uc.mediaRepo.InspectGuestMediaCountByArtist(ctx, artistID, regularAudioPaths, folderPath)
+			guestMediaCount, err := uc.mediaRepo.InspectGuestMediaCountByArtist(ctx, artistID, regularAudioPaths)
 			if err != nil {
 				log.Printf("常规音频合作艺术家统计失败 (ID %s): %v", artistID, err)
 			} else {
 				if guestMediaCount >= 0 {
-					invalidArtistCounts[artistID].guestMediaCount = guestMediaCount
+					invalidArtistCounts[artistID].guestMediaCount += guestMediaCount
 				} else {
 					invalidArtistCounts[artistID].guestMediaCount++
 					deleteArtistCounts[artistID]++
@@ -462,7 +510,7 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 
 			for _, albumID := range albums {
 				albumIDStr := albumID.Hex()
-				count, err := uc.mediaRepo.InspectMediaCountByAlbum(ctx, albumIDStr, regularAudioPaths, folderPath)
+				count, err := uc.mediaRepo.InspectMediaCountByAlbum(ctx, albumIDStr, regularAudioPaths)
 				if err != nil {
 					log.Printf("常规音频专辑统计失败 (ID %s): %v", albumIDStr, err)
 					continue
@@ -470,14 +518,16 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 
 				if count > 0 {
 					// 直接修改指针指向的结构体字段[7](@ref)
-					invalidArtistCounts[artistIDStr].albumCount = count
+					invalidArtistCounts[artistIDStr].albumCount += count
 					//
-					invalidAlbumCounts[albumIDStr] = count
+					invalidAlbumCounts[albumIDStr] += count
 				} else if count < 0 {
 					// 删除艺术家统计
 					invalidArtistCounts[artistIDStr].albumCount++
 					// 标记为删除
 					invalidAlbumCounts[albumIDStr] = -1
+					//
+					deleteArtistCounts[artistIDStr]++
 				} else {
 					delete(invalidAlbumCounts, albumIDStr)
 				}
@@ -495,30 +545,33 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 
 			for _, albumID := range albums {
 				albumIDStr := albumID.Hex()
-				count, err := uc.mediaRepo.InspectGuestMediaCountByAlbum(ctx, albumIDStr, regularAudioPaths, folderPath)
+				count, err := uc.mediaRepo.InspectGuestMediaCountByAlbum(ctx, albumIDStr, regularAudioPaths)
 				if err != nil {
 					log.Printf("常规音频专辑统计失败 (ID %s): %v", albumIDStr, err)
 					continue
 				}
 
 				if count > 0 {
-					invalidArtistCounts[artistIDStr].guestAlbumCount = count
+					invalidArtistCounts[artistIDStr].guestAlbumCount += count
 				} else if count < 0 {
 					invalidArtistCounts[artistIDStr].guestAlbumCount++
+					deleteArtistCounts[artistIDStr]++
 				}
 			}
 		}
 
 		// 3. 清除常规音频的无效专辑（删除统计：单曲数为0的专辑）
+		invalidAlbumNums := 0
 		for albumID, operand := range invalidAlbumCounts {
 			deleted, err := uc.albumRepo.InspectAlbumMediaCountByAlbum(ctx, albumID, operand)
 			if err != nil {
 				log.Printf("专辑清理失败 (ID %s): %v", albumID, err)
 			}
 			if deleted {
-				log.Printf("已删除无效专辑 (ID %s)", albumID)
+				invalidAlbumNums++
 			}
 		}
+		log.Printf("已删除 %v 个无效专辑\n", invalidAlbumNums)
 
 		// 4. 处理CUE音频的艺术家统计
 		for _, id := range artistIDs {
@@ -530,12 +583,12 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 			}
 
 			// 处理CUE音频主艺术家统计
-			cueMediaCount, err := uc.mediaCueRepo.InspectMediaCueCountByArtist(ctx, artistID, cueAudioPaths, folderPath)
+			cueMediaCount, err := uc.mediaCueRepo.InspectMediaCueCountByArtist(ctx, artistID, cueAudioPaths)
 			if err != nil {
 				log.Printf("CUE音频主艺术家统计失败 (ID %s): %v", artistID, err)
 			} else {
 				if cueMediaCount >= 0 {
-					invalidArtistCounts[artistID].cueMediaCount = cueMediaCount
+					invalidArtistCounts[artistID].cueMediaCount += cueMediaCount
 				} else {
 					invalidArtistCounts[artistID].cueMediaCount++
 					deleteArtistCounts[artistID]++
@@ -543,12 +596,12 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 			}
 
 			// 处理CUE音频合作艺术家统计
-			guestCueMediaCount, err := uc.mediaCueRepo.InspectGuestMediaCueCountByArtist(ctx, artistID, cueAudioPaths, folderPath)
+			guestCueMediaCount, err := uc.mediaCueRepo.InspectGuestMediaCueCountByArtist(ctx, artistID, cueAudioPaths)
 			if err != nil {
 				log.Printf("CUE音频合作艺术家统计失败 (ID %s): %v", artistID, err)
 			} else {
 				if guestCueMediaCount >= 0 {
-					invalidArtistCounts[artistID].guestCueMediaCount = guestCueMediaCount
+					invalidArtistCounts[artistID].guestCueMediaCount += guestCueMediaCount
 				} else {
 					invalidArtistCounts[artistID].guestCueMediaCount++
 					deleteArtistCounts[artistID]++
@@ -571,7 +624,7 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 		}
 
 		// 6. 清除无效的常规音频
-		delResult, invalidMediaArtist, err := uc.mediaRepo.DeleteAllInvalid(ctx, regularAudioPaths, folderPath)
+		delResult, invalidMediaArtist, err := uc.mediaRepo.DeleteAllInvalid(ctx, regularAudioPaths)
 		if err != nil {
 			log.Printf("常规音频清理失败: %v", err)
 			return fmt.Errorf("regular audio cleanup failed: %w", err)
@@ -587,7 +640,7 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 		}
 
 		// 7. 清除无效的CUE音频
-		delCueResult, invalidMediaCueArtist, err := uc.mediaCueRepo.DeleteAllInvalid(ctx, cueAudioPaths, folderPath)
+		delCueResult, invalidMediaCueArtist, err := uc.mediaCueRepo.DeleteAllInvalid(ctx, cueAudioPaths)
 		if err != nil {
 			log.Printf("CUE音频清理失败: %v", err)
 			return fmt.Errorf("CUE audio cleanup failed: %w", err)
@@ -686,9 +739,11 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 	}
 
 	// 更新文件夹统计
-	if updateErr := uc.folderRepo.UpdateStats(ctx, folder.ID, fileCount); updateErr != nil {
-		log.Printf("统计更新失败: %v", updateErr)
-		return fmt.Errorf("stats update failed: %w", updateErr)
+	for _, folderInfo := range folderInfos {
+		if updateErr := uc.folderRepo.UpdateStats(ctx, folderInfo.folderID, folderInfo.folderFileCount); updateErr != nil {
+			log.Printf("媒体库：%s (ID %s) - 统计更新失败: %v", folderInfo.folderPath, folderInfo.folderID, updateErr)
+			return fmt.Errorf("stats update failed: %w", updateErr)
+		}
 	}
 
 	log.Printf("音乐库扫描完毕。。。。。。。。。。。。。")
