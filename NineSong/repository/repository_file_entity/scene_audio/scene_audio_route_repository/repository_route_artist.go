@@ -86,11 +86,14 @@ func (r *artistRepository) GetArtistItems(
 		})
 	}
 
-	// 添加排序阶段
+	// 修复排序稳定性
 	pipeline = append(pipeline, buildArtistSortStage(validatedSort, order))
 
-	// 分页处理
-	pipeline = append(pipeline, buildArtistPaginationStage(start, end)...)
+	// 增强分页参数验证
+	paginationStages := buildArtistPaginationStage(start, end)
+	if paginationStages != nil {
+		pipeline = append(pipeline, paginationStages...)
+	}
 
 	cursor, err := coll.Aggregate(ctx, pipeline)
 	if err != nil {
@@ -260,6 +263,7 @@ func validateArtistSortField(sort string) string {
 	return "_id"
 }
 
+// 修复排序稳定性
 func buildArtistSortStage(sort, order string) bson.D {
 	sortOrder := 1
 	if order == "desc" {
@@ -268,28 +272,29 @@ func buildArtistSortStage(sort, order string) bson.D {
 	return bson.D{
 		{Key: "$sort", Value: bson.D{
 			{Key: sort, Value: sortOrder},
+			{Key: "_id", Value: 1}, // 关键修复
 		}},
 	}
 }
 
+// 增强分页验证
 func buildArtistPaginationStage(start, end string) []bson.D {
-	var stages []bson.D
+	startInt, err1 := strconv.Atoi(start)
+	endInt, err2 := strconv.Atoi(end)
 
-	startInt, err := strconv.Atoi(start)
-	endInt, err := strconv.Atoi(end)
-	if err != nil {
-		return stages
+	if err1 != nil || err2 != nil || startInt < 0 || endInt <= startInt {
+		return nil // 无效参数不添加分页
 	}
 
 	skip := startInt
 	limit := endInt - startInt
 
+	var stages []bson.D
 	if skip > 0 {
 		stages = append(stages, bson.D{{Key: "$skip", Value: skip}})
 	}
 	if limit > 0 {
 		stages = append(stages, bson.D{{Key: "$limit", Value: limit}})
 	}
-
 	return stages
 }

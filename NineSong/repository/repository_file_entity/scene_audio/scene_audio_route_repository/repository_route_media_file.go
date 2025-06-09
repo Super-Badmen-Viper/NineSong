@@ -86,11 +86,14 @@ func (r *mediaFileRepository) GetMediaFileItems(
 		})
 	}
 
-	// 添加排序阶段
+	// 添加排序阶段 - 关键修改：添加唯一字段作为次要排序条件
 	pipeline = append(pipeline, buildSortStage(validatedSort, order))
 
 	// 添加分页阶段
-	pipeline = append(pipeline, buildMediaPaginationStage(start, end)...)
+	paginationStages := buildMediaPaginationStage(start, end)
+	if paginationStages != nil {
+		pipeline = append(pipeline, paginationStages...)
+	}
 
 	// 执行聚合查询
 	cursor, err := coll.Aggregate(ctx, pipeline)
@@ -192,14 +195,7 @@ func (r *mediaFileRepository) GetMediaFileFilterItemsCount(
 	return counts, nil
 }
 
-// Helper functions
-func extractCount(data []map[string]int) int {
-	if len(data) > 0 {
-		return data[0]["count"]
-	}
-	return 0
-}
-
+// 排序字段映射
 func validateSortField(sort string) string {
 	sortMappings := map[string]string{
 		"title":        "order_title",
@@ -224,6 +220,52 @@ func validateSortField(sort string) string {
 	}
 
 	return "file_name"
+}
+
+// 排序稳定性：添加唯一字段作为次要排序条件
+func buildSortStage(sort, order string) bson.D {
+	sortOrder := 1
+	if order == "desc" {
+		sortOrder = -1
+	}
+	return bson.D{
+		{Key: "$sort", Value: bson.D{
+			{Key: sort, Value: sortOrder},
+			{Key: "_id", Value: 1}, // 关键修复：添加唯一字段保证排序稳定性[5,10](@ref)
+		}},
+	}
+}
+
+// 增强分页参数验证
+func buildMediaPaginationStage(start, end string) []bson.D {
+	startInt, err1 := strconv.Atoi(start)
+	endInt, err2 := strconv.Atoi(end)
+
+	// 参数验证
+	if err1 != nil || err2 != nil || startInt < 0 || endInt <= startInt {
+		return nil // 无效参数不添加分页阶段
+	}
+
+	skip := startInt
+	limit := endInt - startInt
+
+	var stages []bson.D
+	if skip > 0 {
+		stages = append(stages, bson.D{{Key: "$skip", Value: skip}})
+	}
+	if limit > 0 {
+		stages = append(stages, bson.D{{Key: "$limit", Value: limit}})
+	}
+
+	return stages
+}
+
+// Helper functions
+func extractCount(data []map[string]int) int {
+	if len(data) > 0 {
+		return data[0]["count"]
+	}
+	return 0
 }
 
 func buildMatchStage(search, starred, albumId, artistId, year string) bson.D {
@@ -267,38 +309,4 @@ func buildMatchStage(search, starred, albumId, artistId, year string) bson.D {
 
 func buildBaseMatch(search, albumId, artistId, year string) bson.D {
 	return buildMatchStage(search, "", albumId, artistId, year)
-}
-
-func buildSortStage(sort, order string) bson.D {
-	sortOrder := 1
-	if order == "desc" {
-		sortOrder = -1
-	}
-	return bson.D{
-		{Key: "$sort", Value: bson.D{
-			{Key: sort, Value: sortOrder},
-		}},
-	}
-}
-
-func buildMediaPaginationStage(start, end string) []bson.D {
-	var stages []bson.D
-
-	startInt, err := strconv.Atoi(start)
-	endInt, err := strconv.Atoi(end)
-	if err != nil {
-		return stages
-	}
-
-	skip := startInt
-	limit := endInt - startInt
-
-	if skip > 0 {
-		stages = append(stages, bson.D{{Key: "$skip", Value: skip}})
-	}
-	if limit > 0 {
-		stages = append(stages, bson.D{{Key: "$limit", Value: limit}})
-	}
-
-	return stages
 }

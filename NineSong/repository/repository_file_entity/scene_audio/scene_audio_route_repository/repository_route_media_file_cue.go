@@ -46,7 +46,7 @@ func (r *mediaFileCueRepository) GetMediaFileCueItems(
 							{Key: "$expr", Value: bson.D{
 								{Key: "$and", Value: bson.A{
 									bson.D{{Key: "$eq", Value: bson.A{"$item_id", "$$mediaId"}}},
-									bson.D{{Key: "$eq", Value: bson.A{"$item_type", "media_cue"}}}, // 修改为 media_cue 类型
+									bson.D{{Key: "$eq", Value: bson.A{"$item_type", "media_cue"}}},
 								}},
 							}},
 						}},
@@ -87,11 +87,14 @@ func (r *mediaFileCueRepository) GetMediaFileCueItems(
 		})
 	}
 
-	// 添加排序
+	// 添加排序 - 关键修复：添加唯一字段保证排序稳定性
 	pipeline = append(pipeline, r.buildSortStage(validatedSort, order))
 
 	// 添加分页
-	pipeline = append(pipeline, r.buildPaginationStage(start, end)...)
+	paginationStages := r.buildPaginationStage(start, end)
+	if paginationStages != nil {
+		pipeline = append(pipeline, paginationStages...)
+	}
 
 	// 执行查询
 	cursor, err := coll.Aggregate(ctx, pipeline)
@@ -279,6 +282,7 @@ func (r *mediaFileCueRepository) buildBaseMatch(search, albumId, artistId, year 
 	return r.buildMatchStage(search, "", albumId, artistId, year)
 }
 
+// 添加唯一字段作为次要排序条件
 func (r *mediaFileCueRepository) buildSortStage(sort, order string) bson.D {
 	sortOrder := 1
 	if order == "desc" {
@@ -287,19 +291,25 @@ func (r *mediaFileCueRepository) buildSortStage(sort, order string) bson.D {
 	return bson.D{
 		{Key: "$sort", Value: bson.D{
 			{Key: sort, Value: sortOrder},
+			{Key: "_id", Value: 1}, // 关键修复：添加唯一字段保证排序稳定性
 		}},
 	}
 }
 
+// 增强分页参数验证
 func (r *mediaFileCueRepository) buildPaginationStage(start, end string) []bson.D {
-	var stages []bson.D
+	startInt, err1 := strconv.Atoi(start)
+	endInt, err2 := strconv.Atoi(end)
 
-	startInt, _ := strconv.Atoi(start)
-	endInt, _ := strconv.Atoi(end)
+	// 参数验证
+	if err1 != nil || err2 != nil || startInt < 0 || endInt <= startInt {
+		return nil // 无效参数不添加分页阶段
+	}
 
 	skip := startInt
 	limit := endInt - startInt
 
+	var stages []bson.D
 	if skip > 0 {
 		stages = append(stages, bson.D{{Key: "$skip", Value: skip}})
 	}

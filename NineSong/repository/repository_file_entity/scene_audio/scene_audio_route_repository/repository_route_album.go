@@ -90,11 +90,14 @@ func (r *albumRepository) GetAlbumItems(
 		pipeline = append(pipeline, bson.D{{Key: "$match", Value: match}})
 	}
 
-	// 排序处理
+	// 排序处理 - 修复排序稳定性
 	pipeline = append(pipeline, buildAlbumSortStage(validatedSort, order))
 
-	// 分页处理
-	pipeline = append(pipeline, buildAlbumPaginationStage(start, end)...)
+	// 分页处理 - 增强参数验证
+	paginationStages := buildAlbumPaginationStage(start, end)
+	if paginationStages != nil {
+		pipeline = append(pipeline, paginationStages...)
+	}
 
 	// 执行查询
 	cursor, err := coll.Aggregate(ctx, pipeline)
@@ -193,31 +196,45 @@ func (r *albumRepository) GetAlbumFilterItemsCount(
 	return counts, nil
 }
 
-// Helper functions
+// 优化过滤条件构建
 func buildAlbumMatch(search, starred, artistId, minYear, maxYear string) bson.D {
 	filter := bson.D{}
 
-	// 基础过滤条件
+	// 优化艺术家过滤条件
 	if artistId != "" {
-		artistFilter := bson.D{
-			{Key: "$or", Value: bson.A{
+		filter = append(filter, bson.E{
+			Key: "$or",
+			Value: bson.A{
 				bson.D{{Key: "artist_id", Value: artistId}},
-				bson.D{{
-					Key:   "all_artist_ids.artist_id",
-					Value: artistId,
-				}},
-			}},
-		}
-		filter = append(filter, bson.E{Key: "$and", Value: bson.A{artistFilter}})
+				bson.D{{Key: "all_artist_ids.artist_id", Value: artistId}},
+			},
+		})
 	}
-	if minYear != "" {
-		if year, err := strconv.Atoi(minYear); err == nil {
-			filter = append(filter, bson.E{Key: "min_year", Value: bson.D{{Key: "$gte", Value: year}}})
+
+	// 增强年份过滤逻辑
+	if minYear != "" || maxYear != "" {
+		yearFilter := bson.D{}
+
+		if minYear != "" {
+			if year, err := strconv.Atoi(minYear); err == nil {
+				yearFilter = append(yearFilter, bson.E{Key: "$gte", Value: year})
+			}
 		}
-	}
-	if maxYear != "" {
-		if year, err := strconv.Atoi(maxYear); err == nil {
-			filter = append(filter, bson.E{Key: "max_year", Value: bson.D{{Key: "$lte", Value: year}}})
+
+		if maxYear != "" {
+			if year, err := strconv.Atoi(maxYear); err == nil {
+				yearFilter = append(yearFilter, bson.E{Key: "$lte", Value: year})
+			}
+		}
+
+		if len(yearFilter) > 0 {
+			filter = append(filter, bson.E{
+				Key: "$or",
+				Value: bson.A{
+					bson.D{{Key: "min_year", Value: yearFilter}},
+					bson.D{{Key: "max_year", Value: yearFilter}},
+				},
+			})
 		}
 	}
 
@@ -297,6 +314,7 @@ func validateAlbumSortField(sort string) string {
 	return "_id"
 }
 
+// 修复排序稳定性：添加唯一字段作为次要排序条件
 func buildAlbumSortStage(sort, order string) bson.D {
 	sortOrder := 1
 	if order == "desc" {
@@ -305,22 +323,25 @@ func buildAlbumSortStage(sort, order string) bson.D {
 	return bson.D{
 		{Key: "$sort", Value: bson.D{
 			{Key: sort, Value: sortOrder},
+			{Key: "_id", Value: 1}, // 关键修复：添加唯一字段保证排序稳定性
 		}},
 	}
 }
 
+// 增强分页参数验证
 func buildAlbumPaginationStage(start, end string) []bson.D {
-	var stages []bson.D
+	startInt, err1 := strconv.Atoi(start)
+	endInt, err2 := strconv.Atoi(end)
 
-	startInt, err := strconv.Atoi(start)
-	endInt, err := strconv.Atoi(end)
-	if err != nil {
-		return stages
+	// 参数验证
+	if err1 != nil || err2 != nil || startInt < 0 || endInt <= startInt {
+		return nil // 无效参数不添加分页阶段
 	}
 
 	skip := startInt
 	limit := endInt - startInt
 
+	var stages []bson.D
 	if skip > 0 {
 		stages = append(stages, bson.D{{Key: "$skip", Value: skip}})
 	}

@@ -105,7 +105,7 @@ func (r *playlistTrackRepository) GetPlaylistTrackItems(
 					{Key: "$mergeObjects", Value: bson.A{
 						"$media_file",
 						bson.D{
-							{Key: "index", Value: "$index"}, // 保持小写字段名
+							{Key: "Index", Value: "$index"}, // 匹配模型字段名(首字母大写)
 						},
 					}},
 				}},
@@ -123,7 +123,10 @@ func (r *playlistTrackRepository) GetPlaylistTrackItems(
 	pipeline = append(pipeline, buildMediaSortStage(validatedSort, order))
 
 	// 分页处理
-	pipeline = append(pipeline, buildMediaPaginationStage(start, end)...)
+	paginationStages := buildMediaPaginationStage(start, end)
+	if paginationStages != nil {
+		pipeline = append(pipeline, paginationStages...)
+	}
 
 	cursor, err := coll.Aggregate(ctx, pipeline)
 	if err != nil {
