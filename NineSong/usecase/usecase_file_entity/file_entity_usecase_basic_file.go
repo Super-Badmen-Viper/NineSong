@@ -74,7 +74,7 @@ func NewFileUsecase(
 
 func (uc *FileUsecase) ProcessDirectory(
 	ctx context.Context,
-	dirPath string,
+	dirPaths []string,
 	targetTypes []domain_file_entity.FileTypeNo,
 	ScanModel int,
 ) error {
@@ -83,21 +83,48 @@ func (uc *FileUsecase) ProcessDirectory(
 		return fmt.Errorf("系统未正确初始化")
 	}
 
-	var folders []*domain_file_entity.LibraryFolderMetadata
+	var libraryFolders []*domain_file_entity.LibraryFolderMetadata
 
-	folder, err := uc.folderRepo.FindLibrary(ctx, dirPath, targetTypes)
-	if err != nil {
-		log.Printf("文件夹查询失败: %v", err)
-		return fmt.Errorf("folder query failed: %w", err)
+	// 1. 处理多个目录路径
+	for _, dirPath := range dirPaths {
+		folder, err := uc.folderRepo.FindLibrary(ctx, dirPath, targetTypes)
+		if err != nil {
+			log.Printf("文件夹查询失败: %v", err)
+			return fmt.Errorf("folder query failed: %w", err)
+		}
+
+		// 2. 根据扫描模式处理目录
+		if ScanModel == 0 || ScanModel == 2 {
+			if folder == nil {
+				newFolder := &domain_file_entity.LibraryFolderMetadata{
+					ID:          primitive.NewObjectID(),
+					FolderPath:  dirPath,
+					FileTypes:   targetTypes,
+					FileCount:   0,
+					LastScanned: time.Now(),
+				}
+				if err := uc.folderRepo.Insert(ctx, newFolder); err != nil {
+					log.Printf("文件夹创建失败: %v", err)
+					return fmt.Errorf("folder creation failed: %w", err)
+				}
+				libraryFolders = append(libraryFolders, newFolder)
+			} else {
+				libraryFolders = append(libraryFolders, folder)
+			}
+		}
 	}
 
-	library, err := uc.folderRepo.GetAllLibrary(ctx, 1)
-	if err != nil {
-		log.Printf("文件夹查询失败: %v", err)
-		return fmt.Errorf("folder query failed: %w", err)
+	// 3. 获取整个媒体库（修复模式使用）
+	if ScanModel == 1 {
+		library, err := uc.folderRepo.GetAllByType(ctx, 1)
+		if err != nil {
+			log.Printf("文件夹查询失败: %v", err)
+			return fmt.Errorf("folder query failed: %w", err)
+		}
+		libraryFolders = library
 	}
 
-	// 设置目标文件类型
+	// 4. 设置目标文件类型
 	uc.targetMutex.Lock()
 	uc.targetTypes = make(map[domain_file_entity.FileTypeNo]struct{})
 	for _, ft := range targetTypes {
@@ -105,68 +132,32 @@ func (uc *FileUsecase) ProcessDirectory(
 	}
 	uc.targetMutex.Unlock()
 
-	if ScanModel == 0 { // 扫描新的和有修改的文件（新建媒体库、更新媒体库 -> 无覆盖参数）
-		if folder == nil {
-			newFolder := &domain_file_entity.LibraryFolderMetadata{
-				ID:         primitive.NewObjectID(),
-				FolderPath: dirPath,
-				FileTypes:  targetTypes,
-				FolderMeta: domain_file_entity.FolderMeta{
-					FileCount:   0,
-					LastScanned: time.Now(),
-				},
-			}
-			if err := uc.folderRepo.Insert(ctx, newFolder); err != nil {
-				log.Printf("文件夹创建失败: %v", err)
-				return fmt.Errorf("folder creation failed: %w", err)
-			}
-			folders = append(folders, newFolder)
-		}
-		// 仅扫描当前传入的媒体库目录路径
+	// 5. 根据扫描模式执行处理
+	switch ScanModel {
+	case 0: // 扫描新的和有修改的文件
 		if isFileTypeSliceEqual(targetTypes, domain_file_entity.LibraryMusicType) {
-			err = uc.ProcessMusicDirectory(ctx, folders, true, true, false)
+			err := uc.ProcessMusicDirectory(ctx, libraryFolders, true, true, false)
 			if err != nil {
 				return err
 			}
 		}
-	} else if ScanModel == 1 { // 搜索缺失的元数据（修复媒体库）
-		folders = library
-		// 扫描检查所有的音乐媒体库目录，不遍历所有的音乐文件而是直接跳过，并检查是否存在缺失并修复媒体库数据
+	case 1: // 搜索缺失的元数据
 		if isFileTypeSliceEqual(targetTypes, domain_file_entity.LibraryMusicType) {
-			err = uc.ProcessMusicDirectory(ctx, folders, false, true, true)
+			err := uc.ProcessMusicDirectory(ctx, libraryFolders, false, true, true)
 			if err != nil {
 				return err
 			}
 		}
-	} else if ScanModel == 2 { // 覆盖所有元数据（重构媒体库、新建媒体库 -> 有覆盖参数）
-		folders = library
-		if folder == nil {
-			newFolder := &domain_file_entity.LibraryFolderMetadata{
-				ID:         primitive.NewObjectID(),
-				FolderPath: dirPath,
-				FileTypes:  targetTypes,
-				FolderMeta: domain_file_entity.FolderMeta{
-					FileCount:   0,
-					LastScanned: time.Now(),
-				},
-			}
-			if err := uc.folderRepo.Insert(ctx, newFolder); err != nil {
-				log.Printf("文件夹创建失败: %v", err)
-				return fmt.Errorf("folder creation failed: %w", err)
-			}
-			folders = append(folders, newFolder)
-		}
-		// 扫描检查所有的音乐媒体库目录，遍历所有的音乐文件并导出，并检查是否存在缺失并修复媒体库数据
+	case 2: // 覆盖所有元数据
 		if isFileTypeSliceEqual(targetTypes, domain_file_entity.LibraryMusicType) {
-			err = uc.ProcessMusicDirectory(ctx, folders, true, true, true)
+			err := uc.ProcessMusicDirectory(ctx, libraryFolders, true, true, true)
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	log.Printf("媒体库扫描完毕。。。。。。。。。。。。。")
-
+	log.Printf("媒体库扫描完成，共处理%d个目录", len(dirPaths))
 	return nil
 }
 func isFileTypeSliceEqual(a, b []domain_file_entity.FileTypeNo) bool {
@@ -183,19 +174,29 @@ func isFileTypeSliceEqual(a, b []domain_file_entity.FileTypeNo) bool {
 
 func (uc *FileUsecase) ProcessMusicDirectory(
 	ctx context.Context,
-	folders []*domain_file_entity.LibraryFolderMetadata,
+	libraryFolders []*domain_file_entity.LibraryFolderMetadata,
 	libraryTraversal bool, // 是否遍历传入的媒体库目录
 	libraryStatistics bool, // 是否统计传入的媒体库目录
 	libraryRefactoring bool, // 是否重构传入的媒体库目录（覆盖所有元数据）
 ) error {
 	var finalErr error
 
+	// 更新文件夹统计与状态
+	for _, folderInfo := range libraryFolders {
+		if updateErr := uc.folderRepo.UpdateStats(
+			ctx, folderInfo.ID, folderInfo.FileCount, domain_file_entity.StatusActive,
+		); updateErr != nil {
+			log.Printf("媒体库：%s (ID %s) - 统计更新失败: %v", folderInfo.FolderPath, folderInfo.ID, updateErr)
+			return fmt.Errorf("stats update failed: %w", updateErr)
+		}
+	}
+
 	coverTempPath, _ := uc.tempRepo.GetTempPath(ctx, "cover")
 
-	var folderInfos []struct {
-		folderID        primitive.ObjectID
-		folderPath      string
-		folderFileCount int
+	var libraryFolderNewInfos []struct {
+		libraryFolderID        primitive.ObjectID
+		libraryFolderPath      string
+		libraryFolderFileCount int
 	}
 	var regularAudioPaths []string
 	var cueAudioPaths []string
@@ -221,20 +222,20 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 	addedCuePaths := make(map[string]bool)
 	addedRegularPaths := make(map[string]bool)
 
-	for _, folder := range folders {
-		folderPath := strings.Replace(folder.FolderPath, "/", "\\", -1)
-		if !strings.HasSuffix(folderPath, "\\") {
-			folderPath += "\\"
+	for _, folder := range libraryFolders {
+		libraryFolderPath := strings.Replace(folder.FolderPath, "/", "\\", -1)
+		if !strings.HasSuffix(libraryFolderPath, "\\") {
+			libraryFolderPath += "\\"
 		}
 
 		folderInfo := struct {
-			folderID        primitive.ObjectID
-			folderPath      string
-			folderFileCount int
+			libraryFolderID        primitive.ObjectID
+			libraryFolderPath      string
+			libraryFolderFileCount int
 		}{
-			folderID:        folder.ID,
-			folderPath:      folderPath,
-			folderFileCount: 0,
+			libraryFolderID:        folder.ID,
+			libraryFolderPath:      libraryFolderPath,
+			libraryFolderFileCount: 0,
 		}
 
 		// 并发处理管道
@@ -332,7 +333,7 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 				if ext == ".cue" {
 					res, exists := cueResourcesMap[path]
 					if !exists {
-						log.Printf("未找到cue文件资源: %s", path)
+						log.Printf("未找到cue文件对应的音频资源: %s", path)
 						return nil
 					}
 
@@ -347,8 +348,8 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 					// 仅当开启遍历时才执行文件处理和计数
 					if libraryTraversal {
 						wgFile.Add(1)
-						folderInfo.folderFileCount++
-						go uc.processFile(ctx, res, res.AudioPath, folderPath, coverTempPath, folder.ID, &wgFile, errChan)
+						folderInfo.libraryFolderFileCount++
+						go uc.processFile(ctx, res, res.AudioPath, libraryFolderPath, coverTempPath, folder.ID, &wgFile, errChan)
 					}
 				} else {
 					// 关键修复：路径收集不受libraryTraversal影响
@@ -360,8 +361,8 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 					// 仅当开启遍历时才执行文件处理和计数
 					if libraryTraversal {
 						wgFile.Add(1)
-						folderInfo.folderFileCount++
-						go uc.processFile(ctx, nil, path, folderPath, coverTempPath, folder.ID, &wgFile, errChan)
+						folderInfo.libraryFolderFileCount++
+						go uc.processFile(ctx, nil, path, libraryFolderPath, coverTempPath, folder.ID, &wgFile, errChan)
 					}
 				}
 				return nil
@@ -387,7 +388,7 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 			}
 		}
 
-		folderInfos = append(folderInfos, folderInfo)
+		libraryFolderNewInfos = append(libraryFolderNewInfos, folderInfo)
 	}
 
 	artistIDs, err := uc.artistRepo.GetAllIDs(ctx)
@@ -767,9 +768,11 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 
 	// 更新文件夹统计（仅在执行遍历时更新）
 	if libraryTraversal {
-		for _, folderInfo := range folderInfos {
-			if updateErr := uc.folderRepo.UpdateStats(ctx, folderInfo.folderID, folderInfo.folderFileCount); updateErr != nil {
-				log.Printf("媒体库：%s (ID %s) - 统计更新失败: %v", folderInfo.folderPath, folderInfo.folderID, updateErr)
+		for _, folderInfo := range libraryFolderNewInfos {
+			if updateErr := uc.folderRepo.UpdateStats(
+				ctx, folderInfo.libraryFolderID, folderInfo.libraryFolderFileCount, domain_file_entity.StatusActive,
+			); updateErr != nil {
+				log.Printf("媒体库：%s (ID %s) - 统计更新失败: %v", folderInfo.libraryFolderPath, folderInfo.libraryFolderID, updateErr)
 				return fmt.Errorf("stats update failed: %w", updateErr)
 			}
 		}
@@ -797,7 +800,7 @@ func (uc *FileUsecase) processFile(
 	path string,
 	libraryPath string,
 	coverTempPath string,
-	folderID primitive.ObjectID,
+	libraryFolderID primitive.ObjectID,
 	wg *sync.WaitGroup,
 	errChan chan<- error,
 ) {
@@ -829,7 +832,7 @@ func (uc *FileUsecase) processFile(
 	}
 
 	// 创建基础元数据
-	metadata, err := uc.createMetadataBasicInfo(path, folderID)
+	metadata, err := uc.createMetadataBasicInfo(path, libraryFolderID)
 	if err != nil {
 		log.Printf("元数据创建失败: %s | %v", path, err)
 		errChan <- fmt.Errorf("文件处理失败 %s: %w", path, err)
@@ -870,7 +873,7 @@ func (uc *FileUsecase) processFile(
 
 func (uc *FileUsecase) createMetadataBasicInfo(
 	path string,
-	folderID primitive.ObjectID,
+	libraryFolderID primitive.ObjectID,
 ) (*domain_file_entity.FileMetadata, error) {
 	// 1. 先查询是否已存在该路径文件
 	existingFile, err := uc.fileRepo.FindByPath(context.Background(), path)
@@ -919,7 +922,7 @@ func (uc *FileUsecase) createMetadataBasicInfo(
 
 	return &domain_file_entity.FileMetadata{
 		ID:        primitive.NewObjectID(),
-		FolderID:  folderID,
+		FolderID:  libraryFolderID,
 		FilePath:  normalizedPath,
 		FileType:  fileType,
 		Size:      stat.Size(),

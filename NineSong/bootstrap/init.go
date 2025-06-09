@@ -827,38 +827,44 @@ func (si *Initializer) initFileEntityFolder(ctx context.Context) error {
 		// 音频文件夹示例（包含多文件元数据）
 		{
 			ID:         primitive.NewObjectID(),
+			Name:       "Music",
 			FolderPath: "c:/users/17741/Music",
 			FileTypes: []domain_file_entity.FileTypeNo{
 				1,
 			},
-			FolderMeta: domain_file_entity.FolderMeta{
-				FileCount:   0,
-				LastScanned: time.Now(),
-			},
+			Status:      domain_file_entity.StatusActive,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+			FileCount:   0,
+			LastScanned: time.Now(),
 		},
 		// 视频监控目录（含子文件夹）
 		{
 			ID:         primitive.NewObjectID(),
+			Name:       "Videos",
 			FolderPath: "c:/users/17741/Videos",
 			FileTypes: []domain_file_entity.FileTypeNo{
 				2,
 			},
-			FolderMeta: domain_file_entity.FolderMeta{
-				FileCount:   0,
-				LastScanned: time.Now(),
-			},
+			Status:      domain_file_entity.StatusActive,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+			FileCount:   0,
+			LastScanned: time.Now(),
 		},
 		// 图片资源库（按年份组织）
 		{
 			ID:         primitive.NewObjectID(),
+			Name:       "Pictures",
 			FolderPath: "c:/users/17741/Pictures",
 			FileTypes: []domain_file_entity.FileTypeNo{
 				3,
 			},
-			FolderMeta: domain_file_entity.FolderMeta{
-				FileCount:   0,
-				LastScanned: time.Now(),
-			},
+			Status:      domain_file_entity.StatusActive,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+			FileCount:   0,
+			LastScanned: time.Now(),
 		},
 		//// 文档共享目录（企业级）
 		//{

@@ -615,12 +615,12 @@
 									"urlencoded": [
 										{
 											"key": "email",
-											"value": "test@gmail.com",
+											"value": "admin@gmail.com",
 											"type": "text"
 										},
 										{
 											"key": "password",
-											"value": "test123",
+											"value": "admin123",
 											"type": "text"
 										},
 										{
@@ -738,7 +738,7 @@
 									"urlencoded": [
 										{
 											"key": "name",
-											"value": "666",
+											"value": "admin",
 											"type": "text"
 										}
 									]
@@ -777,7 +777,7 @@
 									"urlencoded": [
 										{
 											"key": "email",
-											"value": "666qqq@gmail.com",
+											"value": "admin@gmail.com",
 											"type": "text"
 										}
 									]
@@ -816,12 +816,12 @@
 									"urlencoded": [
 										{
 											"key": "old_password",
-											"value": "qwer1234",
+											"value": "test123",
 											"type": "text"
 										},
 										{
 											"key": "new_password",
-											"value": "666qwer",
+											"value": "admin123",
 											"type": "text"
 										}
 									]
@@ -1117,7 +1117,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n  \"folder_path\": \"e:/0_Music\",\r\n  \"file_types\": [1] \r\n}",
+									"raw": "{\r\n  \"folder_paths\": [\"e:/0_Music\"],\r\n  \"file_types\": [1],\r\n  \"scan_model\": 0\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1189,11 +1189,209 @@
 			]
 		},
 		{
+			"name": "Folder Entity",
+			"item": [
+				{
+					"name": "Create Library",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"name\": \"0_Music\",\r\n  \"path\": \"e:/0_Music\",\r\n  \"file_types\": [1]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/libraries",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"libraries"
+							]
+						},
+						"description": "Generated from cURL: curl -X PUT -H \"Content-Type: application/json\" -d '{\r\n    \"serverName\": \"XIANGCHENG007\",\r\n    \"version\": \"10.10.6\",\r\n    \"webSocketPortNumber\": 8097,\r\n    \"programDataPath\": \"D:\\\\Jellyfin\\\\Server\",\r\n    \"supportsLibraryMonitor\": true\r\n}' http://localhost:8082/server-info"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Library",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": []
+						},
+						"url": {
+							"raw": "{{baseUrl}}/libraries?id=6846ef660eeb28c257a54228",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"libraries"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "6846ef660eeb28c257a54228"
+								}
+							]
+						},
+						"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Libraries",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": []
+						},
+						"url": {
+							"raw": "{{baseUrl}}/libraries",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"libraries"
+							]
+						},
+						"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+					},
+					"response": []
+				}
+			]
+		},
+		{
 			"name": "Scene",
 			"item": [
 				{
 					"name": "Music",
 					"item": [
+						{
+							"name": "CUE",
+							"item": [
+								{
+									"name": "Cues",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/cues?start=0&end=20",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"cues"
+											],
+											"query": [
+												{
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "20"
+												},
+												{
+													"key": "sort",
+													"value": "play_date",
+													"disabled": true
+												},
+												{
+													"key": "order",
+													"value": "desc",
+													"disabled": true
+												},
+												{
+													"key": "starred",
+													"value": "false",
+													"disabled": true
+												},
+												{
+													"key": "search",
+													"value": "心跳",
+													"disabled": true
+												},
+												{
+													"key": "year",
+													"value": "2015",
+													"disabled": true
+												},
+												{
+													"key": "album_id",
+													"value": "27bb7a2525af6ec7e1d5c4b8",
+													"disabled": true
+												},
+												{
+													"key": "artist_id",
+													"value": "8e8465680c603c710351902e",
+													"disabled": true
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								}
+							]
+						},
 						{
 							"name": "Artists",
 							"item": [
@@ -1213,7 +1411,7 @@
 										"method": "GET",
 										"header": [],
 										"url": {
-											"raw": "{{baseUrl}}/artists?start=0&end=20&sort=song_count&order=desc",
+											"raw": "{{baseUrl}}/artists?start=0&end=20&sort=song_count&order=desc&search=李玉刚",
 											"host": [
 												"{{baseUrl}}"
 											],
@@ -1244,8 +1442,7 @@
 												},
 												{
 													"key": "search",
-													"value": "王",
-													"disabled": true
+													"value": "李玉刚"
 												}
 											]
 										},
@@ -1303,7 +1500,7 @@
 										"method": "GET",
 										"header": [],
 										"url": {
-											"raw": "{{baseUrl}}/albums?start=0&end=20&sort=song_count&order=desc",
+											"raw": "{{baseUrl}}/albums?start=0&end=100&sort=_id&order=desc",
 											"host": [
 												"{{baseUrl}}"
 											],
@@ -1317,11 +1514,11 @@
 												},
 												{
 													"key": "end",
-													"value": "20"
+													"value": "100"
 												},
 												{
 													"key": "sort",
-													"value": "song_count"
+													"value": "_id"
 												},
 												{
 													"key": "order",
@@ -1334,7 +1531,7 @@
 												},
 												{
 													"key": "search",
-													"value": "火力全开",
+													"value": "Chen",
 													"disabled": true
 												},
 												{
@@ -1408,7 +1605,7 @@
 										"method": "GET",
 										"header": [],
 										"url": {
-											"raw": "{{baseUrl}}/medias?start=0&end=20&search=心跳",
+											"raw": "{{baseUrl}}/medias?order=desc&sort=artist&start=90&end=120",
 											"host": [
 												"{{baseUrl}}"
 											],
@@ -1417,22 +1614,13 @@
 											],
 											"query": [
 												{
-													"key": "start",
-													"value": "0"
-												},
-												{
-													"key": "end",
-													"value": "20"
-												},
-												{
 													"key": "sort",
 													"value": "play_date",
 													"disabled": true
 												},
 												{
 													"key": "order",
-													"value": "desc",
-													"disabled": true
+													"value": "desc"
 												},
 												{
 													"key": "starred",
@@ -1440,23 +1628,36 @@
 													"disabled": true
 												},
 												{
-													"key": "search",
-													"value": "心跳"
-												},
-												{
 													"key": "year",
 													"value": "2015",
 													"disabled": true
 												},
 												{
-													"key": "album_id",
-													"value": "27bb7a2525af6ec7e1d5c4b8",
+													"key": "artist_id",
+													"value": "9fb5c8d585ae9c2d2317a14f",
 													"disabled": true
 												},
 												{
-													"key": "artist_id",
-													"value": "8e8465680c603c710351902e",
+													"key": "search",
+													"value": "公轉",
 													"disabled": true
+												},
+												{
+													"key": "album_id",
+													"value": "d83ca60bd8830d6471c1daaf",
+													"disabled": true
+												},
+												{
+													"key": "sort",
+													"value": "artist"
+												},
+												{
+													"key": "start",
+													"value": "90"
+												},
+												{
+													"key": "end",
+													"value": "120"
 												}
 											]
 										},
@@ -2203,7 +2404,7 @@
 											"response": []
 										},
 										{
-											"name": "GetDownloadPath ID",
+											"name": "GetDownload ID",
 											"protocolProfileBehavior": {
 												"disableBodyPruning": true
 											},

@@ -52,6 +52,8 @@ func RouterPrivate(env *bootstrap.Env, timeout time.Duration, db mongo.Database,
 	route_app_config.NewAppServerConfigRouter(timeout, db, protectedRouter)
 	// app library
 	route_app_library.NewAppMediaFileLibraryRouter(timeout, db, protectedRouter)
+	// folder entity
+	scene_audio_db_api_route.NewFolderEntityRouter(timeout, db, protectedRouter)
 	// file entity
 	scene_audio_db_api_route.NewFileEntityRouter(timeout, db, protectedRouter)
 	// scene audio
