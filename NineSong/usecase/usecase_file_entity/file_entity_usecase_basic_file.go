@@ -28,7 +28,7 @@ type FileUsecase struct {
 	fileRepo    domain_file_entity.FileRepository
 	folderRepo  domain_file_entity.FolderRepository
 	detector    domain_file_entity.FileDetector
-	targetTypes map[domain_file_entity.FileTypeNo]struct{}
+	folderType  map[domain_file_entity.FileTypeNo]struct{}
 	targetMutex sync.RWMutex
 	workerPool  chan struct{}
 	scanTimeout time.Duration
@@ -75,7 +75,7 @@ func NewFileUsecase(
 func (uc *FileUsecase) ProcessDirectory(
 	ctx context.Context,
 	dirPaths []string,
-	targetTypes []domain_file_entity.FileTypeNo,
+	folderType int,
 	ScanModel int,
 ) error {
 	if uc.folderRepo == nil {
@@ -87,7 +87,7 @@ func (uc *FileUsecase) ProcessDirectory(
 
 	// 1. 处理多个目录路径
 	for _, dirPath := range dirPaths {
-		folder, err := uc.folderRepo.FindLibrary(ctx, dirPath, targetTypes)
+		folder, err := uc.folderRepo.FindLibrary(ctx, dirPath, folderType)
 		if err != nil {
 			log.Printf("文件夹查询失败: %v", err)
 			return fmt.Errorf("folder query failed: %w", err)
@@ -99,7 +99,7 @@ func (uc *FileUsecase) ProcessDirectory(
 				newFolder := &domain_file_entity.LibraryFolderMetadata{
 					ID:          primitive.NewObjectID(),
 					FolderPath:  dirPath,
-					FileTypes:   targetTypes,
+					FolderType:  folderType,
 					FileCount:   0,
 					LastScanned: time.Now(),
 				}
@@ -124,32 +124,24 @@ func (uc *FileUsecase) ProcessDirectory(
 		libraryFolders = library
 	}
 
-	// 4. 设置目标文件类型
-	uc.targetMutex.Lock()
-	uc.targetTypes = make(map[domain_file_entity.FileTypeNo]struct{})
-	for _, ft := range targetTypes {
-		uc.targetTypes[ft] = struct{}{}
-	}
-	uc.targetMutex.Unlock()
-
-	// 5. 根据扫描模式执行处理
+	// 4. 根据扫描模式执行处理
 	switch ScanModel {
 	case 0: // 扫描新的和有修改的文件
-		if isFileTypeSliceEqual(targetTypes, domain_file_entity.LibraryMusicType) {
+		if folderType == 1 {
 			err := uc.ProcessMusicDirectory(ctx, libraryFolders, true, true, false)
 			if err != nil {
 				return err
 			}
 		}
 	case 1: // 搜索缺失的元数据
-		if isFileTypeSliceEqual(targetTypes, domain_file_entity.LibraryMusicType) {
+		if folderType == 1 {
 			err := uc.ProcessMusicDirectory(ctx, libraryFolders, false, true, true)
 			if err != nil {
 				return err
 			}
 		}
 	case 2: // 覆盖所有元数据
-		if isFileTypeSliceEqual(targetTypes, domain_file_entity.LibraryMusicType) {
+		if folderType == 1 {
 			err := uc.ProcessMusicDirectory(ctx, libraryFolders, true, true, true)
 			if err != nil {
 				return err
@@ -159,17 +151,6 @@ func (uc *FileUsecase) ProcessDirectory(
 
 	log.Printf("媒体库扫描完成，共处理%d个目录", len(dirPaths))
 	return nil
-}
-func isFileTypeSliceEqual(a, b []domain_file_entity.FileTypeNo) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
 func (uc *FileUsecase) ProcessMusicDirectory(
@@ -790,7 +771,7 @@ func (uc *FileUsecase) shouldProcess(path string) bool {
 
 	uc.targetMutex.RLock()
 	defer uc.targetMutex.RUnlock()
-	_, exists := uc.targetTypes[fileType]
+	_, exists := uc.folderType[fileType]
 	return exists
 }
 

@@ -1116,13 +1116,24 @@
 									}
 								],
 								"body": {
-									"mode": "raw",
-									"raw": "{\r\n  \"folder_paths\": [\"e:/0_Music\"],\r\n  \"file_types\": [1],\r\n  \"scan_model\": 0\r\n}",
-									"options": {
-										"raw": {
-											"language": "json"
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "folder_paths",
+											"value": "[\"e:/0_Music\"]",
+											"type": "text"
+										},
+										{
+											"key": "file_types",
+											"value": "1",
+											"type": "text"
+										},
+										{
+											"key": "scan_model",
+											"value": "0",
+											"type": "text"
 										}
-									}
+									]
 								},
 								"url": {
 									"raw": "{{baseUrl}}/scan",
@@ -1192,6 +1203,47 @@
 			"name": "Folder Entity",
 			"item": [
 				{
+					"name": "Browse Folders",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": []
+						},
+						"url": {
+							"raw": "{{baseUrl}}/folders?path=E:\\\\",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"folders"
+							],
+							"query": [
+								{
+									"key": "path",
+									"value": "E:\\\\"
+								}
+							]
+						},
+						"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+					},
+					"response": []
+				},
+				{
 					"name": "Create Library",
 					"request": {
 						"auth": {
@@ -1212,13 +1264,24 @@
 							}
 						],
 						"body": {
-							"mode": "raw",
-							"raw": "{\r\n  \"name\": \"0_Music\",\r\n  \"path\": \"e:/0_Music\",\r\n  \"file_types\": [1]\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "name",
+									"value": "0_Music",
+									"type": "text"
+								},
+								{
+									"key": "path",
+									"value": "e:\\\\0_Music",
+									"type": "text"
+								},
+								{
+									"key": "folder_type",
+									"value": "1",
+									"type": "text"
 								}
-							}
+							]
 						},
 						"url": {
 							"raw": "{{baseUrl}}/libraries",
@@ -1227,6 +1290,57 @@
 							],
 							"path": [
 								"libraries"
+							]
+						},
+						"description": "Generated from cURL: curl -X PUT -H \"Content-Type: application/json\" -d '{\r\n    \"serverName\": \"XIANGCHENG007\",\r\n    \"version\": \"10.10.6\",\r\n    \"webSocketPortNumber\": 8097,\r\n    \"programDataPath\": \"D:\\\\Jellyfin\\\\Server\",\r\n    \"supportsLibraryMonitor\": true\r\n}' http://localhost:8082/server-info"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Library",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": []
+						},
+						"url": {
+							"raw": "{{baseUrl}}/libraries?id=6846ef660eeb28c257a54226&newName=Music&newFolderPath=c:/users/17741/Music",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"libraries"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "6846ef660eeb28c257a54226"
+								},
+								{
+									"key": "newName",
+									"value": "Music"
+								},
+								{
+									"key": "newFolderPath",
+									"value": "c:/users/17741/Music"
+								}
 							]
 						},
 						"description": "Generated from cURL: curl -X PUT -H \"Content-Type: application/json\" -d '{\r\n    \"serverName\": \"XIANGCHENG007\",\r\n    \"version\": \"10.10.6\",\r\n    \"webSocketPortNumber\": 8097,\r\n    \"programDataPath\": \"D:\\\\Jellyfin\\\\Server\",\r\n    \"supportsLibraryMonitor\": true\r\n}' http://localhost:8082/server-info"
@@ -1253,7 +1367,7 @@
 							"urlencoded": []
 						},
 						"url": {
-							"raw": "{{baseUrl}}/libraries?id=6846ef660eeb28c257a54228",
+							"raw": "{{baseUrl}}/libraries?id=6846f94795c82f51a8d36600",
 							"host": [
 								"{{baseUrl}}"
 							],
@@ -1263,7 +1377,7 @@
 							"query": [
 								{
 									"key": "id",
-									"value": "6846ef660eeb28c257a54228"
+									"value": "6846f94795c82f51a8d36600"
 								}
 							]
 						},

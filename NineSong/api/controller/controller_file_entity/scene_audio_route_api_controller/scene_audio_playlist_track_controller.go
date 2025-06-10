@@ -1,6 +1,7 @@
 package scene_audio_route_api_controller
 
 import (
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/controller"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -30,7 +31,7 @@ func (c *PlaylistTrackController) GetPlaylistTracks(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBindQuery(&params); err != nil {
-		ErrorResponse(ctx, http.StatusBadRequest, "PARAMS_ERROR", parseBindingError(err))
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "PARAMS_ERROR", parseBindingError(err))
 		return
 	}
 
@@ -49,11 +50,11 @@ func (c *PlaylistTrackController) GetPlaylistTracks(ctx *gin.Context) {
 	)
 
 	if err != nil {
-		ErrorResponse(ctx, http.StatusInternalServerError, "DATABASE_ERROR", err.Error())
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "DATABASE_ERROR", err.Error())
 		return
 	}
 
-	SuccessResponse(ctx, "mediaFiles", results, len(results))
+	controller.SuccessResponse(ctx, "mediaFiles", results, len(results))
 }
 
 func (c *PlaylistTrackController) GetPlaylistFilterCounts(ctx *gin.Context) {
@@ -65,7 +66,7 @@ func (c *PlaylistTrackController) GetPlaylistFilterCounts(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBindQuery(&params); err != nil {
-		ErrorResponse(ctx, http.StatusBadRequest, "PARAMS_ERROR", parseBindingError(err))
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "PARAMS_ERROR", parseBindingError(err))
 		return
 	}
 
@@ -78,11 +79,11 @@ func (c *PlaylistTrackController) GetPlaylistFilterCounts(ctx *gin.Context) {
 	)
 
 	if err != nil {
-		ErrorResponse(ctx, http.StatusInternalServerError, "DATABASE_ERROR", err.Error())
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "DATABASE_ERROR", err.Error())
 		return
 	}
 
-	SuccessResponse(ctx, "counts", counts, 1)
+	controller.SuccessResponse(ctx, "counts", counts, 1)
 }
 
 func (c *PlaylistTrackController) AddPlaylistTracks(ctx *gin.Context) {
@@ -92,7 +93,7 @@ func (c *PlaylistTrackController) AddPlaylistTracks(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBind(&req); err != nil {
-		ErrorResponse(ctx, http.StatusBadRequest, "PARAMS_ERROR", parseBindingError(err))
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "PARAMS_ERROR", parseBindingError(err))
 		return
 	}
 
@@ -107,11 +108,11 @@ func (c *PlaylistTrackController) AddPlaylistTracks(ctx *gin.Context) {
 		if strings.Contains(err.Error(), "invalid") {
 			statusCode = http.StatusBadRequest
 		}
-		ErrorResponse(ctx, statusCode, "OPERATION_FAILED", err.Error())
+		controller.ErrorResponse(ctx, statusCode, "OPERATION_FAILED", err.Error())
 		return
 	}
 
-	SuccessResponse(ctx, "result", gin.H{"success": success}, 1)
+	controller.SuccessResponse(ctx, "result", gin.H{"success": success}, 1)
 }
 
 func (c *PlaylistTrackController) RemovePlaylistTracks(ctx *gin.Context) {
@@ -121,7 +122,7 @@ func (c *PlaylistTrackController) RemovePlaylistTracks(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBind(&req); err != nil {
-		ErrorResponse(ctx, http.StatusBadRequest, "PARAMS_ERROR", parseBindingError(err))
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "PARAMS_ERROR", parseBindingError(err))
 		return
 	}
 
@@ -136,11 +137,11 @@ func (c *PlaylistTrackController) RemovePlaylistTracks(ctx *gin.Context) {
 		if strings.Contains(err.Error(), "invalid") {
 			statusCode = http.StatusBadRequest
 		}
-		ErrorResponse(ctx, statusCode, "OPERATION_FAILED", err.Error())
+		controller.ErrorResponse(ctx, statusCode, "OPERATION_FAILED", err.Error())
 		return
 	}
 
-	SuccessResponse(ctx, "result", gin.H{"success": success}, 1)
+	controller.SuccessResponse(ctx, "result", gin.H{"success": success}, 1)
 }
 
 func (c *PlaylistTrackController) SortPlaylistTracks(ctx *gin.Context) {
@@ -150,7 +151,7 @@ func (c *PlaylistTrackController) SortPlaylistTracks(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBind(&req); err != nil {
-		ErrorResponse(ctx, http.StatusBadRequest, "PARAMS_ERROR", parseBindingError(err))
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "PARAMS_ERROR", parseBindingError(err))
 		return
 	}
 
@@ -165,11 +166,11 @@ func (c *PlaylistTrackController) SortPlaylistTracks(ctx *gin.Context) {
 		if strings.Contains(err.Error(), "invalid") {
 			statusCode = http.StatusBadRequest
 		}
-		ErrorResponse(ctx, statusCode, "OPERATION_FAILED", err.Error())
+		controller.ErrorResponse(ctx, statusCode, "OPERATION_FAILED", err.Error())
 		return
 	}
 
-	SuccessResponse(ctx, "result", gin.H{"success": success}, 1)
+	controller.SuccessResponse(ctx, "result", gin.H{"success": success}, 1)
 }
 
 func parseBindingError(err error) string {

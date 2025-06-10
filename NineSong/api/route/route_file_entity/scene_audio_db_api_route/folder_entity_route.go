@@ -21,7 +21,9 @@ func NewFolderEntityRouter(timeout time.Duration, db mongo.Database, group *gin.
 	libCtrl := scene_audio_db_api_controller.NewLibraryController(libraryUsecase)
 
 	// 新增路由
+	group.GET("/folders", libCtrl.BrowseFolders)
 	group.POST("/libraries", libCtrl.CreateLibrary)
+	group.PUT("/libraries", libCtrl.UpdateLibrary)
 	group.DELETE("/libraries", libCtrl.DeleteLibrary)
 	group.GET("/libraries", libCtrl.GetLibraries)
 }

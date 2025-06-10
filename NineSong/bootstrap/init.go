@@ -826,12 +826,10 @@ func (si *Initializer) initFileEntityFolder(ctx context.Context) error {
 	initConfigs := []*domain_file_entity.LibraryFolderMetadata{
 		// 音频文件夹示例（包含多文件元数据）
 		{
-			ID:         primitive.NewObjectID(),
-			Name:       "Music",
-			FolderPath: "c:/users/17741/Music",
-			FileTypes: []domain_file_entity.FileTypeNo{
-				1,
-			},
+			ID:          primitive.NewObjectID(),
+			Name:        "Music",
+			FolderPath:  "c:/users/17741/Music",
+			FolderType:  1,
 			Status:      domain_file_entity.StatusActive,
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
@@ -840,12 +838,10 @@ func (si *Initializer) initFileEntityFolder(ctx context.Context) error {
 		},
 		// 视频监控目录（含子文件夹）
 		{
-			ID:         primitive.NewObjectID(),
-			Name:       "Videos",
-			FolderPath: "c:/users/17741/Videos",
-			FileTypes: []domain_file_entity.FileTypeNo{
-				2,
-			},
+			ID:          primitive.NewObjectID(),
+			Name:        "Videos",
+			FolderPath:  "c:/users/17741/Videos",
+			FolderType:  2,
 			Status:      domain_file_entity.StatusActive,
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
@@ -854,12 +850,10 @@ func (si *Initializer) initFileEntityFolder(ctx context.Context) error {
 		},
 		// 图片资源库（按年份组织）
 		{
-			ID:         primitive.NewObjectID(),
-			Name:       "Pictures",
-			FolderPath: "c:/users/17741/Pictures",
-			FileTypes: []domain_file_entity.FileTypeNo{
-				3,
-			},
+			ID:          primitive.NewObjectID(),
+			Name:        "Pictures",
+			FolderPath:  "c:/users/17741/Pictures",
+			FolderType:  3,
 			Status:      domain_file_entity.StatusActive,
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),

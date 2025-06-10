@@ -1,6 +1,7 @@
 package scene_audio_route_api_controller
 
 import (
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/controller"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
 	"github.com/gin-gonic/gin"
@@ -20,10 +21,10 @@ func NewPlaylistController(uc scene_audio_route_interface.PlaylistRepository) *P
 func (c *PlaylistController) GetPlaylists(ctx *gin.Context) {
 	playlists, err := c.PlaylistUsecase.GetPlaylistsAll(ctx.Request.Context())
 	if err != nil {
-		ErrorResponse(ctx, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
 		return
 	}
-	SuccessResponse(ctx, "playlists", playlists, len(playlists))
+	controller.SuccessResponse(ctx, "playlists", playlists, len(playlists))
 }
 
 func (c *PlaylistController) GetPlaylist(ctx *gin.Context) {
@@ -32,16 +33,16 @@ func (c *PlaylistController) GetPlaylist(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBindWith(&req, binding.Form); err != nil {
-		ErrorResponse(ctx, http.StatusBadRequest, "MISSING_PARAMETER", "Missing ID parameter")
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "MISSING_PARAMETER", "Missing ID parameter")
 		return
 	}
 
 	playlist, err := c.PlaylistUsecase.GetPlaylist(ctx.Request.Context(), req.ID)
 	if err != nil {
-		ErrorResponse(ctx, http.StatusNotFound, "NOT_FOUND", "playlist not found")
+		controller.ErrorResponse(ctx, http.StatusNotFound, "NOT_FOUND", "playlist not found")
 		return
 	}
-	SuccessResponse(ctx, "playlist", playlist, 1)
+	controller.SuccessResponse(ctx, "playlist", playlist, 1)
 }
 
 func (c *PlaylistController) CreatePlaylist(ctx *gin.Context) {
@@ -51,7 +52,7 @@ func (c *PlaylistController) CreatePlaylist(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBind(&req); err != nil {
-		ErrorResponse(ctx, http.StatusBadRequest, "BINDING_ERROR", err.Error())
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "BINDING_ERROR", err.Error())
 		return
 	}
 
@@ -62,10 +63,10 @@ func (c *PlaylistController) CreatePlaylist(ctx *gin.Context) {
 
 	created, err := c.PlaylistUsecase.CreatePlaylist(ctx.Request.Context(), newPlaylist)
 	if err != nil {
-		ErrorResponse(ctx, http.StatusInternalServerError, "CREATION_FAILED", err.Error())
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "CREATION_FAILED", err.Error())
 		return
 	}
-	SuccessResponse(ctx, "playlist", created, 1)
+	controller.SuccessResponse(ctx, "playlist", created, 1)
 }
 
 func (c *PlaylistController) UpdatePlaylist(ctx *gin.Context) {
@@ -76,7 +77,7 @@ func (c *PlaylistController) UpdatePlaylist(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBindWith(&req, binding.Form); err != nil {
-		ErrorResponse(ctx, http.StatusBadRequest, "BINDING_ERROR", err.Error())
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "BINDING_ERROR", err.Error())
 		return
 	}
 
@@ -88,16 +89,16 @@ func (c *PlaylistController) UpdatePlaylist(ctx *gin.Context) {
 	updatedPlaylist, err := c.PlaylistUsecase.UpdatePlaylistInfo(ctx.Request.Context(), req.ID, updateData)
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
-			ErrorResponse(ctx, http.StatusConflict, "NAME_CONFLICT", "播放列表名称已存在")
+			controller.ErrorResponse(ctx, http.StatusConflict, "NAME_CONFLICT", "播放列表名称已存在")
 		} else if strings.Contains(err.Error(), "not found") {
-			ErrorResponse(ctx, http.StatusNotFound, "NOT_FOUND", "指定播放列表不存在")
+			controller.ErrorResponse(ctx, http.StatusNotFound, "NOT_FOUND", "指定播放列表不存在")
 		} else {
-			ErrorResponse(ctx, http.StatusInternalServerError, "UPDATE_FAILED", err.Error())
+			controller.ErrorResponse(ctx, http.StatusInternalServerError, "UPDATE_FAILED", err.Error())
 		}
 		return
 	}
 
-	SuccessResponse(ctx, "playlist", updatedPlaylist, 1)
+	controller.SuccessResponse(ctx, "playlist", updatedPlaylist, 1)
 }
 
 func (c *PlaylistController) DeletePlaylist(ctx *gin.Context) {
@@ -106,14 +107,14 @@ func (c *PlaylistController) DeletePlaylist(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBind(&req); err != nil {
-		ErrorResponse(ctx, http.StatusBadRequest, "MISSING_PARAMETER", "Missing ID parameter")
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "MISSING_PARAMETER", "Missing ID parameter")
 		return
 	}
 
 	success, err := c.PlaylistUsecase.DeletePlaylist(ctx.Request.Context(), req.ID)
 	if err != nil || !success {
-		ErrorResponse(ctx, http.StatusInternalServerError, "DELETION_FAILED", "Delete failed")
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "DELETION_FAILED", "Delete failed")
 		return
 	}
-	SuccessResponse(ctx, "result", gin.H{"message": "Deleted successfully"}, 1)
+	controller.SuccessResponse(ctx, "result", gin.H{"message": "Deleted successfully"}, 1)
 }

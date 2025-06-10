@@ -1,6 +1,7 @@
 package scene_audio_route_api_controller
 
 import (
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/controller"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -38,7 +39,7 @@ func (c *AlbumController) GetAlbumItems(ctx *gin.Context) {
 	}
 
 	if params.Start == "" || params.End == "" {
-		ErrorResponse(ctx, http.StatusBadRequest, "MISSING_PARAMS", "必须提供start和end参数")
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "MISSING_PARAMS", "必须提供start和end参数")
 		return
 	}
 
@@ -56,11 +57,11 @@ func (c *AlbumController) GetAlbumItems(ctx *gin.Context) {
 	)
 
 	if err != nil {
-		ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
 		return
 	}
 
-	SuccessResponse(ctx, "albums", albums, len(albums))
+	controller.SuccessResponse(ctx, "albums", albums, len(albums))
 }
 
 func (c *AlbumController) GetAlbumFilterCounts(ctx *gin.Context) {
@@ -88,9 +89,9 @@ func (c *AlbumController) GetAlbumFilterCounts(ctx *gin.Context) {
 	)
 
 	if err != nil {
-		ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
 		return
 	}
 
-	SuccessResponse(ctx, "albums", counts, 1)
+	controller.SuccessResponse(ctx, "albums", counts, 1)
 }

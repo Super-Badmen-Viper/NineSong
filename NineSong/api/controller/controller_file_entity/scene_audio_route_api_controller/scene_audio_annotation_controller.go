@@ -1,6 +1,7 @@
 package scene_audio_route_api_controller
 
 import (
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/controller"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -27,63 +28,63 @@ type UpdateRatingRequest struct {
 func (c *AnnotationController) UpdateStarred(ctx *gin.Context) {
 	var req BaseAnnotationRequest
 	if err := ctx.ShouldBind(&req); err != nil {
-		ErrorResponse(ctx, http.StatusBadRequest, "INVALID_PARAMS", err.Error())
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "INVALID_PARAMS", err.Error())
 		return
 	}
 
 	result, err := c.usecase.UpdateStarred(ctx, req.ItemID, req.ItemType)
 	if err != nil {
-		ErrorResponse(ctx, http.StatusInternalServerError, "UPDATE_FAILED", err.Error())
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "UPDATE_FAILED", err.Error())
 		return
 	}
 
-	SuccessResponse(ctx, "result", result, 1)
+	controller.SuccessResponse(ctx, "result", result, 1)
 }
 
 func (c *AnnotationController) UpdateUnStarred(ctx *gin.Context) {
 	var req BaseAnnotationRequest
 	if err := ctx.ShouldBind(&req); err != nil {
-		ErrorResponse(ctx, http.StatusBadRequest, "INVALID_PARAMS", err.Error())
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "INVALID_PARAMS", err.Error())
 		return
 	}
 
 	result, err := c.usecase.UpdateUnStarred(ctx, req.ItemID, req.ItemType)
 	if err != nil {
-		ErrorResponse(ctx, http.StatusInternalServerError, "UPDATE_FAILED", err.Error())
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "UPDATE_FAILED", err.Error())
 		return
 	}
 
-	SuccessResponse(ctx, "result", result, 1)
+	controller.SuccessResponse(ctx, "result", result, 1)
 }
 
 func (c *AnnotationController) UpdateRating(ctx *gin.Context) {
 	var req UpdateRatingRequest
 	if err := ctx.ShouldBind(&req); err != nil {
-		ErrorResponse(ctx, http.StatusBadRequest, "INVALID_PARAMS", err.Error())
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "INVALID_PARAMS", err.Error())
 		return
 	}
 
 	result, err := c.usecase.UpdateRating(ctx, req.ItemID, req.ItemType, req.Rating)
 	if err != nil {
-		ErrorResponse(ctx, http.StatusInternalServerError, "UPDATE_FAILED", err.Error())
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "UPDATE_FAILED", err.Error())
 		return
 	}
 
-	SuccessResponse(ctx, "result", result, 1)
+	controller.SuccessResponse(ctx, "result", result, 1)
 }
 
 func (c *AnnotationController) UpdateScrobble(ctx *gin.Context) {
 	var req BaseAnnotationRequest
 	if err := ctx.ShouldBind(&req); err != nil {
-		ErrorResponse(ctx, http.StatusBadRequest, "INVALID_PARAMS", err.Error())
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "INVALID_PARAMS", err.Error())
 		return
 	}
 
 	result, err := c.usecase.UpdateScrobble(ctx, req.ItemID, req.ItemType)
 	if err != nil {
-		ErrorResponse(ctx, http.StatusInternalServerError, "UPDATE_FAILED", err.Error())
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "UPDATE_FAILED", err.Error())
 		return
 	}
 
-	SuccessResponse(ctx, "result", result, 1)
+	controller.SuccessResponse(ctx, "result", result, 1)
 }

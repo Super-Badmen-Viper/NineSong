@@ -1,4 +1,4 @@
-package scene_audio_route_api_controller
+package controller
 
 import "github.com/gin-gonic/gin"
 

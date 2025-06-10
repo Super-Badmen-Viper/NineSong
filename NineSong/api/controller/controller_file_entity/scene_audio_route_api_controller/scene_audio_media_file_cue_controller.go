@@ -1,6 +1,7 @@
 package scene_audio_route_api_controller
 
 import (
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/controller"
 	"net/http"
 
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
@@ -52,11 +53,11 @@ func (c *MediaFileCueController) GetMediaFileCues(ctx *gin.Context) {
 	)
 
 	if err != nil {
-		ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
 		return
 	}
 
-	SuccessResponse(ctx, "cueFiles", cueFiles, len(cueFiles))
+	controller.SuccessResponse(ctx, "cueFiles", cueFiles, len(cueFiles))
 }
 
 func (c *MediaFileCueController) GetMediaCueFilterCounts(ctx *gin.Context) {
@@ -84,9 +85,9 @@ func (c *MediaFileCueController) GetMediaCueFilterCounts(ctx *gin.Context) {
 	)
 
 	if err != nil {
-		ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
 		return
 	}
 
-	SuccessResponse(ctx, "cueFiles", counts, 1)
+	controller.SuccessResponse(ctx, "cueFiles", counts, 1)
 }

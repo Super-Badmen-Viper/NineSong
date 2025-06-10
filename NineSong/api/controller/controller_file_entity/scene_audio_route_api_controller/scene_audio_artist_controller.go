@@ -1,6 +1,7 @@
 package scene_audio_route_api_controller
 
 import (
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/controller"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -42,11 +43,11 @@ func (c *ArtistController) GetArtists(ctx *gin.Context) {
 	)
 
 	if err != nil {
-		ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
 		return
 	}
 
-	SuccessResponse(ctx, "artists", artists, len(artists))
+	controller.SuccessResponse(ctx, "artists", artists, len(artists))
 }
 
 func (c *ArtistController) GetArtistFilterCounts(ctx *gin.Context) {
@@ -65,9 +66,9 @@ func (c *ArtistController) GetArtistFilterCounts(ctx *gin.Context) {
 	)
 
 	if err != nil {
-		ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
 		return
 	}
 
-	SuccessResponse(ctx, "artists", counts, 1)
+	controller.SuccessResponse(ctx, "artists", counts, 1)
 }
