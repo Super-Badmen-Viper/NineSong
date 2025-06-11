@@ -1119,12 +1119,12 @@
 									"mode": "urlencoded",
 									"urlencoded": [
 										{
-											"key": "folder_paths",
-											"value": "[\"e:/0_Music\"]",
+											"key": "folder_path",
+											"value": "e:/0_Music",
 											"type": "text"
 										},
 										{
-											"key": "file_types",
+											"key": "folder_type",
 											"value": "1",
 											"type": "text"
 										},
@@ -1145,6 +1145,41 @@
 									]
 								},
 								"description": "Generated from cURL: curl -X PUT -H \"Content-Type: application/json\" -d '{\r\n    \"serverName\": \"XIANGCHENG007\",\r\n    \"version\": \"10.10.6\",\r\n    \"webSocketPortNumber\": 8097,\r\n    \"programDataPath\": \"D:\\\\Jellyfin\\\\Server\",\r\n    \"supportsLibraryMonitor\": true\r\n}' http://localhost:8082/server-info"
+							},
+							"response": []
+						},
+						{
+							"name": "Get Progress",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{accessToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": []
+								},
+								"url": {
+									"raw": "{{baseUrl}}/scan_progress",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"scan_progress"
+									]
+								},
+								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 							},
 							"response": []
 						}

@@ -2,11 +2,14 @@ package scene_audio_db_api_controller
 
 import (
 	"context"
+	"fmt"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/controller"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/usecase/usecase_file_entity"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	"os"
+	"time"
 )
 
 type FileController struct {
@@ -19,9 +22,9 @@ func NewFileController(uc *usecase_file_entity.FileUsecase) *FileController {
 
 func (ctrl *FileController) ScanDirectory(c *gin.Context) {
 	var req struct {
-		FolderPaths []string `form:"folder_paths" binding:"required"` // 修改为数组支持多个路径
-		FolderType  int      `form:"folder_type" binding:"required"`
-		ScanModel   int      `form:"scan_model" binding:"oneof=0 1 2"`
+		FolderPath string `form:"folder_path"`
+		FolderType int    `form:"folder_type" binding:"required"`
+		ScanModel  int    `form:"scan_model" binding:"oneof=0 1 2"`
 	}
 
 	if err := c.ShouldBind(&req); err != nil {
@@ -29,19 +32,47 @@ func (ctrl *FileController) ScanDirectory(c *gin.Context) {
 		return
 	}
 
-	// 根据 ScanModel 检查 FolderPaths 是否为空
-	if req.ScanModel == 0 || req.ScanModel == 2 {
-		if len(req.FolderPaths) == 0 { // 判断数组是否为空[1,4](@ref)
-			controller.ErrorResponse(c, http.StatusBadRequest, "INVALID_REQUEST", "扫描模式为新建或覆盖时，必须提供目录路径")
+	if req.FolderPath != "" {
+		if _, err := os.Stat(req.FolderPath); err != nil {
+			if os.IsNotExist(err) {
+				controller.ErrorResponse(c, http.StatusBadRequest, "DIRECTORY_NOT_FOUND",
+					fmt.Sprintf("指定的目录不存在: %s", req.FolderPath))
+				return
+			}
+			controller.ErrorResponse(c, http.StatusInternalServerError, "DIRECTORY_ACCESS_ERROR",
+				fmt.Sprintf("无法访问目录: %s (%v)", req.FolderPath, err))
+			return
+		}
+
+		fileInfo, err := os.Stat(req.FolderPath)
+		if err != nil {
+			controller.ErrorResponse(c, http.StatusInternalServerError, "DIRECTORY_STAT_ERROR",
+				fmt.Sprintf("无法获取目录信息: %s (%v)", req.FolderPath, err))
+			return
+		}
+		if !fileInfo.IsDir() {
+			controller.ErrorResponse(c, http.StatusBadRequest, "NOT_A_DIRECTORY",
+				fmt.Sprintf("路径不是目录: %s", req.FolderPath))
 			return
 		}
 	}
-	// 当 ScanModel 为 1（修复模式）时，允许 FolderPaths 为空
+
+	if req.ScanModel == 0 {
+		if len(req.FolderPath) == 0 {
+			controller.ErrorResponse(c, http.StatusBadRequest, "INVALID_REQUEST", "扫描模式为新建时，必须提供目录路径")
+			return
+		}
+	}
+
+	var dirPaths []string
+	if req.FolderPath != "" {
+		dirPaths = append(dirPaths, req.FolderPath)
+	}
 
 	bgCtx := context.Background()
 	go func() {
-		if err := ctrl.usecase.ProcessDirectory(bgCtx, req.FolderPaths, req.FolderType, req.ScanModel); err != nil {
-			log.Printf("扫描失败 %s: %v", req.FolderPaths, err)
+		if err := ctrl.usecase.ProcessDirectory(bgCtx, dirPaths, req.FolderType, req.ScanModel); err != nil {
+			log.Printf("扫描失败 %s: %v", req.FolderPath, err)
 		}
 	}()
 
@@ -53,5 +84,14 @@ func (ctrl *FileController) ScanDirectory(c *gin.Context) {
 			"serverVersion": controller.ServerVersion,
 			"message":       "后台处理已启动",
 		},
+	})
+}
+
+func (ctrl *FileController) GetScanProgress(c *gin.Context) {
+	progress, startTime := ctrl.usecase.GetScanProgress()
+
+	c.JSON(http.StatusOK, gin.H{
+		"progress":   progress,
+		"start_time": startTime.Format(time.RFC3339),
 	})
 }

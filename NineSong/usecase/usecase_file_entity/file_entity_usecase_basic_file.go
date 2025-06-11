@@ -33,6 +33,18 @@ type FileUsecase struct {
 	workerPool  chan struct{}
 	scanTimeout time.Duration
 
+	// 进度跟踪相关字段
+	scanProgress     float32
+	scanTotal        int
+	scanProcessed    int
+	scanMutex        sync.RWMutex
+	lastScanStart    time.Time
+	scanStageWeights struct {
+		traversal   float32
+		statistics  float32
+		refactoring float32
+	}
+
 	audioExtractor scene_audio_db_usecase.AudioMetadataExtractorTaglib
 	artistRepo     scene_audio_db_interface.ArtistRepository
 	albumRepo      scene_audio_db_interface.AlbumRepository
@@ -72,6 +84,12 @@ func NewFileUsecase(
 	}
 }
 
+func (uc *FileUsecase) GetScanProgress() (float32, time.Time) {
+	uc.scanMutex.RLock()
+	defer uc.scanMutex.RUnlock()
+	return uc.scanProgress, uc.lastScanStart
+}
+
 func (uc *FileUsecase) ProcessDirectory(
 	ctx context.Context,
 	dirPaths []string,
@@ -83,10 +101,54 @@ func (uc *FileUsecase) ProcessDirectory(
 		return fmt.Errorf("系统未正确初始化")
 	}
 
+	// 重置进度计数器
+	uc.scanMutex.Lock()
+	uc.scanTotal = 0
+	uc.scanProcessed = 0
+	uc.scanProgress = 0
+	uc.lastScanStart = time.Now()
+	// 设置各阶段权重（根据实际耗时比例）
+	switch ScanModel {
+	case 0:
+		uc.scanStageWeights = struct {
+			traversal   float32
+			statistics  float32
+			refactoring float32
+		}{
+			traversal:   0.9, // 文件处理阶段权重
+			statistics:  0.1, // 统计阶段权重
+			refactoring: 0,   // 重构阶段权重
+		}
+	case 1:
+		uc.scanStageWeights = struct {
+			traversal   float32
+			statistics  float32
+			refactoring float32
+		}{
+			traversal:   0.9,  // 文件处理阶段权重
+			statistics:  0.05, // 统计阶段权重
+			refactoring: 0.05, // 重构阶段权重
+		}
+	case 2:
+		uc.scanStageWeights = struct {
+			traversal   float32
+			statistics  float32
+			refactoring float32
+		}{
+			traversal:   0.6, // 文件处理阶段权重
+			statistics:  0.1, // 统计阶段权重
+			refactoring: 0.3, // 重构阶段权重
+		}
+	}
+	uc.scanMutex.Unlock()
+
 	var libraryFolders []*domain_file_entity.LibraryFolderMetadata
 
 	// 1. 处理多个目录路径
 	for _, dirPath := range dirPaths {
+		if len(dirPath) == 0 {
+			continue
+		}
 		folder, err := uc.folderRepo.FindLibrary(ctx, dirPath, folderType)
 		if err != nil {
 			log.Printf("文件夹查询失败: %v", err)
@@ -124,6 +186,19 @@ func (uc *FileUsecase) ProcessDirectory(
 		libraryFolders = library
 	}
 
+	if libraryFolders == nil {
+		libraryFolders = make([]*domain_file_entity.LibraryFolderMetadata, 0)
+		if ScanModel == 2 {
+			// 默认扫描所有媒体库目录，当传入路径为空且ScanModel为2时
+			library, err := uc.folderRepo.GetAllByType(ctx, 1)
+			if err != nil {
+				log.Printf("文件夹查询失败: %v", err)
+				return fmt.Errorf("folder query failed: %w", err)
+			}
+			libraryFolders = library
+		}
+	}
+
 	// 4. 根据扫描模式执行处理
 	switch ScanModel {
 	case 0: // 扫描新的和有修改的文件
@@ -135,7 +210,7 @@ func (uc *FileUsecase) ProcessDirectory(
 		}
 	case 1: // 搜索缺失的元数据
 		if folderType == 1 {
-			err := uc.ProcessMusicDirectory(ctx, libraryFolders, false, true, true)
+			err := uc.ProcessMusicDirectory(ctx, libraryFolders, true, false, false)
 			if err != nil {
 				return err
 			}
@@ -150,6 +225,11 @@ func (uc *FileUsecase) ProcessDirectory(
 	}
 
 	log.Printf("媒体库扫描完成，共处理%d个目录", len(dirPaths))
+
+	uc.scanMutex.Lock()
+	uc.scanProgress = 1 // 文件处理已完成
+	uc.scanMutex.Unlock()
+
 	return nil
 }
 
@@ -182,18 +262,20 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 	var regularAudioPaths []string
 	var cueAudioPaths []string
 
-	// 扫描前重置数据库统计字段
-	_, err := uc.albumRepo.ResetALLField(ctx)
-	if err != nil {
-		return err
-	}
-	_, err = uc.albumRepo.ResetField(ctx, "AllArtistIDs")
-	if err != nil {
-		return err
-	}
-	_, err = uc.artistRepo.ResetALLField(ctx)
-	if err != nil {
-		return err
+	if libraryStatistics {
+		// 扫描前重置数据库统计字段
+		_, err := uc.albumRepo.ResetALLField(ctx)
+		if err != nil {
+			return err
+		}
+		_, err = uc.albumRepo.ResetField(ctx, "AllArtistIDs")
+		if err != nil {
+			return err
+		}
+		_, err = uc.artistRepo.ResetALLField(ctx)
+		if err != nil {
+			return err
+		}
 	}
 
 	// 路径收集容器
@@ -228,8 +310,26 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 		// 存储cue文件及其资源
 		cueResourcesMap := make(map[string]*scene_audio_db_models.CueConfig)
 
+		// 遍历时统计总文件数
+		for _, folderCount := range libraryFolders {
+			total := 0
+			err := filepath.Walk(folderCount.FolderPath, func(path string, info os.FileInfo, err error) error {
+				if !info.IsDir() && uc.shouldProcess(path, 1) {
+					total++
+				}
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+
+			uc.scanMutex.Lock()
+			uc.scanTotal += total
+			uc.scanMutex.Unlock()
+		}
+
 		// 第一次遍历：收集.cue文件和关联资源
-		err = filepath.Walk(folder.FolderPath, func(path string, info os.FileInfo, err error) error {
+		err := filepath.Walk(folder.FolderPath, func(path string, info os.FileInfo, err error) error {
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
@@ -299,7 +399,7 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 			case <-ctx.Done():
 				return ctx.Err()
 			default:
-				if info.IsDir() || !uc.shouldProcess(path) {
+				if info.IsDir() || !uc.shouldProcess(path, 1) {
 					return nil
 				}
 
@@ -418,6 +518,15 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 				countType:   "合作光盘",
 			},
 		}
+
+		// 更新当前阶段为统计阶段
+		uc.scanMutex.Lock()
+		uc.scanProgress = uc.scanStageWeights.traversal // 文件处理已完成
+		uc.scanMutex.Unlock()
+
+		totalArtists := len(artistIDs)
+		current := 0
+
 		for _, artistID := range artistIDs {
 			wgUpdate.Add(1)
 			go func(id primitive.ObjectID) {
@@ -440,6 +549,14 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 						log.Printf("艺术家%s%s计数更新失败: %v", strID, counter.countType, err)
 					}
 				}
+
+				// 更新统计阶段进度
+				current++
+				uc.scanMutex.Lock()
+				traversalProgress := uc.scanStageWeights.traversal
+				statisticsProgress := uc.scanStageWeights.statistics * float32(current) / float32(totalArtists)
+				uc.scanProgress = traversalProgress + statisticsProgress
+				uc.scanMutex.Unlock()
 			}(artistID)
 		}
 		wgUpdate.Wait()
@@ -447,6 +564,14 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 
 	// 区域3: 媒体库重构（仅当libraryRefactoring为true时执行）
 	if libraryRefactoring {
+		// 更新当前阶段为重构阶段
+		uc.scanMutex.Lock()
+		uc.scanProgress = uc.scanStageWeights.traversal + uc.scanStageWeights.statistics
+		uc.scanMutex.Unlock()
+
+		totalArtists := len(artistIDs)
+		current := 0
+
 		// 定义统一的结构体类型
 		type artistStats struct {
 			mediaCount         int
@@ -506,6 +631,15 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 					deleteArtistCounts[artistID]++
 				}
 			}
+
+			// 更新重构阶段进度
+			current++
+			uc.scanMutex.Lock()
+			progress := uc.scanStageWeights.traversal +
+				uc.scanStageWeights.statistics +
+				uc.scanStageWeights.refactoring*float32(current)/float32(totalArtists)
+			uc.scanProgress = progress
+			uc.scanMutex.Unlock()
 		}
 
 		// 2. 处理常规音频的专辑统计
@@ -616,9 +750,19 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 					deleteArtistCounts[artistID]++
 				}
 			}
+
+			// 更新重构阶段进度
+			current++
+			uc.scanMutex.Lock()
+			progress := uc.scanStageWeights.traversal +
+				uc.scanStageWeights.statistics +
+				uc.scanStageWeights.refactoring*float32(current)/float32(totalArtists)
+			uc.scanProgress = progress
+			uc.scanMutex.Unlock()
 		}
 
 		// 5. 清除无效的艺术家（删除统计：【单曲/合作单曲+CD/合作CD都为0+专辑/合作专辑都为0】的艺术家）
+		artistIDStrCount := 0
 		for _, artistID := range artistIDs {
 			artistIDStr := artistID.Hex()
 			if deleteCount, exists := deleteArtistCounts[artistIDStr]; exists && deleteCount >= 6 {
@@ -626,11 +770,21 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 				if err != nil {
 					log.Printf("艺术家删除失败 (ID %s): %v", artistIDStr, err)
 				} else {
-					log.Printf("已删除无效艺术家 (ID %s)", artistIDStr)
+					artistIDStrCount++
 				}
 				delete(invalidArtistCounts, artistIDStr)
 			}
+
+			// 更新重构阶段进度
+			current++
+			uc.scanMutex.Lock()
+			progress := uc.scanStageWeights.traversal +
+				uc.scanStageWeights.statistics +
+				uc.scanStageWeights.refactoring*float32(current)/float32(totalArtists)
+			uc.scanProgress = progress
+			uc.scanMutex.Unlock()
 		}
+		log.Printf("已删除 %d 个无效艺术家", artistIDStrCount)
 
 		// 6. 清除无效的常规音频
 		delResult, invalidMediaArtist, err := uc.mediaRepo.DeleteAllInvalid(ctx, regularAudioPaths)
@@ -762,17 +916,25 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 	return finalErr
 }
 
-func (uc *FileUsecase) shouldProcess(path string) bool {
+func (uc *FileUsecase) shouldProcess(path string, folderType int) bool {
 	fileType, err := uc.detector.DetectMediaType(path)
 	if err != nil {
 		log.Printf("文件类型检测失败: %v", err)
 		return false
 	}
-
-	uc.targetMutex.RLock()
-	defer uc.targetMutex.RUnlock()
-	_, exists := uc.folderType[fileType]
-	return exists
+	if folderType == 1 && fileType == domain_file_entity.Audio {
+		return true
+	}
+	if folderType == 2 && fileType == domain_file_entity.Video {
+		return true
+	}
+	if folderType == 3 && fileType == domain_file_entity.Image {
+		return true
+	}
+	if folderType == 4 && fileType == domain_file_entity.Document {
+		return true
+	}
+	return false
 }
 
 func (uc *FileUsecase) processFile(
@@ -785,6 +947,18 @@ func (uc *FileUsecase) processFile(
 	wg *sync.WaitGroup,
 	errChan chan<- error,
 ) {
+	defer func() {
+		uc.scanMutex.Lock()
+		uc.scanProcessed++
+		if uc.scanTotal > 0 {
+			// 只计算文件处理阶段的进度
+			traversalProgress := uc.scanStageWeights.traversal *
+				float32(uc.scanProcessed) / float32(uc.scanTotal)
+			uc.scanProgress = traversalProgress
+		}
+		uc.scanMutex.Unlock()
+	}()
+
 	defer wg.Done()
 
 	// 上下文取消检查

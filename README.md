@@ -1,5 +1,9 @@
 # NineSong Server
-NineSong aims to provide cloud native and AI extended solutions for data sharing in various ToB and ToC businesses, used to manage various file metadata and metadata derived business attributes, and applied to various application scenarios, including but not limited to music, movies, notes, documents, photo albums, e-book readers, etc. Its goal is to become a representative work in the Github cloud native field.
+NineSong aims to provide cloud native and AI extended solutions for data sharing in various ToB and ToC businesses,
+for managing various file metadata (local files, cloud storage files) and the business attributes derived from these metadata, 
+and applied to various application scenarios, 
+including but not limited to music, movies, notes, documents, photo albums, e-book readers, etc. 
+Its goal is to become a representative work in the Github cloud native field.
 
 A Go (Golang) Backend Clean Architecture project with Gin, MongoDB, JWT Authentication Middleware, Test, and Docker.
 

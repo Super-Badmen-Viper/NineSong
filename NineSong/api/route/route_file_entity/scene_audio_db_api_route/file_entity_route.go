@@ -43,6 +43,7 @@ func NewFileEntityRouter(timeout time.Duration, db mongo.Database, group *gin.Ro
 	// 路由配置
 	group.Use(requestLogger())
 	group.POST("/scan", ctrl.ScanDirectory)
+	group.GET("/scan_progress", ctrl.GetScanProgress)
 }
 
 func requestLogger() gin.HandlerFunc {
