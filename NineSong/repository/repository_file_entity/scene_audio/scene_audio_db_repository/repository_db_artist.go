@@ -79,6 +79,25 @@ func (r *artistRepository) DeleteByName(ctx context.Context, name string) error 
 	return nil
 }
 
+func (r *artistRepository) DeleteAll(ctx context.Context) (int64, error) {
+	coll := r.db.Collection(r.collection)
+
+	// 删除集合中的所有文档
+	result, err := coll.DeleteMany(ctx, bson.M{})
+	if err != nil {
+		return 0, fmt.Errorf("删除所有艺术家失败: %w", err)
+	}
+
+	// 记录操作日志
+	if result > 0 {
+		log.Printf("已删除全部 %d 个艺术家记录", result)
+	} else {
+		log.Printf("集合中无艺术家记录可删除")
+	}
+
+	return result, nil
+}
+
 func (r *artistRepository) GetByID(ctx context.Context, id primitive.ObjectID) (*scene_audio_db_models.ArtistMetadata, error) {
 	coll := r.db.Collection(r.collection)
 	result := coll.FindOne(ctx, bson.M{"_id": id})

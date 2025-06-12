@@ -21,10 +21,12 @@ type MediaFileRepository interface {
 		ArtistID primitive.ObjectID
 		Count    int64
 	}, error)
+	DeleteByFolder(ctx context.Context, folderPath string) (int64, error)
 
 	// 查询
 	GetByID(ctx context.Context, id primitive.ObjectID) (*scene_audio_db_models.MediaFileMetadata, error)
 	GetByPath(ctx context.Context, path string) (*scene_audio_db_models.MediaFileMetadata, error)
+	GetByFolder(ctx context.Context, folderPath string) ([]string, error)
 
 	MediaCountByArtist(ctx context.Context, artistID string) (int64, error)
 	GuestMediaCountByArtist(ctx context.Context, artistID string) (int64, error)

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
@@ -206,6 +208,33 @@ func (r *mediaFileCueRepository) DeleteAllInvalid(
 	return totalDeleted, deletedArtists, nil
 }
 
+func (r *mediaFileCueRepository) DeleteByFolder(ctx context.Context, folderPath string) (int64, error) {
+	coll := r.db.Collection(r.collection)
+
+	// 标准化路径格式（确保以反斜杠结尾）
+	normalizedFolderPath := strings.Replace(folderPath, "/", "\\", -1)
+	if !strings.HasSuffix(normalizedFolderPath, "\\") {
+		normalizedFolderPath += "\\"
+	}
+
+	// 构建精确匹配library_path的正则表达式
+	regexPattern := regexp.QuoteMeta(normalizedFolderPath)
+	filter := bson.M{
+		"library_path": bson.M{
+			"$regex":   "^" + regexPattern,
+			"$options": "i", // 不区分大小写
+		},
+	}
+
+	// 执行删除操作
+	result, err := coll.DeleteMany(ctx, filter)
+	if err != nil {
+		return 0, fmt.Errorf("删除文件夹内容失败: %w", err)
+	}
+
+	return result, nil
+}
+
 // GetByID 根据ID获取CUE文件 (保持原样)
 func (r *mediaFileCueRepository) GetByID(ctx context.Context, id primitive.ObjectID) (*scene_audio_db_models.MediaFileCueMetadata, error) {
 	coll := r.db.Collection(r.collection)
@@ -234,6 +263,49 @@ func (r *mediaFileCueRepository) GetByPath(ctx context.Context, path string) (*s
 		return nil, fmt.Errorf("根据路径获取CUE文件失败: %w", err)
 	}
 	return &file, nil
+}
+
+func (r *mediaFileCueRepository) GetByFolder(ctx context.Context, folderPath string) ([]string, error) {
+	coll := r.db.Collection(r.collection)
+
+	// 标准化路径格式（确保以反斜杠结尾）
+	normalizedFolderPath := strings.Replace(folderPath, "/", "\\", -1)
+	if !strings.HasSuffix(normalizedFolderPath, "\\") {
+		normalizedFolderPath += "\\"
+	}
+
+	// 构建精确匹配library_path的正则表达式
+	regexPattern := regexp.QuoteMeta(normalizedFolderPath)
+	filter := bson.M{
+		"library_path": bson.M{
+			"$regex":   "^" + regexPattern,
+			"$options": "i", // 不区分大小写
+		},
+	}
+
+	// 只返回path字段
+	opts := options.Find().SetProjection(bson.M{"path": 1})
+
+	cursor, err := coll.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, fmt.Errorf("查询文件夹内容失败: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	// 提取路径结果
+	var results []string
+	for cursor.Next(ctx) {
+		var item struct {
+			Path string `bson:"path"`
+		}
+		if err := cursor.Decode(&item); err != nil {
+			log.Printf("解码路径失败: %v", err)
+			continue
+		}
+		results = append(results, item.Path)
+	}
+
+	return results, nil
 }
 
 // UpdateByID 根据ID更新CUE文件 (使用原子操作)

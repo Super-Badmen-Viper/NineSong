@@ -17,6 +17,7 @@ type AlbumRepository interface {
 	// 删除
 	DeleteByID(ctx context.Context, id primitive.ObjectID) error
 	DeleteByName(ctx context.Context, name string) error
+	DeleteAll(ctx context.Context) (int64, error)
 
 	// 查询
 	GetByID(ctx context.Context, id primitive.ObjectID) (*scene_audio_db_models.AlbumMetadata, error)

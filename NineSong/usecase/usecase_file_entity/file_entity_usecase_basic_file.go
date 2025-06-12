@@ -34,6 +34,9 @@ type FileUsecase struct {
 	scanTimeout time.Duration
 
 	// 进度跟踪相关字段
+	scanningPaths    map[string]bool // 新增：记录正在扫描的路径
+	scanningPathsMu  sync.RWMutex    // 保护scanningPaths的互斥锁
+	activeScanCount  int             // 新增：当前活跃的扫描任务数量
 	scanProgress     float32
 	scanTotal        int
 	scanProcessed    int
@@ -71,11 +74,13 @@ func NewFileUsecase(
 	}
 
 	return &FileUsecase{
-		fileRepo:     fileRepo,
-		folderRepo:   folderRepo,
-		detector:     detector,
-		workerPool:   make(chan struct{}, workerCount),
-		scanTimeout:  time.Duration(timeoutMinutes) * time.Minute,
+		fileRepo:      fileRepo,
+		folderRepo:    folderRepo,
+		detector:      detector,
+		workerPool:    make(chan struct{}, workerCount),
+		scanTimeout:   time.Duration(timeoutMinutes) * time.Minute,
+		scanningPaths: make(map[string]bool),
+
 		artistRepo:   artistRepo,
 		albumRepo:    albumRepo,
 		mediaRepo:    mediaRepo,
@@ -101,12 +106,40 @@ func (uc *FileUsecase) ProcessDirectory(
 		return fmt.Errorf("系统未正确初始化")
 	}
 
-	// 重置进度计数器
+	// 1. 检查路径是否已在扫描中
+	uc.scanningPathsMu.Lock()
+	for _, path := range dirPaths {
+		if uc.scanningPaths[path] {
+			uc.scanningPathsMu.Unlock()
+			return fmt.Errorf("路径 %s 已在扫描中", path)
+		}
+	}
+
+	// 2. 标记路径为扫描中
+	for _, path := range dirPaths {
+		uc.scanningPaths[path] = true
+	}
+	uc.scanningPathsMu.Unlock()
+
+	// 3. 确保扫描完成后解除路径锁定
+	defer func() {
+		uc.scanningPathsMu.Lock()
+		for _, path := range dirPaths {
+			delete(uc.scanningPaths, path)
+		}
+		uc.scanningPathsMu.Unlock()
+	}()
+
+	// 重置进度计数器 - 修改为使用activeScanCount
 	uc.scanMutex.Lock()
-	uc.scanTotal = 0
-	uc.scanProcessed = 0
-	uc.scanProgress = 0
-	uc.lastScanStart = time.Now()
+	uc.activeScanCount++ // 增加活跃任务计数
+	if uc.activeScanCount == 1 {
+		// 第一个任务，重置进度
+		uc.scanTotal = 0
+		uc.scanProcessed = 0
+		uc.scanProgress = 0
+		uc.lastScanStart = time.Now()
+	}
 	// 设置各阶段权重（根据实际耗时比例）
 	switch ScanModel {
 	case 0:
@@ -139,24 +172,40 @@ func (uc *FileUsecase) ProcessDirectory(
 			statistics:  0.1, // 统计阶段权重
 			refactoring: 0.3, // 重构阶段权重
 		}
+	case 3:
+		uc.scanStageWeights = struct {
+			traversal   float32
+			statistics  float32
+			refactoring float32
+		}{
+			traversal:   0,   // 文件处理阶段权重
+			statistics:  0.2, // 统计阶段权重
+			refactoring: 0.8, // 重构阶段权重
+		}
 	}
 	uc.scanMutex.Unlock()
 
+	// 在函数返回时，减少activeScanCount
+	defer func() {
+		uc.scanMutex.Lock()
+		uc.activeScanCount--
+		uc.scanMutex.Unlock()
+	}()
+
 	var libraryFolders []*domain_file_entity.LibraryFolderMetadata
 
-	// 1. 处理多个目录路径
-	for _, dirPath := range dirPaths {
-		if len(dirPath) == 0 {
-			continue
-		}
-		folder, err := uc.folderRepo.FindLibrary(ctx, dirPath, folderType)
-		if err != nil {
-			log.Printf("文件夹查询失败: %v", err)
-			return fmt.Errorf("folder query failed: %w", err)
-		}
+	if ScanModel == 0 || ScanModel == 2 {
+		// 处理多个目录路径
+		for _, dirPath := range dirPaths {
+			if len(dirPath) == 0 {
+				continue
+			}
+			folder, err := uc.folderRepo.FindLibrary(ctx, dirPath, folderType)
+			if err != nil {
+				log.Printf("文件夹查询失败: %v", err)
+				return fmt.Errorf("folder query failed: %w", err)
+			}
 
-		// 2. 根据扫描模式处理目录
-		if ScanModel == 0 || ScanModel == 2 {
 			if folder == nil {
 				newFolder := &domain_file_entity.LibraryFolderMetadata{
 					ID:          primitive.NewObjectID(),
@@ -174,21 +223,7 @@ func (uc *FileUsecase) ProcessDirectory(
 				libraryFolders = append(libraryFolders, folder)
 			}
 		}
-	}
-
-	// 3. 获取整个媒体库（修复模式使用）
-	if ScanModel == 1 {
-		library, err := uc.folderRepo.GetAllByType(ctx, 1)
-		if err != nil {
-			log.Printf("文件夹查询失败: %v", err)
-			return fmt.Errorf("folder query failed: %w", err)
-		}
-		libraryFolders = library
-	}
-
-	if libraryFolders == nil {
-		libraryFolders = make([]*domain_file_entity.LibraryFolderMetadata, 0)
-		if ScanModel == 2 {
+		if libraryFolders == nil {
 			// 默认扫描所有媒体库目录，当传入路径为空且ScanModel为2时
 			library, err := uc.folderRepo.GetAllByType(ctx, 1)
 			if err != nil {
@@ -197,6 +232,64 @@ func (uc *FileUsecase) ProcessDirectory(
 			}
 			libraryFolders = library
 		}
+	} else if ScanModel == 1 || ScanModel == 3 {
+		if ScanModel == 3 && len(dirPaths) > 0 {
+			folder, err := uc.folderRepo.FindLibrary(ctx, dirPaths[0], folderType)
+			if err != nil {
+				log.Printf("文件夹查询失败: %v", err)
+				return fmt.Errorf("folder query failed: %w", err)
+			}
+			if folder != nil {
+				err = uc.folderRepo.Delete(ctx, folder.ID)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		// 3. 获取整个媒体库（修复模式使用）
+		library, err := uc.folderRepo.GetAllByType(ctx, 1)
+		if err != nil {
+			log.Printf("文件夹查询失败: %v", err)
+			return fmt.Errorf("folder query failed: %w", err)
+		}
+		libraryFolders = library
+	}
+
+	if ScanModel == 3 {
+		if len(dirPaths) > 0 {
+			delResult, err := uc.mediaRepo.DeleteByFolder(ctx, dirPaths[0])
+			if err != nil {
+				log.Printf("常规音频清理失败: %v", err)
+				return fmt.Errorf("regular audio cleanup failed: %w", err)
+			} else if delResult > 0 {
+				log.Printf("正在删除媒体库：%v, 其中删除%d个常规音频文件", dirPaths[0], delResult)
+			}
+			delCueResult, err := uc.mediaCueRepo.DeleteByFolder(ctx, dirPaths[0])
+			if err != nil {
+				log.Printf("CUE音频清理失败: %v", err)
+				return fmt.Errorf("regular audio cleanup failed: %w", err)
+			} else if delCueResult > 0 {
+				log.Printf("正在删除媒体库：%v, 其中删除%d个常规音频文件", dirPaths[0], delCueResult)
+			}
+			delArtistResult, err := uc.artistRepo.DeleteAll(ctx)
+			if err != nil {
+				log.Printf("艺术家清理失败: %v", err)
+				return fmt.Errorf("artist cleanup failed: %w", err)
+			} else if delArtistResult > 0 {
+				log.Printf("正在删除媒体库：%v, 其中删除%d个艺术家", dirPaths[0], delArtistResult)
+			}
+			delAlbumResult, err := uc.albumRepo.DeleteAll(ctx)
+			if err != nil {
+				log.Printf("专辑清理失败: %v", err)
+				return fmt.Errorf("album cleanup failed: %w", err)
+			} else if delAlbumResult > 0 {
+				log.Printf("正在删除媒体库：%v, 其中删除%d个专辑", dirPaths[0], delAlbumResult)
+			}
+		}
+	}
+
+	if libraryFolders == nil {
+		libraryFolders = make([]*domain_file_entity.LibraryFolderMetadata, 0)
 	}
 
 	// 4. 根据扫描模式执行处理
@@ -222,13 +315,16 @@ func (uc *FileUsecase) ProcessDirectory(
 				return err
 			}
 		}
+	case 3: // 重构媒体库
+		if folderType == 1 {
+			err := uc.ProcessMusicDirectory(ctx, libraryFolders, true, true, true)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	log.Printf("媒体库扫描完成，共处理%d个目录", len(dirPaths))
-
-	uc.scanMutex.Lock()
-	uc.scanProgress = 1 // 文件处理已完成
-	uc.scanMutex.Unlock()
 
 	return nil
 }
@@ -949,7 +1045,7 @@ func (uc *FileUsecase) processFile(
 ) {
 	defer func() {
 		uc.scanMutex.Lock()
-		uc.scanProcessed++
+		uc.scanProcessed++ // 增加已处理文件数
 		if uc.scanTotal > 0 {
 			// 只计算文件处理阶段的进度
 			traversalProgress := uc.scanStageWeights.traversal *

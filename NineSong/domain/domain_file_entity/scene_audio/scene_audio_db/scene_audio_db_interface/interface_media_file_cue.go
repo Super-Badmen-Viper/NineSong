@@ -21,10 +21,12 @@ type MediaFileCueRepository interface {
 		ArtistID primitive.ObjectID
 		Count    int64
 	}, error)
+	DeleteByFolder(ctx context.Context, folderPath string) (int64, error)
 
 	// 查询
 	GetByID(ctx context.Context, id primitive.ObjectID) (*scene_audio_db_models.MediaFileCueMetadata, error)
 	GetByPath(ctx context.Context, path string) (*scene_audio_db_models.MediaFileCueMetadata, error)
+	GetByFolder(ctx context.Context, folderPath string) ([]string, error)
 
 	MediaCueCountByArtist(ctx context.Context, artistID string) (int64, error)
 	GuestMediaCueCountByArtist(ctx context.Context, artistID string) (int64, error)

@@ -24,7 +24,7 @@ func (ctrl *FileController) ScanDirectory(c *gin.Context) {
 	var req struct {
 		FolderPath string `form:"folder_path"`
 		FolderType int    `form:"folder_type" binding:"required"`
-		ScanModel  int    `form:"scan_model" binding:"oneof=0 1 2"`
+		ScanModel  int    `form:"scan_model" binding:"oneof=0 1 2 3"`
 	}
 
 	if err := c.ShouldBind(&req); err != nil {
@@ -57,9 +57,9 @@ func (ctrl *FileController) ScanDirectory(c *gin.Context) {
 		}
 	}
 
-	if req.ScanModel == 0 {
+	if req.ScanModel == 0 || req.ScanModel == 3 {
 		if len(req.FolderPath) == 0 {
-			controller.ErrorResponse(c, http.StatusBadRequest, "INVALID_REQUEST", "扫描模式为新建时，必须提供目录路径")
+			controller.ErrorResponse(c, http.StatusBadRequest, "INVALID_REQUEST", "扫描模式为新建或删除时，必须提供目录路径")
 			return
 		}
 	}
