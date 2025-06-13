@@ -104,8 +104,9 @@ type MediaFileMetadata struct {
 	Channels   int     `bson:"channels"`    // 音频通道数（如 2 表示立体声）
 
 	// 高级音频参数 (github.com/go-audio/audio)
-	BitDepth      int    `bson:"bit_depth"`      // 音频位深（位）
-	ChannelLayout string `bson:"channel_layout"` // 声道布局（如立体声、环绕声等）
+	BitDepth       int    `bson:"bit_depth"`       // 音频位深（位）
+	ChannelLayout  string `bson:"channel_layout"`  // 声道布局（如立体声、环绕声等）
+	EncodingFormat string `bson:"encoding_format"` // 编码格式（如 PCM、MP3、AAC 等）
 
 	// 音频标准化与动态响度控制 (综合)
 	NormalizationThreshold float64 `bson:"norm_threshold"` // 音频标准化阈值

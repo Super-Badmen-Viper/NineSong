@@ -12,15 +12,15 @@ require (
 )
 
 require (
+	github.com/abema/go-mp4 v1.4.1
 	github.com/dhowden/tag v0.0.0-20240417053706-3d75831295e8
+	github.com/h2non/filetype v1.1.3
 	github.com/mozillazg/go-pinyin v0.20.0
-	github.com/u2takey/ffmpeg-go v0.5.0
 	go.senan.xyz/taglib v0.6.1
 	golang.org/x/text v0.25.0
 )
 
 require (
-	github.com/aws/aws-sdk-go v1.38.20 // indirect
 	github.com/bytedance/sonic v1.13.2 // indirect
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
@@ -34,7 +34,7 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/google/uuid v1.1.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
@@ -54,7 +54,6 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tetratelabs/wazero v1.8.2 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
-	github.com/u2takey/go-utils v0.3.1 // indirect
 	github.com/ugorji/go/codec v1.2.14 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect

@@ -77,7 +77,7 @@ func (r *mediaFileRepository) GetMediaFileItems(
 	}
 
 	// 处理play_date排序的特殊过滤
-	validatedSort := validateSortField(sort)
+	validatedSort := validateSortField(sort, albumId)
 	if validatedSort == "play_date" {
 		pipeline = append(pipeline, bson.D{
 			{Key: "$match", Value: bson.D{
@@ -196,7 +196,7 @@ func (r *mediaFileRepository) GetMediaFileFilterItemsCount(
 }
 
 // 排序字段映射
-func validateSortField(sort string) string {
+func validateSortField(sort, albumId string) string {
 	sortMappings := map[string]string{
 		"title":        "order_title",
 		"album":        "order_album_name",
@@ -219,7 +219,11 @@ func validateSortField(sort string) string {
 		return mapped
 	}
 
-	return "file_name"
+	if len(albumId) > 0 {
+		return "file_name"
+	} else {
+		return "_id"
+	}
 }
 
 // 排序稳定性：添加唯一字段作为次要排序条件

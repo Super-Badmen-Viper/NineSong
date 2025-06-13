@@ -20,7 +20,8 @@ func NewRetrievalRouter(
 
 	retrievalGroup := group.Group("/media")
 	{
-		retrievalGroup.GET("/stream", ctrl.StreamHandler)
+		retrievalGroup.GET("/stream", ctrl.FixedStreamHandler)
+		retrievalGroup.GET("/stream/real", ctrl.RealStreamHandler)
 		retrievalGroup.GET("/download", ctrl.DownloadHandler)
 		retrievalGroup.GET("/cover", ctrl.CoverArtHandler)
 		retrievalGroup.GET("/lyrics", ctrl.LyricsHandlerMetadata)

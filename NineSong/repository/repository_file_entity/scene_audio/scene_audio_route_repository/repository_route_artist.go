@@ -35,6 +35,7 @@ func (r *artistRepository) GetArtistItems(
 	coll := r.db.Collection(r.collection)
 
 	pipeline := []bson.D{
+		// 使用$lookup但不立即$unwind
 		{
 			{Key: "$lookup", Value: bson.D{
 				{Key: "from", Value: domain.CollectionFileEntityAudioSceneAnnotation},
@@ -50,14 +51,17 @@ func (r *artistRepository) GetArtistItems(
 							}},
 						}},
 					},
+					// 新增：只取第一个注解（避免重复）
+					{{Key: "$limit", Value: 1}},
 				}},
 				{Key: "as", Value: "annotations"},
 			}},
 		},
+		// 修改$unwind阶段
 		{
 			{Key: "$unwind", Value: bson.D{
 				{Key: "path", Value: "$annotations"},
-				{Key: "preserveNullAndEmptyArrays", Value: true},
+				{Key: "preserveNullAndEmptyArrays", Value: true}, // 保留无注解的艺术家
 			}},
 		},
 		{

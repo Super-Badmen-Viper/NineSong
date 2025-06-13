@@ -21,7 +21,7 @@ func NewRetrievalController(uc scene_audio_route_interface.RetrievalRepository) 
 	return &RetrievalController{RetrievalUsecase: uc}
 }
 
-func (c *RetrievalController) StreamHandler(ctx *gin.Context) {
+func (c *RetrievalController) FixedStreamHandler(ctx *gin.Context) {
 	var req struct {
 		MediaFileID string `form:"media_file_id" binding:"required"`
 	}
@@ -43,6 +43,30 @@ func (c *RetrievalController) StreamHandler(ctx *gin.Context) {
 		return
 	}
 	serveFixedMediaFile(ctx, filePath)
+}
+
+func (c *RetrievalController) RealStreamHandler(ctx *gin.Context) {
+	var req struct {
+		MediaFileID string `form:"media_file_id" binding:"required"`
+	}
+
+	if err := ctx.ShouldBind(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"code":    "INVALID_PARAMETERS",
+			"message": "缺少必要参数: media_file_id",
+		})
+		return
+	}
+
+	filePath, err := c.RetrievalUsecase.GetStreamPath(ctx.Request.Context(), req.MediaFileID)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"code":    "RESOURCE_NOT_FOUND",
+			"message": "音频文件不存在",
+		})
+		return
+	}
+	realStreamMediaFile(ctx, filePath)
 }
 
 func (c *RetrievalController) DownloadHandler(ctx *gin.Context) {
@@ -179,7 +203,7 @@ func serveFixedMediaFile(ctx *gin.Context, path string) {
 	// 支持直接文件服务
 	ctx.File(path)
 }
-func serveStreamMediaFile(ctx *gin.Context, path string) {
+func realStreamMediaFile(ctx *gin.Context, path string) {
 	//safePath := strings.ReplaceAll(path, `\`, `/`)
 	//if vol := filepath.VolumeName(safePath); vol != "" {
 	//	safePath = strings.TrimPrefix(safePath, vol)
