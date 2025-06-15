@@ -3,7 +3,7 @@ version: "3.8"
 services:
   mongodb:
     image: mongo:6.0
-    container_name: ${MONGO_CONTAINER_NAME}
+    container_name: mongodb-local
     restart: unless-stopped
     env_file: .env
     environment:

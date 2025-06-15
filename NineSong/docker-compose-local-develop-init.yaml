@@ -53,4 +53,4 @@ services:
 
 volumes:
   library:
-  dbdata:
+  DB_DATA:

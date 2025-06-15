@@ -1,9 +1,8 @@
 version: "3.8"
 
-# 服务定义
 services:
   frontend:
-    image: nsmusics
+    image: xiangch007/nsmusics
     container_name: ${APP_CONTAINER_NAME}
     restart: unless-stopped
     env_file: .env
@@ -28,7 +27,7 @@ services:
           memory: 1G
 
   backend:
-    image: ninesong
+    image: xiangch007/ninesong
     container_name: ${WEB_CONTAINER_NAME}
     restart: unless-stopped
     env_file: .env
@@ -39,7 +38,7 @@ services:
         ipv4_address: 172.20.3.20
     volumes:
       - ./.env:/app/.env:ro
-      - library:/data/library
+      - ${MEDIA_DATA_HOST_PATH}:/data/library:Z  # 添加SELinux标签[3](@ref)
     depends_on:
       - mongodb
     security_opt:
@@ -57,8 +56,8 @@ services:
       data_net:
         ipv4_address: 172.20.3.30
     volumes:
-#      - dbdata:/data/db
-      - C:/Users/Public/Documents/NineSong/MongoDB:/data/db
+      - dbdata:/data/db
+#      - C:/Users/Public/Documents/NineSong/MongoDB:/data/db
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh --quiet -u $${MONGO_INITDB_ROOT_USERNAME} -p $${MONGO_INITDB_ROOT_PASSWORD} --authenticationDatabase admin | grep 1
       interval: 10s
@@ -67,12 +66,12 @@ services:
 
 # 数据卷定义
 volumes:
-  library:
-    driver: local
-    driver_opts:
-      type: none
-      device: /e/0_Music
-      o: bind
+#  library:
+#    driver: local
+#    driver_opts:
+#      type: none
+#      device: /e/0_Music
+#      o: bind
   dbdata:
 
 # 容器网络架构

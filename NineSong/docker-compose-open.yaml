@@ -41,31 +41,13 @@ services:
    ports:
      - "${DB_PORT}:27017"
    volumes:
-     - dbdata:/data/db
+     - DB_DATA:/data/db
    healthcheck:
      test: echo 'db.runCommand("ping").ok' | mongosh --quiet -u $${MONGO_INITDB_ROOT_USERNAME} -p $${MONGO_INITDB_ROOT_PASSWORD} --authenticationDatabase admin | grep 1
      interval: 10s
      timeout: 5s
      retries: 5
 
- mediamtx:
-   image: bluenviron/mediamtx:latest-ffmpeg
-   container_name: ${MEDIAMTX_CONTAINER_NAME}
-   restart: unless-stopped
-   env_file: .env
-   environment:
-     - MTX_RTSPTRANSPORTS=tcp
-   volumes:
-     - library:/library
-     - ./mediamtx.yml:/mediamtx.yml:ro
-   ports:
-     - "${RTSP_PORT}:8554"
-     - "${RTMP_PORT}:1935"
-     - "${HTTP_PORT}:8888"
-     - "${HTTPS_PORT}:8889"
-     - "${SRT_PORT}:8890/udp"
-     - "${WEBRTC_PORT}:8189/udp"
-
 volumes:
  library:
- dbdata:
+ DB_DATA:

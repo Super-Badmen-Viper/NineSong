@@ -88,10 +88,11 @@ func (ctrl *FileController) ScanDirectory(c *gin.Context) {
 }
 
 func (ctrl *FileController) GetScanProgress(c *gin.Context) {
-	progress, startTime := ctrl.usecase.GetScanProgress()
+	progress, startTime, activeScanCount := ctrl.usecase.GetScanProgress()
 
 	c.JSON(http.StatusOK, gin.H{
-		"progress":   progress,
-		"start_time": startTime.Format(time.RFC3339),
+		"progress":          progress,
+		"start_time":        startTime.Format(time.RFC3339),
+		"active_scan_count": activeScanCount,
 	})
 }

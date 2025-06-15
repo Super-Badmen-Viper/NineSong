@@ -24,6 +24,72 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+// 全局状态管理器
+type ScanManager struct {
+	mu                  sync.RWMutex
+	globalScanRunning   bool                          // 全局扫描任务状态
+	concurrentScanCount int                           // 并发扫描任务计数
+	cancelFuncs         map[string]context.CancelFunc // 所有扫描任务的取消函数
+}
+
+func NewScanManager() *ScanManager {
+	return &ScanManager{
+		cancelFuncs: make(map[string]context.CancelFunc),
+	}
+}
+
+// 尝试启动全局扫描
+func (sm *ScanManager) TryStartGlobalScan(taskID string) (bool, context.CancelFunc) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	if sm.globalScanRunning {
+		return false, nil // 全局扫描已在运行
+	}
+
+	// 中断所有并发扫描任务
+	for id, cancel := range sm.cancelFuncs {
+		if id != taskID {
+			cancel()
+			delete(sm.cancelFuncs, id)
+		}
+	}
+
+	sm.globalScanRunning = true
+	sm.concurrentScanCount = 0
+	return true, func() {
+		sm.mu.Lock()
+		sm.globalScanRunning = false
+		delete(sm.cancelFuncs, taskID)
+		sm.mu.Unlock()
+	}
+}
+
+// 尝试启动并发扫描
+func (sm *ScanManager) TryStartConcurrentScan(taskID string) (bool, context.CancelFunc) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	if sm.globalScanRunning {
+		return false, nil // 全局扫描运行时禁止并发扫描
+	}
+
+	sm.concurrentScanCount++
+	return true, func() {
+		sm.mu.Lock()
+		sm.concurrentScanCount--
+		delete(sm.cancelFuncs, taskID)
+		sm.mu.Unlock()
+	}
+}
+
+// 注册取消函数
+func (sm *ScanManager) RegisterCancelFunc(taskID string, cancel context.CancelFunc) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	sm.cancelFuncs[taskID] = cancel
+}
+
 type FileUsecase struct {
 	fileRepo    domain_file_entity.FileRepository
 	folderRepo  domain_file_entity.FolderRepository
@@ -34,6 +100,7 @@ type FileUsecase struct {
 	scanTimeout time.Duration
 
 	// 进度跟踪相关字段
+	scanManager      *ScanManager    // 新增扫描状态管理器
 	scanningPaths    map[string]bool // 新增：记录正在扫描的路径
 	scanningPathsMu  sync.RWMutex    // 保护scanningPaths的互斥锁
 	activeScanCount  int             // 新增：当前活跃的扫描任务数量
@@ -80,6 +147,7 @@ func NewFileUsecase(
 		workerPool:    make(chan struct{}, workerCount),
 		scanTimeout:   time.Duration(timeoutMinutes) * time.Minute,
 		scanningPaths: make(map[string]bool),
+		scanManager:   NewScanManager(), // 初始化扫描管理器
 
 		artistRepo:   artistRepo,
 		albumRepo:    albumRepo,
@@ -89,10 +157,10 @@ func NewFileUsecase(
 	}
 }
 
-func (uc *FileUsecase) GetScanProgress() (float32, time.Time) {
+func (uc *FileUsecase) GetScanProgress() (float32, time.Time, int) {
 	uc.scanMutex.RLock()
 	defer uc.scanMutex.RUnlock()
-	return uc.scanProgress, uc.lastScanStart
+	return uc.scanProgress, uc.lastScanStart, uc.activeScanCount
 }
 
 func (uc *FileUsecase) ProcessDirectory(
@@ -105,6 +173,31 @@ func (uc *FileUsecase) ProcessDirectory(
 		log.Printf("folderRepo未初始化")
 		return fmt.Errorf("系统未正确初始化")
 	}
+
+	// 生成唯一任务ID
+	taskID := fmt.Sprintf("%d-%v", ScanModel, time.Now().UnixNano())
+	// 检查扫描模式并获取执行权限
+	var (
+		allowed bool
+		cancel  context.CancelFunc
+	)
+	if ScanModel == 3 { // 全局扫描模式
+		allowed, cancel = uc.scanManager.TryStartGlobalScan(taskID)
+		if !allowed {
+			return errors.New("全局扫描任务已在运行，无法启动新任务")
+		}
+	} else { // 并发扫描模式
+		allowed, cancel = uc.scanManager.TryStartConcurrentScan(taskID)
+		if !allowed {
+			return errors.New("全局扫描任务运行中，无法启动并发扫描")
+		}
+	}
+	// 注册取消函数
+	uc.scanManager.RegisterCancelFunc(taskID, cancel)
+	defer cancel() // 任务结束时自动取消注册
+	// 创建可取消的上下文
+	ctx, cancelTask := context.WithCancel(ctx)
+	defer cancelTask()
 
 	// 1. 检查路径是否已在扫描中
 	uc.scanningPathsMu.Lock()
@@ -410,6 +503,11 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 		for _, folderCount := range libraryFolders {
 			total := 0
 			err := filepath.Walk(folderCount.FolderPath, func(path string, info os.FileInfo, err error) error {
+				select {
+				case <-ctx.Done(): // 响应取消
+					return ctx.Err()
+				default:
+				}
 				if !info.IsDir() && uc.shouldProcess(path, 1) {
 					total++
 				}

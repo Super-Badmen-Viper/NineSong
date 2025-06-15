@@ -29,7 +29,7 @@ func TestFetch(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		mockProfile := &domain_auth.Profile{
 			Name:  "TestName",
-			Email: "test@gmail.com",
+			Email: "admin@gmail.com",
 		}
 
 		userObjectID := primitive.NewObjectID()

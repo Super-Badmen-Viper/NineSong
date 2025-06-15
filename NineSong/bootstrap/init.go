@@ -154,13 +154,13 @@ func (si *Initializer) executeInitialization(ctx context.Context) error {
 		return err
 	}
 
-	if err := si.initAppServerConfigs(ctx); err != nil {
-		return err
-	}
+	//if err := si.initAppServerConfigs(ctx); err != nil {
+	//	return err
+	//}
 
-	if err := si.initAppMediaFileLibrary(ctx); err != nil {
-		return err
-	}
+	//if err := si.initAppMediaFileLibrary(ctx); err != nil {
+	//	return err
+	//}
 
 	if err := si.initSystemInfo(ctx, userID); err != nil {
 		return err
@@ -170,9 +170,9 @@ func (si *Initializer) executeInitialization(ctx context.Context) error {
 		return err
 	}
 
-	if err := si.initFileEntityFolder(ctx); err != nil {
-		return err
-	}
+	//if err := si.initFileEntityFolder(ctx); err != nil {
+	//	return err
+	//}
 
 	if err := si.initFileEntityAudioTempMetadata(ctx); err != nil {
 		return err
@@ -528,7 +528,7 @@ func (si *Initializer) initAppAudioConfigs(ctx context.Context) error {
 		{ConfigKey: "playlist_artist_id", ConfigValue: ""},
 		{ConfigKey: "playlist_album_id", ConfigValue: ""},
 		{ConfigKey: "playlist_album_artist_id", ConfigValue: ""},
-		{ConfigKey: "page_songlists_selected", ConfigValue: "song_list_love"},
+		{ConfigKey: "page_songlists_selected", ConfigValue: "song_list_all"},
 		{ConfigKey: "player_mode_of_lock_playlist", ConfigValue: "true"},
 		{ConfigKey: "player_mode_of_medialist_from_external_import", ConfigValue: "false"},
 	}

@@ -576,12 +576,12 @@
 									"urlencoded": [
 										{
 											"key": "email",
-											"value": "test@gmail.com",
+											"value": "admin@gmail.com",
 											"type": "text"
 										},
 										{
 											"key": "password",
-											"value": "test123",
+											"value": "admin123",
 											"type": "text"
 										},
 										{
@@ -601,7 +601,7 @@
 										"signup"
 									]
 								},
-								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/signup](http://localhost:8082/signup)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/signup](http://localhost:8082/signup)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 							},
 							"response": []
 						},
@@ -641,7 +641,7 @@
 										"login"
 									]
 								},
-								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 							},
 							"response": []
 						},
@@ -753,7 +753,7 @@
 										"username"
 									]
 								},
-								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 							},
 							"response": []
 						},
@@ -792,7 +792,7 @@
 										"email"
 									]
 								},
-								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 							},
 							"response": []
 						},
@@ -816,7 +816,7 @@
 									"urlencoded": [
 										{
 											"key": "old_password",
-											"value": "test123",
+											"value": "admin123",
 											"type": "text"
 										},
 										{
@@ -836,7 +836,7 @@
 										"password"
 									]
 								},
-								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 							},
 							"response": []
 						}
@@ -1179,7 +1179,7 @@
 										"scan_progress"
 									]
 								},
-								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 							},
 							"response": []
 						}
@@ -1274,7 +1274,7 @@
 								}
 							]
 						},
-						"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+						"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 					},
 					"response": []
 				},
@@ -1451,7 +1451,7 @@
 								"libraries"
 							]
 						},
-						"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+						"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 					},
 					"response": []
 				}
@@ -1535,7 +1535,7 @@
 												}
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 									},
 									"response": []
 								}
@@ -1595,7 +1595,7 @@
 												}
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 									},
 									"response": []
 								},
@@ -1624,7 +1624,7 @@
 												"filter_counts"
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 									},
 									"response": []
 								}
@@ -1700,7 +1700,7 @@
 												}
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 									},
 									"response": []
 								},
@@ -1729,7 +1729,7 @@
 												"filter_counts"
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 									},
 									"response": []
 								}
@@ -1810,7 +1810,7 @@
 												}
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 									},
 									"response": []
 								},
@@ -1846,7 +1846,7 @@
 												}
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 									},
 									"response": []
 								}
@@ -1895,7 +1895,7 @@
 												"star"
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 									},
 									"response": []
 								},
@@ -1939,7 +1939,7 @@
 												"unstar"
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 									},
 									"response": []
 								},
@@ -1988,7 +1988,7 @@
 												"rating"
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 									},
 									"response": []
 								},
@@ -2032,7 +2032,7 @@
 												"scrobble"
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 									},
 									"response": []
 								}
@@ -2072,7 +2072,7 @@
 												"playlists"
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 									},
 									"response": []
 								},
@@ -2239,7 +2239,7 @@
 												}
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 									},
 									"response": []
 								},
@@ -2276,7 +2276,7 @@
 												"filter_counts"
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 									},
 									"response": []
 								},
@@ -2407,7 +2407,7 @@
 												"add"
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 									},
 									"response": []
 								},
@@ -2452,7 +2452,7 @@
 												"remove"
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 									},
 									"response": []
 								}
@@ -2548,7 +2548,7 @@
 														}
 													]
 												},
-												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 											},
 											"response": []
 										},
@@ -2590,7 +2590,7 @@
 														}
 													]
 												},
-												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 											},
 											"response": []
 										}
@@ -2653,7 +2653,7 @@
 														}
 													]
 												},
-												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 											},
 											"response": []
 										}
@@ -2701,7 +2701,7 @@
 														}
 													]
 												},
-												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 											},
 											"response": []
 										}
@@ -2748,7 +2748,7 @@
 												}
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 									},
 									"response": []
 								},
@@ -2788,7 +2788,7 @@
 												}
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 									},
 									"response": []
 								},
@@ -2828,7 +2828,7 @@
 												}
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
 									},
 									"response": []
 								}

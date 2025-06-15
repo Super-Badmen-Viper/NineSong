@@ -10,6 +10,17 @@ COPY --from=builder /app/main /app/main
 COPY --from=builder /app/.env /app/.env
 CMD ["/app/main"]
 
+#FROM golang:1.24.0 AS builder
+#WORKDIR /app
+#ADD . /app
+#RUN go mod download
+#RUN go build -o main cmd/main.go
+#FROM debian:bookworm-slim
+#WORKDIR /app
+#COPY --from=builder /app/main /app/main
+#COPY --from=builder /app/.env /app/.env
+#CMD ["/app/main"]
+
 ## 构建阶段
 #FROM golang:1.24.0-alpine AS builder
 #WORKDIR /app
