@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   frontend:
-    image: xiangch007/nsmusics
+    image: xiangch007/nsmusics:1.6.2
     container_name: ${APP_CONTAINER_NAME}
     restart: unless-stopped
     env_file: .env
@@ -20,14 +20,9 @@ services:
       - ./.env:/app/.env:ro
     depends_on:
       - backend
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1G
 
   backend:
-    image: xiangch007/ninesong
+    image: xiangch007/ninesong:0.5.0-beta
     container_name: ${WEB_CONTAINER_NAME}
     restart: unless-stopped
     env_file: .env
@@ -66,12 +61,6 @@ services:
 
 # 数据卷定义
 volumes:
-#  library:
-#    driver: local
-#    driver_opts:
-#      type: none
-#      device: /e/0_Music
-#      o: bind
   dbdata:
 
 # 容器网络架构

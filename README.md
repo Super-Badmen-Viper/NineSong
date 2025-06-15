@@ -9,9 +9,20 @@ A Go (Golang) Backend Clean Architecture project with Gin, MongoDB, JWT Authenti
 
 For NineSong, it only needs to respond to users around the world who need it and always maintain an open source status. You can use any product you like, whether it's following NineSong or choosing a seemingly famous but actually outdated product
 
-## New Function
-NineSong Server will be released in June this year.  
-[NSMusicS](https://github.com/Super-Badmen-Viper/NSMusicS):https://github.com/Super-Badmen-Viper/NSMusicS will support Docker deployment by default and integrate the NineSong streaming service.  
+[NSMusicS](https://github.com/Super-Badmen-Viper/NSMusicS):https://github.com/Super-Badmen-Viper/NSMusicS will support Docker deployment by default and integrate the NineSong streaming service.    
+
+## DownLoad For 0.5.0~0.9.9-Beta Version (Music Scene): Released on June 15th, 2025
+You need to put the. env and docker-compose.yaml files in the same folder. You can customize the parameter configuration of. env and docker-compose.yaml, such as mapping the media library folder to the Volumes of the NineSong container.  
+[download](https://github.com/Super-Badmen-Viper/NineSong/releases/tag/NineSong-v0.5.0-Beta): https://github.com/Super-Badmen-Viper/NineSong/releases/tag/NineSong-v0.5.0-Beta
+Note that currently only the beta version is open for testing, and a truly complete experience will need to wait for the release of the 1.0.0 official version. If you want to try using it and help NineSong test bugs, you can install and deploy the 0.5.0 beta version, which provides sufficient basic functions for you to use. Even with the 0.5.0 beta version, its music experience surpasses all current Github music servers, let alone the 1.0.0 official version.  
+The features currently available in the 0.5.0 Beta version:  
+ - Regular music library management
+ - Exquisite playback style
+ - Conventional streaming of music resources
+ - Music, album, artist, homepage
+ - Desktop layout (mobile layout needs to be adapted later, and mobile layout still needs to be used. Please use landscape on your phone)
+
+## DownLoad For 1.0.0 Version (Music Scene): Released in early July 2025
 Compared to other music servers (such as Navidrome, Jellyfin, Emby, Plex, Subsonic, Gonic), it offers the following enhanced features:
 - More comprehensive music library management:
 - - Rich single-level sorting options, supporting multi-level mixed sorting and multi-level mixed filtering;
