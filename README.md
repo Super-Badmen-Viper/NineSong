@@ -9,6 +9,8 @@ A Go (Golang) Backend Clean Architecture project with Gin, MongoDB, JWT Authenti
 
 For NineSong, it only needs to respond to users around the world who need it and always maintain an open source status. You can use any product you like, whether it's following NineSong or choosing a seemingly famous but actually outdated product
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Super-Badmen-Viper/NineSong)
+
 [NSMusicS](https://github.com/Super-Badmen-Viper/NSMusicS):https://github.com/Super-Badmen-Viper/NSMusicS will support Docker deployment by default and integrate the NineSong streaming service.    
 
 ## DownLoad For 0.5.0~0.9.9-Beta Version (Music Scene): Released on June 15th, 2025
