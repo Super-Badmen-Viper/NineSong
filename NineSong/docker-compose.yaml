@@ -12,10 +12,8 @@ services:
     ports:
       - "${APP_PORT}:${APP_PORT}"
     networks:
-      public_net:
-        ipv4_address: 172.20.1.10
-      app_net:
-        ipv4_address: 172.20.2.10
+      - public_net
+      - app_net
     volumes:
       - ./.env:/app/.env:ro
     depends_on:
@@ -27,13 +25,11 @@ services:
     restart: unless-stopped
     env_file: .env
     networks:
-      app_net:
-        ipv4_address: 172.20.2.20
-      data_net:
-        ipv4_address: 172.20.3.20
+      - app_net
+      - data_net
     volumes:
       - ./.env:/app/.env:ro
-      - ${MEDIA_DATA_HOST_PATH}:/data/library:Z  # 添加SELinux标签[3](@ref)
+      - ${MEDIA_DATA_HOST_PATH}:/data/library
     depends_on:
       - mongodb
     security_opt:
@@ -48,18 +44,10 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=${DB_USER}
       - MONGO_INITDB_ROOT_PASSWORD=${DB_PASS}
     networks:
-      data_net:
-        ipv4_address: 172.20.3.30
+      - data_net
     volumes:
       - dbdata:/data/db
-#      - C:/Users/Public/Documents/NineSong/MongoDB:/data/db
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh --quiet -u $${MONGO_INITDB_ROOT_USERNAME} -p $${MONGO_INITDB_ROOT_PASSWORD} --authenticationDatabase admin | grep 1
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-# 数据卷定义
 volumes:
   dbdata:
 
@@ -67,21 +55,9 @@ volumes:
 networks:
   public_net:     # 外网入口层
     driver: bridge
-    internal: false
-    ipam:
-      config:
-        - subnet: 172.20.1.0/24
 
   app_net:        # 应用通信层
     driver: bridge
-    internal: true
-    ipam:
-      config:
-        - subnet: 172.20.2.0/24
 
   data_net:       # 数据服务层
     driver: bridge
-    internal: true
-    ipam:
-      config:
-        - subnet: 172.20.3.0/24

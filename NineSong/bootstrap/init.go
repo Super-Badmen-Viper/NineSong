@@ -435,7 +435,7 @@ func (si *Initializer) initAppConfigs(ctx context.Context) error {
 
 	initConfigs := []*domain_app_config.AppConfig{
 		{ConfigKey: "theme", ConfigValue: "lightTheme"},
-		{ConfigKey: "lang", ConfigValue: "zhHans"},
+		{ConfigKey: "lang", ConfigValue: "en"},
 		{ConfigKey: "router_name", ConfigValue: "home"},
 		{ConfigKey: "menuOptions_selectd_model_1", ConfigValue: "false"},
 		{ConfigKey: "menuOptions_selectd_model_2", ConfigValue: "false"},
