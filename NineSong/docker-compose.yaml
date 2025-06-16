@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   frontend:
-    image: xiangch007/nsmusics:1.6.2
+    image: xiangch007/nsmusics:1.6.3
     container_name: ${APP_CONTAINER_NAME}
     restart: unless-stopped
     env_file: .env
