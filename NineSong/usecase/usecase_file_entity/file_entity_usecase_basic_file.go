@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity"
@@ -30,6 +31,15 @@ type ScanManager struct {
 	globalScanRunning   bool                          // 全局扫描任务状态
 	concurrentScanCount int                           // 并发扫描任务计数
 	cancelFuncs         map[string]context.CancelFunc // 所有扫描任务的取消函数
+}
+
+type taskProgress struct {
+	id             string
+	totalFiles     int32      // 改为原子类型
+	walkedFiles    int32      // 原子计数：已遍历文件数
+	processedFiles int32      // 原子计数：已处理文件数
+	mu             sync.Mutex // 新增互斥锁保护非原子字段
+	initialized    bool       // 新增：标记是否已初始化
 }
 
 func NewScanManager() *ScanManager {
@@ -90,6 +100,14 @@ func (sm *ScanManager) RegisterCancelFunc(taskID string, cancel context.CancelFu
 	sm.cancelFuncs[taskID] = cancel
 }
 
+// 新增：安全获取总文件数
+func (tp *taskProgress) AddTotalFiles(count int) {
+	tp.mu.Lock()
+	defer tp.mu.Unlock()
+	atomic.AddInt32(&tp.totalFiles, int32(count))
+	tp.initialized = true
+}
+
 type FileUsecase struct {
 	fileRepo    domain_file_entity.FileRepository
 	folderRepo  domain_file_entity.FolderRepository
@@ -100,13 +118,13 @@ type FileUsecase struct {
 	scanTimeout time.Duration
 
 	// 进度跟踪相关字段
-	scanManager      *ScanManager    // 新增扫描状态管理器
-	scanningPaths    map[string]bool // 新增：记录正在扫描的路径
-	scanningPathsMu  sync.RWMutex    // 保护scanningPaths的互斥锁
-	activeScanCount  int             // 新增：当前活跃的扫描任务数量
+	activeTasks      map[string]*taskProgress // 任务ID -> 进度跟踪器
+	activeTasksMu    sync.RWMutex             // 保护 activeTasks
+	scanManager      *ScanManager             // 新增扫描状态管理器
+	scanningPaths    map[string]bool          // 新增：记录正在扫描的路径
+	scanningPathsMu  sync.RWMutex             // 保护scanningPaths的互斥锁
+	activeScanCount  int                      // 新增：当前活跃的扫描任务数量
 	scanProgress     float32
-	scanTotal        int
-	scanProcessed    int
 	scanMutex        sync.RWMutex
 	lastScanStart    time.Time
 	scanStageWeights struct {
@@ -147,7 +165,8 @@ func NewFileUsecase(
 		workerPool:    make(chan struct{}, workerCount),
 		scanTimeout:   time.Duration(timeoutMinutes) * time.Minute,
 		scanningPaths: make(map[string]bool),
-		scanManager:   NewScanManager(), // 初始化扫描管理器
+		scanManager:   NewScanManager(),               // 初始化扫描管理器
+		activeTasks:   make(map[string]*taskProgress), // 新增初始化
 
 		artistRepo:   artistRepo,
 		albumRepo:    albumRepo,
@@ -160,7 +179,48 @@ func NewFileUsecase(
 func (uc *FileUsecase) GetScanProgress() (float32, time.Time, int) {
 	uc.scanMutex.RLock()
 	defer uc.scanMutex.RUnlock()
-	return uc.scanProgress, uc.lastScanStart, uc.activeScanCount
+
+	// 1. 无任务时返回0
+	if len(uc.activeTasks) == 0 {
+		return 0, uc.lastScanStart, 0
+	}
+
+	// 2. 聚合所有任务的进度
+	totalProgress := float32(0)
+	taskCount := 0
+
+	uc.activeTasksMu.RLock()
+	defer uc.activeTasksMu.RUnlock()
+
+	for _, task := range uc.activeTasks {
+		if !task.initialized {
+			continue
+		}
+
+		taskCount++
+		walked := atomic.LoadInt32(&task.walkedFiles)
+		processed := atomic.LoadInt32(&task.processedFiles)
+		total := atomic.LoadInt32(&task.totalFiles)
+
+		// 避免除零错误
+		if total == 0 {
+			continue
+		}
+
+		// 计算任务级进度
+		traversalRatio := float32(walked) / float32(2*total)
+		processingRatio := float32(processed) / float32(total)
+		taskProgress := (traversalRatio + processingRatio) * 0.5
+		totalProgress += taskProgress
+	}
+
+	if taskCount == 0 {
+		return 0, uc.lastScanStart, 0
+	}
+
+	// 3. 计算整体加权平均进度
+	avgProgress := totalProgress / float32(taskCount)
+	return avgProgress * uc.scanStageWeights.traversal, uc.lastScanStart, taskCount
 }
 
 func (uc *FileUsecase) ProcessDirectory(
@@ -169,11 +229,6 @@ func (uc *FileUsecase) ProcessDirectory(
 	folderType int,
 	ScanModel int,
 ) error {
-	if uc.folderRepo == nil {
-		log.Printf("folderRepo未初始化")
-		return fmt.Errorf("系统未正确初始化")
-	}
-
 	// 生成唯一任务ID
 	taskID := fmt.Sprintf("%d-%v", ScanModel, time.Now().UnixNano())
 	// 检查扫描模式并获取执行权限
@@ -223,13 +278,10 @@ func (uc *FileUsecase) ProcessDirectory(
 		uc.scanningPathsMu.Unlock()
 	}()
 
-	// 重置进度计数器 - 修改为使用activeScanCount
+	// 重置进度计数器
 	uc.scanMutex.Lock()
-	uc.activeScanCount++ // 增加活跃任务计数
+	uc.activeScanCount++
 	if uc.activeScanCount == 1 {
-		// 第一个任务，重置进度
-		uc.scanTotal = 0
-		uc.scanProcessed = 0
 		uc.scanProgress = 0
 		uc.lastScanStart = time.Now()
 	}
@@ -283,6 +335,24 @@ func (uc *FileUsecase) ProcessDirectory(
 		uc.scanMutex.Lock()
 		uc.activeScanCount--
 		uc.scanMutex.Unlock()
+	}()
+
+	// 修复：在正确位置初始化任务进度跟踪器
+	taskProg := &taskProgress{
+		id: taskID,
+		// 初始值设为0，后续在ProcessMusicDirectory中填充
+	}
+
+	// 注册任务
+	uc.activeTasksMu.Lock()
+	uc.activeTasks[taskID] = taskProg
+	uc.activeTasksMu.Unlock()
+
+	// 任务结束时清理
+	defer func() {
+		uc.activeTasksMu.Lock()
+		delete(uc.activeTasks, taskID)
+		uc.activeTasksMu.Unlock()
 	}()
 
 	var libraryFolders []*domain_file_entity.LibraryFolderMetadata
@@ -389,28 +459,28 @@ func (uc *FileUsecase) ProcessDirectory(
 	switch ScanModel {
 	case 0: // 扫描新的和有修改的文件
 		if folderType == 1 {
-			err := uc.ProcessMusicDirectory(ctx, libraryFolders, true, true, false)
+			err := uc.ProcessMusicDirectory(ctx, libraryFolders, taskProg, true, true, false)
 			if err != nil {
 				return err
 			}
 		}
 	case 1: // 搜索缺失的元数据
 		if folderType == 1 {
-			err := uc.ProcessMusicDirectory(ctx, libraryFolders, true, false, false)
+			err := uc.ProcessMusicDirectory(ctx, libraryFolders, taskProg, true, false, false)
 			if err != nil {
 				return err
 			}
 		}
 	case 2: // 覆盖所有元数据
 		if folderType == 1 {
-			err := uc.ProcessMusicDirectory(ctx, libraryFolders, true, true, true)
+			err := uc.ProcessMusicDirectory(ctx, libraryFolders, taskProg, true, true, true)
 			if err != nil {
 				return err
 			}
 		}
 	case 3: // 重构媒体库
 		if folderType == 1 {
-			err := uc.ProcessMusicDirectory(ctx, libraryFolders, true, true, true)
+			err := uc.ProcessMusicDirectory(ctx, libraryFolders, taskProg, true, true, true)
 			if err != nil {
 				return err
 			}
@@ -425,6 +495,7 @@ func (uc *FileUsecase) ProcessDirectory(
 func (uc *FileUsecase) ProcessMusicDirectory(
 	ctx context.Context,
 	libraryFolders []*domain_file_entity.LibraryFolderMetadata,
+	taskProg *taskProgress,
 	libraryTraversal bool, // 是否遍历传入的媒体库目录
 	libraryStatistics bool, // 是否统计传入的媒体库目录
 	libraryRefactoring bool, // 是否重构传入的媒体库目录（覆盖所有元数据）
@@ -440,6 +511,18 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 			return fmt.Errorf("stats update failed: %w", updateErr)
 		}
 	}
+
+	// 修复：统计总文件数并设置到任务进度
+	totalFiles := 0
+	for _, folder := range libraryFolders {
+		count, err := countFilesInFolder(folder.FolderPath)
+		if err != nil {
+			log.Printf("统计文件数失败: %v", err)
+			continue
+		}
+		totalFiles += count
+	}
+	taskProg.AddTotalFiles(totalFiles)
 
 	coverTempPath, _ := uc.tempRepo.GetTempPath(ctx, "cover")
 
@@ -496,7 +579,6 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 
 		// 存储需要排除的.wav文件路径
 		excludeWavs := make(map[string]struct{})
-		// 存储cue文件及其资源
 		cueResourcesMap := make(map[string]*scene_audio_db_models.CueConfig)
 
 		// 遍历时统计总文件数
@@ -516,10 +598,6 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 			if err != nil {
 				return err
 			}
-
-			uc.scanMutex.Lock()
-			uc.scanTotal += total
-			uc.scanMutex.Unlock()
 		}
 
 		// 第一次遍历：收集.cue文件和关联资源
@@ -531,6 +609,9 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 				if info.IsDir() {
 					return nil
 				}
+
+				// 修复：更新任务级别的遍历计数器
+				atomic.AddInt32(&taskProg.walkedFiles, 1)
 
 				ext := strings.ToLower(filepath.Ext(path))
 				dir := filepath.Dir(path)
@@ -597,6 +678,9 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 					return nil
 				}
 
+				// 修复：更新任务级别的遍历计数器
+				atomic.AddInt32(&taskProg.walkedFiles, 1)
+
 				// 检查是否是被排除的.wav文件
 				if _, excluded := excludeWavs[path]; excluded {
 					return nil
@@ -624,7 +708,7 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 					if libraryTraversal {
 						wgFile.Add(1)
 						folderInfo.libraryFolderFileCount++
-						go uc.processFile(ctx, res, res.AudioPath, libraryFolderPath, coverTempPath, folder.ID, &wgFile, errChan)
+						go uc.processFile(ctx, res, res.AudioPath, libraryFolderPath, coverTempPath, folder.ID, &wgFile, errChan, taskProg)
 					}
 				} else {
 					// 关键修复：路径收集不受libraryTraversal影响
@@ -637,8 +721,9 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 					if libraryTraversal {
 						wgFile.Add(1)
 						folderInfo.libraryFolderFileCount++
-						go uc.processFile(ctx, nil, path, libraryFolderPath, coverTempPath, folder.ID, &wgFile, errChan)
+						go uc.processFile(ctx, nil, path, libraryFolderPath, coverTempPath, folder.ID, &wgFile, errChan, taskProg)
 					}
+					return nil
 				}
 				return nil
 			}
@@ -1110,6 +1195,20 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 	return finalErr
 }
 
+func countFilesInFolder(rootPath string) (int, error) {
+	count := 0
+	err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			count++
+		}
+		return nil
+	})
+	return count, err
+}
+
 func (uc *FileUsecase) shouldProcess(path string, folderType int) bool {
 	fileType, err := uc.detector.DetectMediaType(path)
 	if err != nil {
@@ -1140,20 +1239,13 @@ func (uc *FileUsecase) processFile(
 	libraryFolderID primitive.ObjectID,
 	wg *sync.WaitGroup,
 	errChan chan<- error,
+	taskProg *taskProgress, // 新增：接收任务进度
 ) {
 	defer func() {
-		uc.scanMutex.Lock()
-		uc.scanProcessed++ // 增加已处理文件数
-		if uc.scanTotal > 0 {
-			// 只计算文件处理阶段的进度
-			traversalProgress := uc.scanStageWeights.traversal *
-				float32(uc.scanProcessed) / float32(uc.scanTotal)
-			uc.scanProgress = traversalProgress
-		}
-		uc.scanMutex.Unlock()
+		// 修复：更新任务级别的处理计数器
+		atomic.AddInt32(&taskProg.processedFiles, 1)
+		wg.Done()
 	}()
-
-	defer wg.Done()
 
 	// 上下文取消检查
 	select {

@@ -23,6 +23,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
 	route.Setup(env, time.Duration(env.ContextTimeout)*time.Second, db, router)
 	if err := router.Run(env.ServerAddress); err != nil {
