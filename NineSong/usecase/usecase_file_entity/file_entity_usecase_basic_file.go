@@ -40,6 +40,7 @@ type taskProgress struct {
 	processedFiles int32      // 原子计数：已处理文件数
 	mu             sync.Mutex // 新增互斥锁保护非原子字段
 	initialized    bool       // 新增：标记是否已初始化
+	status         string     // 新增：任务状态
 }
 
 func NewScanManager() *ScanManager {
@@ -176,51 +177,57 @@ func NewFileUsecase(
 	}
 }
 
-func (uc *FileUsecase) GetScanProgress() (float32, time.Time, int) {
+func (uc *FileUsecase) GetScanProgress() (float32, time.Time, int, map[string]string) {
 	uc.scanMutex.RLock()
 	defer uc.scanMutex.RUnlock()
 
-	// 1. 无任务时返回0
 	if len(uc.activeTasks) == 0 {
-		return 0, uc.lastScanStart, 0
+		return 0, uc.lastScanStart, 0, nil
 	}
 
-	// 2. 聚合所有任务的进度
 	totalProgress := float32(0)
 	taskCount := 0
+	taskStatuses := make(map[string]string)
 
 	uc.activeTasksMu.RLock()
 	defer uc.activeTasksMu.RUnlock()
 
-	for _, task := range uc.activeTasks {
-		if !task.initialized {
+	for id, task := range uc.activeTasks {
+		taskStatuses[id] = task.status
+
+		if task.status == "preparing" {
+			totalProgress += 0.01 // 准备中状态返回1%
+			taskCount++
 			continue
 		}
 
-		taskCount++
+		if !task.initialized {
+			totalProgress += 0.01
+			taskCount++
+			continue
+		}
+
 		walked := atomic.LoadInt32(&task.walkedFiles)
 		processed := atomic.LoadInt32(&task.processedFiles)
 		total := atomic.LoadInt32(&task.totalFiles)
 
-		// 避免除零错误
 		if total == 0 {
 			continue
 		}
 
-		// 计算任务级进度
 		traversalRatio := float32(walked) / float32(2*total)
 		processingRatio := float32(processed) / float32(total)
 		taskProgress := (traversalRatio + processingRatio) * 0.5
 		totalProgress += taskProgress
+		taskCount++
 	}
 
 	if taskCount == 0 {
-		return 0, uc.lastScanStart, 0
+		return 0, uc.lastScanStart, 0, taskStatuses
 	}
 
-	// 3. 计算整体加权平均进度
 	avgProgress := totalProgress / float32(taskCount)
-	return avgProgress * uc.scanStageWeights.traversal, uc.lastScanStart, taskCount
+	return avgProgress, uc.lastScanStart, taskCount, taskStatuses
 }
 
 func (uc *FileUsecase) ProcessDirectory(
@@ -339,14 +346,15 @@ func (uc *FileUsecase) ProcessDirectory(
 
 	// 修复：在正确位置初始化任务进度跟踪器
 	taskProg := &taskProgress{
-		id: taskID,
-		// 初始值设为0，后续在ProcessMusicDirectory中填充
+		id:     taskID,
+		status: "preparing", // 初始状态
 	}
 
 	// 注册任务
-	uc.activeTasksMu.Lock()
 	uc.activeTasks[taskID] = taskProg
-	uc.activeTasksMu.Unlock()
+	// 开始统计文件数
+	taskProg.status = "counting_files"
+	uc.activeTasks[taskID] = taskProg
 
 	// 任务结束时清理
 	defer func() {
@@ -515,13 +523,15 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 	// 修复：统计总文件数并设置到任务进度
 	totalFiles := 0
 	for _, folder := range libraryFolders {
-		count, err := countFilesInFolder(folder.FolderPath)
+		count, err := fastCountFilesInFolder(folder.FolderPath)
 		if err != nil {
 			log.Printf("统计文件数失败: %v", err)
 			continue
 		}
 		totalFiles += count
 	}
+	// 更新任务状态
+	taskProg.status = "processing"
 	taskProg.AddTotalFiles(totalFiles)
 
 	coverTempPath, _ := uc.tempRepo.GetTempPath(ctx, "cover")
@@ -1196,6 +1206,21 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 }
 
 func countFilesInFolder(rootPath string) (int, error) {
+	count := 0
+	err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			count++
+		}
+		return nil
+	})
+	return count, err
+}
+
+// 使用快速目录统计函数
+func fastCountFilesInFolder(rootPath string) (int, error) {
 	count := 0
 	err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {

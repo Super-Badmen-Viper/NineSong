@@ -88,7 +88,7 @@ func (ctrl *FileController) ScanDirectory(c *gin.Context) {
 }
 
 func (ctrl *FileController) GetScanProgress(c *gin.Context) {
-	progress, startTime, activeScanCount := ctrl.usecase.GetScanProgress()
+	progress, startTime, activeScanCount, _ := ctrl.usecase.GetScanProgress()
 
 	c.JSON(http.StatusOK, gin.H{
 		"progress":          progress,
