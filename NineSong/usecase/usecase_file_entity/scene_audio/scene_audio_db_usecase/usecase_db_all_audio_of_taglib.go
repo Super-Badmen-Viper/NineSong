@@ -3,6 +3,8 @@ package scene_audio_db_usecase
 import (
 	"crypto/sha256"
 	"fmt"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/util/audio/audio_wav"
+	"github.com/dhowden/tag"
 	"github.com/mozillazg/go-pinyin"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
@@ -37,20 +39,77 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 	}
 
 	var tags map[string][]string
+	var properties struct {
+		Length     time.Duration
+		Channels   uint
+		SampleRate uint
+		Bitrate    uint
+	}
+	var readError error
 	tags, err := taglib.ReadTags(path)
 	if err != nil {
-		if res == nil {
-			return nil, nil, nil, nil, fmt.Errorf("标签解析失败[%s]: %w", path, err)
+		readError = err
+		log.Printf("标签解析失败[%s]: %v", path)
+	}
+	properties, err = taglib.ReadProperties(path)
+	if err != nil {
+		log.Printf("音频属性读取失败[%s]: %v", path)
+	}
+
+	if readError != nil {
+		f, err := os.Open(path)
+		if err != nil {
+			log.Fatal(err)
 		}
-		if tags == nil {
+		defer f.Close()
+		d := audio_wav.NewDecoder(f)
+		d.ReadMetadata()
+		if d.Err() != nil {
+			log.Fatal(err)
+		}
+		if d.Metadata != nil {
 			tags = make(map[string][]string)
+			tags[taglib.Artist] = []string{UTF8ToGBK(d.Metadata.Artist)}
+			tags[taglib.Album] = []string{UTF8ToGBK(d.Metadata.Product)}
+			tags[taglib.Comment] = []string{UTF8ToGBK(d.Metadata.Comments)}
+			tags[taglib.Copyright] = []string{UTF8ToGBK(d.Metadata.Copyright)}
+			tags[taglib.Engineer] = []string{UTF8ToGBK(d.Metadata.Engineer)}
+			tags[taglib.Genre] = []string{UTF8ToGBK(d.Metadata.Genre)}
+			tags[taglib.InitialKey] = []string{UTF8ToGBK(d.Metadata.Keywords)}
+			tags[taglib.Title] = []string{UTF8ToGBK(d.Metadata.Title)}
+			tags[taglib.Subtitle] = []string{UTF8ToGBK(d.Metadata.Subject)}
+			tags[taglib.AudioSourceWebpage] = []string{UTF8ToGBK(d.Metadata.Source)}
+			tags[taglib.TrackNumber] = []string{UTF8ToGBK(d.Metadata.TrackNbr)}
+			tags[taglib.Date] = []string{UTF8ToGBK(d.Metadata.CreationDate)}
+
+			properties.Length, _ = d.Duration()
+			properties.Channels = uint(d.NumChans)
+			properties.SampleRate = uint(d.SampleRate)
+			properties.Bitrate = uint(d.BitDepth)
+		}
+		metadata, err := tag.ReadFrom(f)
+		if err == nil {
+			if metadata != nil {
+				currentTrack, totalTracks := metadata.Track()
+				currentDisc, totalDiscs := metadata.Disc()
+
+				tags[taglib.Artist] = []string{metadata.Artist()}
+				tags[taglib.Album] = []string{metadata.Album()}
+				tags[taglib.AlbumArtist] = []string{metadata.AlbumArtist()}
+				tags[taglib.Title] = []string{metadata.Title()}
+				tags[taglib.TrackNumber] = []string{strconv.Itoa(currentTrack), strconv.Itoa(totalTracks)}
+				tags[taglib.DiscNumber] = []string{strconv.Itoa(currentDisc), strconv.Itoa(totalDiscs)}
+				tags[taglib.Comment] = []string{metadata.Comment()}
+				tags[taglib.Composer] = []string{metadata.Composer()}
+				tags[taglib.Lyrics] = []string{metadata.Lyrics()}
+				tags[taglib.Genre] = []string{metadata.Genre()}
+				tags[taglib.Date] = []string{strconv.Itoa(metadata.Year())}
+			}
 		}
 	}
-	properties, err := taglib.ReadProperties(path)
-	if err != nil {
-		if res == nil {
-			return nil, nil, nil, nil, fmt.Errorf("属性解析失败[%s]: %w", path, err)
-		}
+
+	if tags == nil {
+		tags = make(map[string][]string)
 	}
 
 	now := time.Now().UTC()
@@ -858,6 +917,16 @@ func isGBK(data []byte) bool {
 		return false
 	}
 	return true
+}
+
+func UTF8ToGBK(input string) string {
+	utf8Data := []byte(input)
+	decoder := simplifiedchinese.GBK.NewDecoder()
+	gbkData, _, err := transform.Bytes(decoder, utf8Data)
+	if err != nil {
+		return input
+	}
+	return string(gbkData)
 }
 
 // 提取带引号的值（兼容中英文引号）

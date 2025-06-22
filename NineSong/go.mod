@@ -12,9 +12,11 @@ require (
 )
 
 require (
-	github.com/abema/go-mp4 v1.4.1
 	github.com/dhowden/tag v0.0.0-20240417053706-3d75831295e8
-	github.com/h2non/filetype v1.1.3
+	github.com/go-audio/aiff v1.1.0
+	github.com/go-audio/audio v1.0.0
+	github.com/go-audio/riff v1.0.0
+	github.com/go-audio/wav v1.1.0
 	github.com/mozillazg/go-pinyin v0.20.0
 	go.senan.xyz/taglib v0.6.1
 	golang.org/x/text v0.25.0
@@ -34,7 +36,6 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/uuid v1.1.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
