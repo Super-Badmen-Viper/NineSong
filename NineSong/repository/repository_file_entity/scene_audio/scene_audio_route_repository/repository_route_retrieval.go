@@ -68,14 +68,32 @@ func (r *retrievalRepository) GetCoverArt(ctx context.Context, fileType string, 
 		return "", fmt.Errorf("cover storage config not found: %w", err)
 	}
 
-	typePath := filepath.Join(tempMeta.FolderPath, fileType, targetID, "cover.jpg")
-
-	if fileInfo, err := os.Stat(typePath); err != nil {
-		if os.IsNotExist(err) {
-			return "", fmt.Errorf("cover art not found: %s", typePath)
+	typePath, err := r.checkCoverFile(filepath.Join(tempMeta.FolderPath, fileType, targetID), "cover.jpg")
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			typePath, err = r.checkCoverFile(filepath.Join(tempMeta.FolderPath, fileType, targetID), "cover.png")
+			if err != nil {
+				return "", fmt.Errorf("cover art not found: %w", err)
+			}
+			return typePath, nil
 		}
 		return "", fmt.Errorf("file system error: %w", err)
-	} else if fileInfo.Size() == 0 {
+	}
+
+	return typePath, nil
+}
+
+func (r *retrievalRepository) checkCoverFile(basePath string, fileName string) (string, error) {
+	typePath := filepath.Join(basePath, fileName)
+	fileInfo, err := os.Stat(typePath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return typePath, err
+		}
+		return typePath, fmt.Errorf("file system error: %w", err)
+	}
+
+	if fileInfo.Size() == 0 {
 		return "", errors.New("empty cover art file")
 	}
 

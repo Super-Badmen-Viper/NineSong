@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	ffmpeg_go "github.com/u2takey/ffmpeg-go"
 	"io"
 	"log"
 	"os"
@@ -1408,6 +1409,7 @@ func (uc *FileUsecase) processAudioMediaFilesAndAlbumCover(
 	coverBasePath string,
 ) error {
 	if mediaCue != nil {
+		// 处理CUE文件的封面逻辑（保持不变）
 		mediaCueUpdate := bson.M{
 			"$set": bson.M{
 				"back_image_url":  mediaCue.CueResources.BackImage,
@@ -1420,21 +1422,7 @@ func (uc *FileUsecase) processAudioMediaFilesAndAlbumCover(
 			return fmt.Errorf("媒体更新失败: %w", err)
 		}
 	} else {
-		file, err := os.Open(path)
-		if err != nil {
-			return nil
-		}
-		defer func(file *os.File) {
-			err := file.Close()
-			if err != nil {
-				log.Printf("文件关闭失败[%s]: %v", path, err)
-			}
-		}(file)
-		metadata, err := tag.ReadFrom(file)
-		if err != nil {
-			return nil
-		}
-
+		// 创建封面存储目录
 		mediaCoverDir := filepath.Join(coverBasePath, "media", media.ID.Hex())
 		if err := os.MkdirAll(mediaCoverDir, 0755); err != nil {
 			return fmt.Errorf("媒体目录创建失败: %w", err)
@@ -1443,22 +1431,34 @@ func (uc *FileUsecase) processAudioMediaFilesAndAlbumCover(
 		var coverPath string
 		defer func() {
 			if coverPath == "" {
-				err := os.RemoveAll(mediaCoverDir)
-				if err != nil {
+				if err := os.RemoveAll(mediaCoverDir); err != nil {
 					log.Printf("[WARN] 媒体目录删除失败 | 路径:%s | 错误:%v", mediaCoverDir, err)
-					return
 				}
 			}
 		}()
 
-		if pic := metadata.Picture(); pic != nil && len(pic.Data) > 0 {
-			targetPath := filepath.Join(mediaCoverDir, "cover.jpg")
-			if err := os.WriteFile(targetPath, pic.Data, 0644); err != nil {
-				return fmt.Errorf("封面写入失败: %w", err)
+		// 1. 优先检查本地已存在的封面文件[2,3](@ref)
+		coverPath = uc.findLocalCover(path, mediaCoverDir)
+
+		// 2. 如果未找到本地封面，尝试读取内嵌封面
+		if coverPath == "" {
+			file, err := os.Open(path)
+			if err != nil {
+				log.Printf("[WARN] 文件打开失败: %v", err)
+			} else {
+				defer file.Close()
+				if metadata, err := tag.ReadFrom(file); err == nil {
+					coverPath = uc.extractEmbeddedCover(metadata, mediaCoverDir)
+				}
 			}
-			coverPath = targetPath
 		}
 
+		// 3. 如果仍未获取到封面，使用FFmpeg提取内嵌封面[1,3,6](@ref)
+		if coverPath == "" {
+			coverPath = uc.extractCoverWithFFmpeg(path, mediaCoverDir)
+		}
+
+		// 更新媒体封面信息
 		mediaUpdate := bson.M{
 			"$set": bson.M{
 				"medium_image_url": coverPath,
@@ -1469,38 +1469,137 @@ func (uc *FileUsecase) processAudioMediaFilesAndAlbumCover(
 			return fmt.Errorf("媒体更新失败: %w", err)
 		}
 
+		// 4. 处理专辑封面（如果存在）
 		if album != nil && coverPath != "" {
-			if album.MediumImageURL == "" {
-				albumCoverDir := filepath.Join(coverBasePath, "album", album.ID.Hex())
-				if err := os.MkdirAll(albumCoverDir, 0755); err != nil {
-					log.Printf("[WARN] 专辑封面目录创建失败 | AlbumID:%s | 错误:%v",
-						album.ID.Hex(), err)
-				} else if pic := metadata.Picture(); pic != nil && len(pic.Data) > 0 {
-					albumCoverPath := filepath.Join(albumCoverDir, "cover.jpg")
-					if err := os.WriteFile(albumCoverPath, pic.Data, 0644); err != nil {
-						log.Printf("[WARN] 专辑封面写入失败 | AlbumID:%s | 路径:%s | 错误:%v",
-							album.ID.Hex(), albumCoverPath, err)
-					} else {
-						coverPath = albumCoverPath // 优先使用专辑级封面路径
-					}
-				}
-
-				albumUpdate := bson.M{
-					"$set": bson.M{
-						"medium_image_url": coverPath,
-						"has_cover_art":    true,
-						"updated_at":       time.Now().UTC(),
-					},
-				}
-				if _, err := uc.albumRepo.UpdateByID(ctx, album.ID, albumUpdate); err != nil {
-					log.Printf("[WARN] 专辑元数据更新失败 | ID:%s | 错误:%v",
-						album.ID.Hex(), err)
-				}
-			}
+			uc.processAlbumCover(album, coverPath, coverBasePath, ctx)
 		}
 	}
 
 	return nil
+}
+
+// 在音频文件同目录查找封面文件[2](@ref)
+func (uc *FileUsecase) findLocalCover(audioPath, targetDir string) string {
+	dir := filepath.Dir(audioPath)
+	baseName := strings.TrimSuffix(filepath.Base(audioPath), filepath.Ext(audioPath))
+
+	// 可能的封面文件名模式
+	coverPatterns := []string{
+		"cover.jpg", "cover.png", "cover.jpeg", // 通用封面名
+		baseName + ".jpg", baseName + ".png", baseName + ".jpeg", // 与音频同名的封面
+		"folder.jpg", "folder.png", // Windows常见的封面名
+	}
+
+	for _, pattern := range coverPatterns {
+		srcPath := filepath.Join(dir, pattern)
+		if _, err := os.Stat(srcPath); err == nil {
+			destPath := filepath.Join(targetDir, "cover"+filepath.Ext(srcPath))
+			if err := uc.copyCoverFile(srcPath, destPath); err == nil {
+				return destPath
+			}
+		}
+	}
+	return ""
+}
+
+// 复制封面文件
+func (uc *FileUsecase) copyCoverFile(src, dest string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	destFile, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	if _, err := io.Copy(destFile, srcFile); err != nil {
+		return err
+	}
+	return nil
+}
+
+// 从标签元数据提取内嵌封面[1](@ref)
+func (uc *FileUsecase) extractEmbeddedCover(metadata tag.Metadata, mediaCoverDir string) string {
+	if pic := metadata.Picture(); pic != nil && len(pic.Data) > 0 {
+		coverPath := filepath.Join(mediaCoverDir, "cover.jpg")
+		if err := os.WriteFile(coverPath, pic.Data, 0644); err == nil {
+			return coverPath
+		}
+	}
+	return ""
+}
+
+// 使用FFmpeg提取封面（当其他方法失败时）[3,6](@ref)
+func (uc *FileUsecase) extractCoverWithFFmpeg(audioPath, mediaCoverDir string) string {
+	// 1. 设置输出路径为PNG格式（WAV封面多为PNG）
+	coverPath := filepath.Join(mediaCoverDir, "cover.png")
+
+	// 2. 构建优化的FFmpeg命令
+	cmd := ffmpeg_go.Input(audioPath).
+		Output(coverPath, ffmpeg_go.KwArgs{
+			"an":     "",     // 丢弃音频流
+			"vcodec": "copy", // 直接复制视频流（封面数据）
+			"y":      "",     // 覆盖现有文件
+		}).
+		OverWriteOutput()
+
+	// 3. 执行并记录详细命令
+	compiledCmd := cmd.Compile()
+	log.Printf("执行FFmpeg封面提取命令: %s", strings.Join(compiledCmd.Args, " "))
+
+	// 4. 运行命令并处理错误
+	if err := cmd.Run(); err != nil {
+		// 5. 特定错误处理
+		if strings.Contains(err.Error(), "No video stream") {
+			log.Printf("[WARN] 文件无内嵌封面: %s", audioPath)
+		} else {
+			log.Printf("[ERROR] FFmpeg封面提取失败: %v", err)
+		}
+		return ""
+	}
+
+	// 6. 验证结果
+	if info, err := os.Stat(coverPath); err != nil || info.Size() == 0 {
+		log.Printf("[WARN] 封面生成失败 | 大小:%d | 错误:%v", info.Size(), err)
+		return ""
+	}
+
+	return coverPath
+}
+
+// 处理专辑封面[1](@ref)
+func (uc *FileUsecase) processAlbumCover(album *scene_audio_db_models.AlbumMetadata,
+	coverPath, coverBasePath string, ctx context.Context) {
+
+	if album.MediumImageURL == "" {
+		albumCoverDir := filepath.Join(coverBasePath, "album", album.ID.Hex())
+		if err := os.MkdirAll(albumCoverDir, 0755); err != nil {
+			log.Printf("[WARN] 专辑封面目录创建失败: %v", err)
+			return
+		}
+
+		albumCoverPath := filepath.Join(albumCoverDir, "cover.jpg")
+		if err := uc.copyCoverFile(coverPath, albumCoverPath); err != nil {
+			log.Printf("[WARN] 专辑封面复制失败: %v", err)
+			return
+		}
+
+		albumUpdate := bson.M{
+			"$set": bson.M{
+				"medium_image_url": albumCoverPath,
+				"has_cover_art":    true,
+				"updated_at":       time.Now().UTC(),
+			},
+		}
+
+		if _, err := uc.albumRepo.UpdateByID(ctx, album.ID, albumUpdate); err != nil {
+			log.Printf("[WARN] 专辑元数据更新失败: %v", err)
+		}
+	}
 }
 
 func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,

@@ -6,6 +6,7 @@ RUN go mod download
 RUN go build -o main cmd/main.go
 FROM alpine:latest
 WORKDIR /app
+RUN apk add -U --no-cache ffmpeg
 COPY --from=builder /app/main /app/main
 COPY --from=builder /app/.env /app/.env
 CMD ["/app/main"]

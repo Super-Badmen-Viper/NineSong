@@ -1,11 +1,14 @@
 package scene_audio_db_usecase
 
 import (
+	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/util/audio/audio_wav"
-	"github.com/dhowden/tag"
+	"github.com/go-audio/wav"
 	"github.com/mozillazg/go-pinyin"
+	"github.com/tidwall/gjson"
+	"github.com/u2takey/ffmpeg-go"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
 	"io"
@@ -16,6 +19,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
@@ -38,6 +42,8 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 		return nil, nil, nil, nil, err
 	}
 
+	suffix := strings.ToLower(strings.TrimPrefix(filepath.Ext(path), "."))
+
 	var tags map[string][]string
 	var properties struct {
 		Length     time.Duration
@@ -49,61 +55,131 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 	tags, err := taglib.ReadTags(path)
 	if err != nil {
 		readError = err
-		log.Printf("标签解析失败[%s]: %v", path)
+		tags = make(map[string][]string)
 	}
 	properties, err = taglib.ReadProperties(path)
-	if err != nil {
-		log.Printf("音频属性读取失败[%s]: %v", path)
-	}
 
 	if readError != nil {
-		f, err := os.Open(path)
+		metadataJson, err := GetMediaMetadata(path)
 		if err != nil {
-			log.Fatal(err)
+			metadataJson = ""
 		}
-		defer f.Close()
-		d := audio_wav.NewDecoder(f)
-		d.ReadMetadata()
-		if d.Err() != nil {
-			log.Fatal(err)
-		}
-		if d.Metadata != nil {
-			tags = make(map[string][]string)
-			tags[taglib.Artist] = []string{UTF8ToGBK(d.Metadata.Artist)}
-			tags[taglib.Album] = []string{UTF8ToGBK(d.Metadata.Product)}
-			tags[taglib.Comment] = []string{UTF8ToGBK(d.Metadata.Comments)}
-			tags[taglib.Copyright] = []string{UTF8ToGBK(d.Metadata.Copyright)}
-			tags[taglib.Engineer] = []string{UTF8ToGBK(d.Metadata.Engineer)}
-			tags[taglib.Genre] = []string{UTF8ToGBK(d.Metadata.Genre)}
-			tags[taglib.InitialKey] = []string{UTF8ToGBK(d.Metadata.Keywords)}
-			tags[taglib.Title] = []string{UTF8ToGBK(d.Metadata.Title)}
-			tags[taglib.Subtitle] = []string{UTF8ToGBK(d.Metadata.Subject)}
-			tags[taglib.AudioSourceWebpage] = []string{UTF8ToGBK(d.Metadata.Source)}
-			tags[taglib.TrackNumber] = []string{UTF8ToGBK(d.Metadata.TrackNbr)}
-			tags[taglib.Date] = []string{UTF8ToGBK(d.Metadata.CreationDate)}
+		if len(metadataJson) > 0 {
+			formatTags := gjson.Get(metadataJson, "format.tags").Map()
+			tagMappings := map[string]string{
+				taglib.Artist:                    "artist",
+				taglib.Album:                     "album",
+				taglib.Title:                     "title",
+				taglib.Comment:                   "comment",
+				taglib.Date:                      "date",
+				taglib.Genre:                     "genre",
+				taglib.TrackNumber:               "track",
+				taglib.DiscNumber:                "disc",
+				taglib.Copyright:                 "copyright",
+				taglib.Composer:                  "composer",
+				taglib.AlbumArtist:               "album_artist",
+				taglib.ArtistSort:                "artist_sort",
+				taglib.AlbumArtistSort:           "album_artist_sort",
+				taglib.AlbumSort:                 "album_sort",
+				taglib.Engineer:                  "engineer",
+				taglib.BPM:                       "bpm",
+				taglib.EncodedBy:                 "encoded_by",
+				taglib.EncodingTime:              "encodingtime",
+				taglib.Language:                  "language",
+				taglib.Barcode:                   "barcode",
+				taglib.CatalogNumber:             "catalognumber",
+				taglib.ISRC:                      "isrc",
+				taglib.AcoustIDFingerprint:       "acoustid_fingerprint",
+				taglib.AcoustIDID:                "acoustid_id",
+				taglib.MusicBrainzTrackID:        "musicbrainz_trackid",
+				taglib.MusicBrainzReleaseGroupID: "musicbrainz_releasegroupid",
+			}
 
-			properties.Length, _ = d.Duration()
-			properties.Channels = uint(d.NumChans)
-			properties.SampleRate = uint(d.SampleRate)
-			properties.Bitrate = uint(d.BitDepth)
-		}
-		metadata, err := tag.ReadFrom(f)
-		if err == nil {
-			if metadata != nil {
-				currentTrack, totalTracks := metadata.Track()
-				currentDisc, totalDiscs := metadata.Disc()
+			// 动态处理所有标签字段
+			for tagKey, jsonKey := range tagMappings {
+				if val, exists := formatTags[jsonKey]; exists {
+					tags[tagKey] = []string{val.String()}
+				}
+			}
 
-				tags[taglib.Artist] = []string{metadata.Artist()}
-				tags[taglib.Album] = []string{metadata.Album()}
-				tags[taglib.AlbumArtist] = []string{metadata.AlbumArtist()}
-				tags[taglib.Title] = []string{metadata.Title()}
-				tags[taglib.TrackNumber] = []string{strconv.Itoa(currentTrack), strconv.Itoa(totalTracks)}
-				tags[taglib.DiscNumber] = []string{strconv.Itoa(currentDisc), strconv.Itoa(totalDiscs)}
-				tags[taglib.Comment] = []string{metadata.Comment()}
-				tags[taglib.Composer] = []string{metadata.Composer()}
-				tags[taglib.Lyrics] = []string{metadata.Lyrics()}
-				tags[taglib.Genre] = []string{metadata.Genre()}
-				tags[taglib.Date] = []string{strconv.Itoa(metadata.Year())}
+			// 特殊处理歌词字段（动态匹配lyrics-前缀）
+			for key, value := range formatTags {
+				if strings.HasPrefix(key, "lyrics-") {
+					tags[taglib.Lyrics] = []string{value.String()}
+					break
+				}
+			}
+
+			// 修正属性获取逻辑
+			duration := gjson.Get(metadataJson, "format.duration").Float()
+			properties.Length = time.Duration(duration * float64(time.Second))
+
+			// 修正流信息获取
+			streams := gjson.Get(metadataJson, "streams").Array()
+			if len(streams) > 0 {
+				// 查找音频流（跳过封面图流）
+				var audioStream gjson.Result
+				for _, stream := range streams {
+					if stream.Get("codec_type").String() == "audio" {
+						audioStream = stream
+						break
+					}
+				}
+
+				if audioStream.Exists() {
+					// 声道数
+					if channels := audioStream.Get("channels"); channels.Exists() {
+						properties.Channels = uint(channels.Int())
+					}
+
+					// 采样率
+					if sampleRate := audioStream.Get("sample_rate"); sampleRate.Exists() {
+						if sr, err := strconv.ParseUint(sampleRate.String(), 10, 64); err == nil {
+							properties.SampleRate = uint(sr)
+						}
+					}
+				}
+			}
+
+			// 比特率获取
+			if bitRate := gjson.Get(metadataJson, "format.bit_rate"); bitRate.Exists() {
+				if br, err := strconv.ParseUint(bitRate.String(), 10, 64); err == nil {
+					properties.Bitrate = uint(br)
+				}
+			}
+		}
+
+		if suffix == "wav" {
+			f, err := os.Open(path)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer f.Close()
+
+			d := wav.NewDecoder(f)
+			d.ReadMetadata()
+			if d.Err() != nil {
+				log.Fatal(err)
+			}
+
+			if d.Metadata != nil {
+				tags[taglib.Artist] = []string{UTF8ToGBK(d.Metadata.Artist)}
+				tags[taglib.Album] = []string{UTF8ToGBK(d.Metadata.Product)}
+				tags[taglib.Comment] = []string{UTF8ToGBK(d.Metadata.Comments)}
+				tags[taglib.Copyright] = []string{UTF8ToGBK(d.Metadata.Copyright)}
+				tags[taglib.Engineer] = []string{UTF8ToGBK(d.Metadata.Engineer)}
+				tags[taglib.Genre] = []string{UTF8ToGBK(d.Metadata.Genre)}
+				tags[taglib.InitialKey] = []string{UTF8ToGBK(d.Metadata.Keywords)}
+				tags[taglib.Title] = []string{UTF8ToGBK(d.Metadata.Title)}
+				tags[taglib.Subtitle] = []string{UTF8ToGBK(d.Metadata.Subject)}
+				tags[taglib.AudioSourceWebpage] = []string{UTF8ToGBK(d.Metadata.Source)}
+				tags[taglib.TrackNumber] = []string{UTF8ToGBK(d.Metadata.TrackNbr)}
+				tags[taglib.Date] = []string{UTF8ToGBK(d.Metadata.CreationDate)}
+
+				properties.Length, _ = d.Duration()
+				properties.Channels = uint(d.NumChans)
+				properties.SampleRate = uint(d.SampleRate)
+				properties.Bitrate = uint(d.BitDepth)
 			}
 		}
 	}
@@ -113,8 +189,6 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 	}
 
 	now := time.Now().UTC()
-
-	suffix := strings.ToLower(strings.TrimPrefix(filepath.Ext(path), "."))
 
 	var artistID, albumID, albumArtistID primitive.ObjectID
 	var artistTag, albumArtistTag, albumTag string
@@ -954,4 +1028,103 @@ func extractQuotedValue(rawLine, key string) (string, bool) {
 func extractQuotedValueSimple(s string) string {
 	quotes := `"'“”`
 	return strings.TrimSpace(strings.Trim(s, quotes))
+}
+
+var probeSem = make(chan struct{}, 5) // 全局信号量控制并发[7](@ref)
+
+func GetMediaMetadata(filePath string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// 获取信号量（控制并发）
+	select {
+	case probeSem <- struct{}{}:
+		defer func() { <-probeSem }()
+	case <-ctx.Done():
+		return "", fmt.Errorf("等待资源超时")
+	}
+
+	// 同步执行Probe获取原始元数据
+	data, err := ffmpeg_go.Probe(filePath)
+	if err != nil {
+		return "", fmt.Errorf("ffprobe执行失败: %w", err)
+	}
+
+	// 转换元数据中的编码
+	convertedData, err := convertMetadataEncoding(data)
+	if err != nil {
+		log.Printf("编码转换失败，使用原始数据: %v", err)
+		return data, nil // 降级处理：返回原始数据
+	}
+
+	return convertedData, nil
+}
+
+// 转换元数据中的编码格式为UTF-8
+func convertMetadataEncoding(data string) (string, error) {
+	// 解析JSON到map结构
+	var result map[string]interface{}
+	if err := json.Unmarshal([]byte(data), &result); err != nil {
+		return data, fmt.Errorf("JSON解析失败: %w", err)
+	}
+
+	// 转换format.tags中的字段
+	if format, ok := result["format"].(map[string]interface{}); ok {
+		if tags, ok := format["tags"].(map[string]interface{}); ok {
+			for key, value := range tags {
+				if strVal, ok := value.(string); ok {
+					tags[key] = convertToUTF8(strVal)
+				}
+			}
+		}
+	}
+
+	// 转换streams中的tags字段
+	if streams, ok := result["streams"].([]interface{}); ok {
+		for _, stream := range streams {
+			if streamMap, ok := stream.(map[string]interface{}); ok {
+				if tags, ok := streamMap["tags"].(map[string]interface{}); ok {
+					for key, value := range tags {
+						if strVal, ok := value.(string); ok {
+							tags[key] = convertToUTF8(strVal)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// 重新序列化为JSON
+	converted, err := json.Marshal(result)
+	if err != nil {
+		return data, fmt.Errorf("JSON序列化失败: %w", err)
+	}
+	return string(converted), nil
+}
+
+// 自动检测并转换为UTF-8编码
+func convertToUTF8(input string) string {
+	// 如果已经是有效的UTF-8，直接返回
+	if utf8.ValidString(input) {
+		return input
+	}
+
+	// 尝试从GBK转换为UTF-8
+	decoder := simplifiedchinese.GBK.NewDecoder()
+	output, _, err := transform.String(decoder, input)
+	if err == nil && utf8.ValidString(output) {
+		return output
+	}
+
+	// 尝试从GB18030转换为UTF-8（兼容性更好）
+	decoder = simplifiedchinese.GB18030.NewDecoder()
+	output, _, err = transform.String(decoder, input)
+	if err == nil && utf8.ValidString(output) {
+		return output
+	}
+
+	// 尝试其他常见编码（如BIG5）可在此扩展
+
+	// 无法转换时返回原始数据
+	return input
 }
