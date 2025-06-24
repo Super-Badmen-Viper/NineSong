@@ -902,7 +902,7 @@ func (si *Initializer) initFileEntityAudioTempMetadata(ctx context.Context) erro
 		},
 		{
 			ID:           primitive.NewObjectID(),
-			MetadataType: "steam",
+			MetadataType: "stream",
 			FolderPath:   "c:/Users/Public/Documents/NineSong/MetaData/Steam",
 		},
 	}

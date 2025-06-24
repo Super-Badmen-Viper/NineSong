@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	ffmpeg_go "github.com/u2takey/ffmpeg-go"
+	ffmpeggo "github.com/u2takey/ffmpeg-go"
 	"io"
 	"log"
 	"os"
@@ -26,7 +26,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// 全局状态管理器
+// ScanManager 全局状态管理器
 type ScanManager struct {
 	mu                  sync.RWMutex
 	globalScanRunning   bool                          // 全局扫描任务状态
@@ -50,7 +50,7 @@ func NewScanManager() *ScanManager {
 	}
 }
 
-// 尝试启动全局扫描
+// TryStartGlobalScan 尝试启动全局扫描
 func (sm *ScanManager) TryStartGlobalScan(taskID string) (bool, context.CancelFunc) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
@@ -77,7 +77,7 @@ func (sm *ScanManager) TryStartGlobalScan(taskID string) (bool, context.CancelFu
 	}
 }
 
-// 尝试启动并发扫描
+// TryStartConcurrentScan 尝试启动并发扫描
 func (sm *ScanManager) TryStartConcurrentScan(taskID string) (bool, context.CancelFunc) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
@@ -95,14 +95,14 @@ func (sm *ScanManager) TryStartConcurrentScan(taskID string) (bool, context.Canc
 	}
 }
 
-// 注册取消函数
+// RegisterCancelFunc 注册取消函数
 func (sm *ScanManager) RegisterCancelFunc(taskID string, cancel context.CancelFunc) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 	sm.cancelFuncs[taskID] = cancel
 }
 
-// 新增：安全获取总文件数
+// AddTotalFiles 新增：安全获取总文件数
 func (tp *taskProgress) AddTotalFiles(count int) {
 	tp.mu.Lock()
 	defer tp.mu.Unlock()
@@ -613,6 +613,10 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 
 		// 第一次遍历：收集.cue文件和关联资源
 		err := filepath.Walk(folder.FolderPath, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				log.Printf("访问路径 %s 出错: %v", path, err)
+				return nil // 跳过错误继续遍历
+			}
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
@@ -681,6 +685,10 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 
 		// 第二次遍历：处理文件
 		err = filepath.Walk(folder.FolderPath, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				log.Printf("访问路径 %s 出错: %v", path, err)
+				return nil // 跳过错误继续遍历
+			}
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
@@ -1206,20 +1214,6 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 	return finalErr
 }
 
-func countFilesInFolder(rootPath string) (int, error) {
-	count := 0
-	err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() {
-			count++
-		}
-		return nil
-	})
-	return count, err
-}
-
 // 使用快速目录统计函数
 func fastCountFilesInFolder(rootPath string) (int, error) {
 	count := 0
@@ -1446,7 +1440,12 @@ func (uc *FileUsecase) processAudioMediaFilesAndAlbumCover(
 			if err != nil {
 				log.Printf("[WARN] 文件打开失败: %v", err)
 			} else {
-				defer file.Close()
+				defer func(file *os.File) {
+					err := file.Close()
+					if err != nil {
+						return
+					}
+				}(file)
 				if metadata, err := tag.ReadFrom(file); err == nil {
 					coverPath = uc.extractEmbeddedCover(metadata, mediaCoverDir)
 				}
@@ -1508,13 +1507,23 @@ func (uc *FileUsecase) copyCoverFile(src, dest string) error {
 	if err != nil {
 		return err
 	}
-	defer srcFile.Close()
+	defer func(srcFile *os.File) {
+		err := srcFile.Close()
+		if err != nil {
+			return
+		}
+	}(srcFile)
 
 	destFile, err := os.Create(dest)
 	if err != nil {
 		return err
 	}
-	defer destFile.Close()
+	defer func(destFile *os.File) {
+		err := destFile.Close()
+		if err != nil {
+			return
+		}
+	}(destFile)
 
 	if _, err := io.Copy(destFile, srcFile); err != nil {
 		return err
@@ -1539,8 +1548,8 @@ func (uc *FileUsecase) extractCoverWithFFmpeg(audioPath, mediaCoverDir string) s
 	coverPath := filepath.Join(mediaCoverDir, "cover.png")
 
 	// 2. 构建优化的FFmpeg命令
-	cmd := ffmpeg_go.Input(audioPath).
-		Output(coverPath, ffmpeg_go.KwArgs{
+	cmd := ffmpeggo.Input(audioPath).
+		Output(coverPath, ffmpeggo.KwArgs{
 			"an":     "",     // 丢弃音频流
 			"vcodec": "copy", // 直接复制视频流（封面数据）
 			"y":      "",     // 覆盖现有文件
@@ -1564,7 +1573,7 @@ func (uc *FileUsecase) extractCoverWithFFmpeg(audioPath, mediaCoverDir string) s
 
 	// 6. 验证结果
 	if info, err := os.Stat(coverPath); err != nil || info.Size() == 0 {
-		log.Printf("[WARN] 封面生成失败 | 大小:%d | 错误:%v", info.Size(), err)
+		log.Printf("[WARN] 封面生成失败 | 错误:%v", err)
 		return ""
 	}
 

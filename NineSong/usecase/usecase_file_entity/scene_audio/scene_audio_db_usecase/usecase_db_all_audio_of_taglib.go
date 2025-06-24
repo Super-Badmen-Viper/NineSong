@@ -8,7 +8,7 @@ import (
 	"github.com/go-audio/wav"
 	"github.com/mozillazg/go-pinyin"
 	"github.com/tidwall/gjson"
-	"github.com/u2takey/ffmpeg-go"
+	ffmpeggo "github.com/u2takey/ffmpeg-go"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
 	"io"
@@ -59,7 +59,7 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 	}
 	properties, err = taglib.ReadProperties(path)
 
-	if readError != nil {
+	if readError != nil || suffix == "m4a" {
 		metadataJson, err := GetMediaMetadata(path)
 		if err != nil {
 			metadataJson = ""
@@ -97,16 +97,20 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 
 			// 动态处理所有标签字段
 			for tagKey, jsonKey := range tagMappings {
-				if val, exists := formatTags[jsonKey]; exists {
-					tags[tagKey] = []string{val.String()}
+				if value, exists := formatTags[jsonKey]; exists {
+					if len(value.String()) > 0 {
+						tags[tagKey] = []string{value.String()}
+					}
 				}
 			}
 
 			// 特殊处理歌词字段（动态匹配lyrics-前缀）
 			for key, value := range formatTags {
 				if strings.HasPrefix(key, "lyrics-") {
-					tags[taglib.Lyrics] = []string{value.String()}
-					break
+					if len(value.String()) > 0 {
+						tags[taglib.Lyrics] = []string{value.String()}
+						break
+					}
 				}
 			}
 
@@ -122,6 +126,9 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 				for _, stream := range streams {
 					if stream.Get("codec_type").String() == "audio" {
 						audioStream = stream
+						if stream.Get("codec_name").String() == "alac" {
+							tags["EncodingFormat"] = []string{"alac"}
+						}
 						break
 					}
 				}
@@ -581,6 +588,8 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 			Duration:   float64(properties.Length),
 			BitRate:    int(properties.Bitrate),
 			Channels:   int(properties.Channels),
+
+			EncodingFormat: e.getTagString(tags, "EncodingFormat"),
 		},
 		compilationArtist,
 		formattedArtist, allArtistIDs,
@@ -1045,7 +1054,7 @@ func GetMediaMetadata(filePath string) (string, error) {
 	}
 
 	// 同步执行Probe获取原始元数据
-	data, err := ffmpeg_go.Probe(filePath)
+	data, err := ffmpeggo.Probe(filePath)
 	if err != nil {
 		return "", fmt.Errorf("ffprobe执行失败: %w", err)
 	}

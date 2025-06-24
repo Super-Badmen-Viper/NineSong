@@ -38,6 +38,24 @@ func (r *retrievalRepository) GetStreamPath(ctx context.Context, mediaFileId str
 	return result.Path, nil
 }
 
+func (r *retrievalRepository) GetStreamTempPath(ctx context.Context, metadataType string) (string, error) {
+	collection := r.db.Collection(domain.CollectionFileEntityAudioSceneTempMetadata)
+
+	filter := bson.M{"metadata_type": metadataType}
+
+	var result scene_audio_db_models.ExternalResource
+	err := collection.FindOne(ctx, filter).Decode(&result)
+	if err != nil {
+		return "", fmt.Errorf("路径查询失败: %w | 类型: %s", err, metadataType)
+	}
+
+	if result.FolderPath == "" {
+		return "", errors.New("数据库返回空路径")
+	}
+
+	return result.FolderPath, nil
+}
+
 func (r *retrievalRepository) GetDownloadPath(ctx context.Context, mediaFileId string) (string, error) {
 	objID, err := primitive.ObjectIDFromHex(mediaFileId)
 	if err != nil {

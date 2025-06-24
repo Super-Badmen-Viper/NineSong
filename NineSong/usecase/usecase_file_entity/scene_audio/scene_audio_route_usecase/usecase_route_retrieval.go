@@ -30,6 +30,13 @@ func (uc *retrievalUsecase) GetStreamPath(ctx context.Context, mediaFileId strin
 	return uc.repo.GetStreamPath(ctx, mediaFileId)
 }
 
+func (uc *retrievalUsecase) GetStreamTempPath(ctx context.Context, metadataType string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
+	defer cancel()
+
+	return uc.repo.GetStreamTempPath(ctx, metadataType)
+}
+
 func (uc *retrievalUsecase) GetDownloadPath(ctx context.Context, mediaFileId string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
 	defer cancel()
