@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   frontend:
-    image: nsmusics:latest
+    image: xiangch007/nsmusics:latest
     container_name: ${APP_CONTAINER_NAME}
     restart: unless-stopped
     env_file: .env
@@ -20,7 +20,7 @@ services:
       - backend
 
   backend:
-    image: ninesong:latest
+    image: xiangch007/ninesong:0.6.1-beta
     container_name: ${WEB_CONTAINER_NAME}
     restart: unless-stopped
     env_file: .env

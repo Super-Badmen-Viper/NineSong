@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_app/domain_app_config"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_app/domain_app_library"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
 	"golang.org/x/crypto/bcrypt"
 	"log"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -154,14 +155,6 @@ func (si *Initializer) executeInitialization(ctx context.Context) error {
 		return err
 	}
 
-	//if err := si.initAppServerConfigs(ctx); err != nil {
-	//	return err
-	//}
-
-	//if err := si.initAppMediaFileLibrary(ctx); err != nil {
-	//	return err
-	//}
-
 	if err := si.initSystemInfo(ctx, userID); err != nil {
 		return err
 	}
@@ -169,10 +162,6 @@ func (si *Initializer) executeInitialization(ctx context.Context) error {
 	if err := si.initSystemConfiguration(ctx, userID); err != nil {
 		return err
 	}
-
-	//if err := si.initFileEntityFolder(ctx); err != nil {
-	//	return err
-	//}
 
 	if err := si.initFileEntityAudioTempMetadata(ctx); err != nil {
 		return err
@@ -615,306 +604,63 @@ func (si *Initializer) initAppPlaylistIDConfigs(ctx context.Context) error {
 	return nil
 }
 
-func (si *Initializer) initAppServerConfigs(ctx context.Context) error {
-	coll := si.db.Collection(domain.CollectionFileEntityAudioAppServerConfigs)
-
-	id, _ := primitive.ObjectIDFromHex("67de9bb764e338bd6fa4b811")
-	initConfigs := []*domain_app_config.AppServerConfig{
-		{
-			ID:          id,
-			ServerName:  "mozhi",
-			URL:         "http://localhost:4533",
-			UserName:    "mozhi",
-			Password:    "qwer1234",
-			LastLoginAt: time.Date(2025, 3, 14, 12, 0, 26, 0, time.UTC),
-			Type:        "navidrome",
-		},
-		{
-			ID:          primitive.NewObjectID(),
-			ServerName:  "xiang",
-			URL:         "http://localhost:8096",
-			UserName:    "xiang",
-			Password:    "qwer1234",
-			LastLoginAt: time.Date(2025, 3, 14, 12, 0, 26, 0, time.UTC),
-			Type:        "jellyfin",
-		},
-		{
-			ID:          primitive.NewObjectID(),
-			ServerName:  "17741",
-			URL:         "http://localhost:8099",
-			UserName:    "17741",
-			Password:    "qwer1234",
-			LastLoginAt: time.Date(2025, 3, 14, 12, 0, 26, 0, time.UTC),
-			Type:        "emby",
-		},
-	}
-
-	for _, cfg := range initConfigs {
-		_, err := coll.InsertOne(ctx, cfg)
-		if err != nil {
-			return fmt.Errorf("应用配置初始化失败: %w", err)
-		}
-	}
-	return nil
-}
-
-func (si *Initializer) initAppMediaFileLibrary(ctx context.Context) error {
-	coll := si.db.Collection(domain.CollectionFileEntityAudioAppMediaFileLibrary)
-
-	initConfigs := []*domain_app_library.AppMediaFileLibrary{
-		{
-			Path:                 "http://localhost:4533/rest/stream?u=mozhi&t=be470bc4c1556004e26c4780c0121030&s=9V8he3&v=1.12.0&c=nsmusics&f=json&id=0b628ce5477583033eb1e08a35aefa34",
-			Title:                "唯一 (Live)",
-			Album:                "2008 Music-Man 世界巡回演唱会",
-			Artist:               "王力宏",
-			ArtistID:             "869567954cf38a7308a21cec4d0d8f59",
-			AlbumArtist:          "王力宏",
-			AlbumID:              "36271841356aac2d7ae276672de2d44e",
-			HasCoverArt:          false,
-			TrackNumber:          0,
-			DiscNumber:           0,
-			Year:                 2009,
-			Size:                 55186948,
-			Suffix:               "flac",
-			Duration:             282.39,
-			BitRate:              1557,
-			Genre:                "",
-			Compilation:          false,
-			CreatedAt:            time.Time{},
-			UpdatedAt:            time.Time{},
-			FullText:             "",
-			AlbumArtistID:        "",
-			OrderAlbumName:       "",
-			OrderAlbumArtistName: "",
-			OrderArtistName:      "",
-			SortAlbumName:        "",
-			SortArtistName:       "",
-			SortAlbumArtistName:  "",
-			SortTitle:            "",
-			DiscSubtitle:         "",
-			MBZTrackID:           "",
-			MBZAlbumID:           "",
-			MBZArtistID:          "",
-			MBZAlbumArtistID:     "",
-			MBZAlbumType:         "",
-			MBZAlbumComment:      "",
-			CatalogNum:           "",
-			Comment:              "",
-			Lyrics:               "[00:00.00]唯一 (Live) - 王力宏 (Leehom Wang)\n[00:11.02]词：王力宏\n[00:22.05]曲：王力宏\n[00:33.08]我的天空多么的清晰\n[00:38.79]透明的承诺是过去的空气\n[00:48.26]牵着我的手是你\n[00:53.18]但你的笑容 却看不清\n[01:03.43]是否一颗星星变了心\n[01:09.13]从前的愿望\n[01:11.96]也全都被抛弃\n[01:19.01]最近我无法呼吸\n[01:23.20]连自己的影子\n[01:27.42]都想逃避\n[01:31.15]Baby 你就是我的唯一\n[01:36.89]两个世界都变形\n[01:41.70]回去谈何容易\n[01:46.60]确定 你就是我的唯一\n[01:52.21]独自对着电话说我爱你\n[01:57.70]我真的爱你\n[02:01.61]Baby 我已不能多爱你一些\n[02:12.29]是否一颗星星变了心\n[02:18.04]从前的愿望\n[02:20.72]也全都被抛弃\n[02:27.51]最近我无法呼吸\n[02:31.54]连自己的影子\n[02:36.13]都想逃避逃避\n[02:43.56]Baby 你就是我的唯一\n[02:49.75]两个世界都变形\n[02:54.58]回去谈何容易\n[02:59.40]确定 你就是我的唯一\n[03:05.05]独自对着电话说我爱你\n[03:10.82]我真的爱你\n[03:15.16]Baby 我已不能多爱你一些\n[03:22.41]其实早已超过了爱的极限\n[03:46.34]Baby 你就是我的唯一\n[03:51.19]两个世界都变形\n[03:55.88]回去谈何容易\n[04:00.60]确定 你就是我的唯一\n[04:06.49]独自对着电话说我爱你\n[04:12.29]我真的爱你\n[04:16.07]Baby 我已不能多爱你一些",
-			BPM:                  0,
-			Channels:             0,
-			OrderTitle:           "",
-			MBZReleaseTrackID:    "",
-			RgAlbumGain:          0.0,
-			RgAlbumPeak:          0.0,
-			RgTrackGain:          0.0,
-			RgTrackPeak:          0.0,
-			MediumImageURL:       "http://localhost:4533/rest/getCoverArt?u=mozhi&t=be470bc4c1556004e26c4780c0121030&s=9V8he3&v=1.12.0&c=nsmusics&f=json&id=0b628ce5477583033eb1e08a35aefa34",
-		},
-		{
-			Path:                 "http://localhost:4533/rest/stream?u=mozhi&t=be470bc4c1556004e26c4780c0121030&s=9V8he3&v=1.12.0&c=nsmusics&f=json&id=0e35256b982149fef4f2d8da22e2c215",
-			Title:                "恶作剧",
-			Album:                "恶作剧之吻 电视剧原声带",
-			Artist:               "王蓝茵",
-			ArtistID:             "22d68ecf93771267f5d6891809539a68",
-			AlbumArtist:          "王蓝茵",
-			AlbumID:              "3972db8a900cb5e0ce87142c1cfbd724",
-			HasCoverArt:          false,
-			TrackNumber:          0,
-			DiscNumber:           0,
-			Year:                 2005,
-			Size:                 3713585,
-			Suffix:               "mp3",
-			Duration:             226.82,
-			BitRate:              128,
-			Genre:                "",
-			Compilation:          false,
-			CreatedAt:            time.Time{},
-			UpdatedAt:            time.Time{},
-			FullText:             "",
-			AlbumArtistID:        "",
-			OrderAlbumName:       "",
-			OrderAlbumArtistName: "",
-			OrderArtistName:      "",
-			SortAlbumName:        "",
-			SortArtistName:       "",
-			SortAlbumArtistName:  "",
-			SortTitle:            "",
-			DiscSubtitle:         "",
-			MBZTrackID:           "",
-			MBZAlbumID:           "",
-			MBZArtistID:          "",
-			MBZAlbumArtistID:     "",
-			MBZAlbumType:         "",
-			MBZAlbumComment:      "",
-			CatalogNum:           "",
-			Comment:              "",
-			Lyrics:               "[00:00.00]恶作剧 - 王蓝茵 (Tangerine Wang)\n[00:06.16]词：王蓝茵\n[00:12.32]曲：王蓝茵\n[00:18.48]编曲：吴薇薇\n[00:24.64]制作人：吴薇薇/林迈可\n[00:30.81]我找不到很好的原因\n[00:34.27]去阻挡这一切的亲密\n[00:38.00]这感觉太奇异\n[00:39.75]我抱歉不能说明\n[00:44.89]我相信这爱情的定义\n[00:48.36]奇迹会发生也不一定\n[00:52.17]风温柔的清晰\n[00:53.94]也许飘来好消息\n[00:58.95]一切新鲜 有点冒险\n[01:02.43]请告诉我怎么走到终点\n[01:05.93]没有人了解\n[01:07.57]没有人像我和陌生人的爱恋\n[01:13.02]我想我会开始想念你\n[01:16.54]可是我刚刚才遇见了你\n[01:20.84]我怀疑这奇遇只是个恶作剧\n[01:27.15]我想我已慢慢喜欢你\n[01:30.63]因为我拥有爱情的勇气\n[01:34.86]我任性投入你给的恶作剧\n[01:40.22]你给的恶作剧\n[02:06.03]我找不到很好的原因\n[02:09.57]去阻挡这一切的亲密\n[02:13.34]这感觉太奇异\n[02:15.09]我抱歉不能说明\n[02:20.08]我相信这爱情的定义\n[02:23.65]奇迹会发生也不一定\n[02:27.46]风温柔的清晰\n[02:29.19]也许飘来好消息\n[02:34.19]我才发现 你很耀眼\n[02:37.75]请让我再瞧瞧你的双眼\n[02:41.26]没有人了解\n[02:42.84]没有人像我和陌生人的爱恋\n[02:50.17]我想我会开始想念你\n[02:53.64]可是我刚刚才遇见了你\n[02:57.82]我怀疑这奇遇只是个恶作剧\n[03:04.19]我想我已慢慢喜欢你\n[03:07.77]因为我拥有爱情的勇气\n[03:11.98]我任性投入你给的恶作剧\n[03:17.29]你给的恶作剧",
-			BPM:                  0,
-			Channels:             0,
-			OrderTitle:           "",
-			MBZReleaseTrackID:    "",
-			RgAlbumGain:          0.0,
-			RgAlbumPeak:          0.0,
-			RgTrackGain:          0.0,
-			RgTrackPeak:          0.0,
-			MediumImageURL:       "http://localhost:4533/rest/getCoverArt?u=mozhi&t=be470bc4c1556004e26c4780c0121030&s=9V8he3&v=1.12.0&c=nsmusics&f=json&id=0e35256b982149fef4f2d8da22e2c215",
-		},
-		{
-			Path:                 "http://localhost:4533/rest/stream?u=mozhi&t=be470bc4c1556004e26c4780c0121030&s=9V8he3&v=1.12.0&c=nsmusics&f=json&id=134d47460ed29e6df249df31ff55240c",
-			Title:                "BANG BANG BANG+FANTASTIC BABY (2024 MAMA日本场DAY2)",
-			Album:                "SPECIAL FINAL IN DOME MEMORIAL COLLECTION",
-			Artist:               "BIGBANG",
-			ArtistID:             "f447df8362a4d0d9f5142f563595684b",
-			AlbumArtist:          "BIGBANG",
-			AlbumID:              "e54218a2075604a8b735088ed34bb93a",
-			HasCoverArt:          false,
-			TrackNumber:          0,
-			DiscNumber:           0,
-			Year:                 2012,
-			Size:                 4123294,
-			Suffix:               "mp3",
-			Duration:             252.94,
-			BitRate:              128,
-			Genre:                "",
-			Compilation:          false,
-			CreatedAt:            time.Time{},
-			UpdatedAt:            time.Time{},
-			FullText:             "",
-			AlbumArtistID:        "",
-			OrderAlbumName:       "",
-			OrderAlbumArtistName: "",
-			OrderArtistName:      "",
-			SortAlbumName:        "",
-			SortArtistName:       "",
-			SortAlbumArtistName:  "",
-			SortTitle:            "",
-			DiscSubtitle:         "",
-			MBZTrackID:           "",
-			MBZAlbumID:           "",
-			MBZArtistID:          "",
-			MBZAlbumArtistID:     "",
-			MBZAlbumType:         "",
-			MBZAlbumComment:      "",
-			CatalogNum:           "",
-			Comment:              "",
-			Lyrics:               "[00:00.10]FANTASTIC BABY (Bonus Track) - BIGBANG (빅뱅)\n[00:00.20]词：G-DRAGON/T.O.P/VERBAL\n[00:00.30]曲：TEDDY/G-DRAGON\n[00:00.31]夜が来た 目覚ましな\n[00:04.39]We Gon Party Like\n[00:05.83]Li Li Li La La La\n[00:08.10]集まりな\n[00:09.92]このPartyは\n[00:11.78]これからさ\n[00:13.20]Li Li Li La La La\n[00:15.20]瞬間でキャッチした\n[00:17.32]その目はまだ\n[00:18.93]遊び足りてない\n[00:21.00]Alright\n[00:22.61]半分でも興味あるならば\n[00:25.61]We Go\n[00:26.29]さぁ行こう 好きに騒ごう\n[00:29.79]Nah Na Na Nah Nah\n[00:31.57]Nah Na Na Nah Nah\n[00:33.41]Wow Fantastic Baby\n[00:35.29]Dance\n[00:38.28]I Wanna Dan Dan Dan Dan Dance\n[00:41.53]Fantastic Baby\n[00:42.65]Dance\n[00:45.68]I Wanna Dan Dan Dan Dan Dance\n[00:48.23]Wow Fantastic Baby\n[00:50.38]いかがかね?\n[00:52.09]僕ちゃんはパーフェクト\n[00:54.04]弱点探すのなんて\n[00:55.91]100年早い\n[00:57.05]Baby\n[00:57.67]真っ赤な太陽よりも\n[01:00.19]Fire\n[01:01.33]直視すれば\n[01:02.55]Burn Dah Na Na Nah Nah\n[01:04.61]まだずっと凝り固まってる\n[01:06.20]みなさん単純に\n[01:08.04]これからJumpって言ったら\n[01:09.50]飛び跳ねな\n[01:10.25]On 1, 2, 3\n[01:11.77]高く空中に\n[01:13.62]オレは操縦士さ\n[01:15.81]初めてなら今から\n[01:16.86]連れて行こうか\n[01:17.86]宇宙に\n[01:19.43]Danger!\n[01:20.52]鳴らせサイレン\n[01:22.39]君はターゲット\n[01:24.26]僕のターゲット\n[01:25.93]走れ\n[01:27.00]I Can't Baby Don't Stop This\n[01:29.56]終わらせないで この未体験な\n[01:33.21]サウンドを\n[01:39.91]Wow Fantastic Baby\n[01:41.76]Dance\n[01:44.79]I Wanna Dan Dan Dan Dan Dance\n[01:47.89]Fantastic Baby\n[01:49.05]Dance\n[01:52.11]I Wanna Dan Dan Dan Dan Dance\n[01:54.69]Wow Fantastic Baby\n[01:56.56]Boom Shaka Laka\n[01:58.36]Boom Shaka Laka\n[02:00.22]Boom Shaka Laka\n[02:02.06]Dan Dan Dan Dan Dance\n[02:03.89]Boom Shaka Laka\n[02:05.78]Boom Shaka Laka\n[02:07.61]Boom Shaka Laka\n[02:09.43]Dan Dan Dance\n[02:10.97]なんだかジャンク好きだから\n[02:13.86]なんでも来い今夜は\n[02:15.75]特に拒まない\n[02:17.32]Digi-Dum-Dum\n[02:18.76]Mama Just Let Me Be Your Lover\n[02:21.25]今すぐ出ようか かかかか\n[02:24.25]Nah Na Na Nah Nah\n[02:25.96]ノリだけなら昔からテキトー\n[02:29.63]目が合うだけで彼女アプローチ\n[02:32.98]勘ぐるはずまずマーク\n[02:35.35]狙い定めたら\n[02:37.11]バキュン バキュン バキュン\n[02:38.64]Hold Up\n[02:39.10]Nah Na Na Nah Nah\n[02:40.80]Danger!\n[02:41.79]鳴らせサイレン\n[02:43.62]君はターゲット\n[02:45.59]僕のターゲット\n[02:47.17]走れ\n[02:48.21]I Can't Baby Don't Stop This\n[02:50.77]終わらせないで\n[02:52.65]この未体験な\n[02:54.42]サウンドを\n[03:01.08]Wow Fantastic Baby\n[03:02.96]Dance\n[03:05.95]I Wanna Dan Dan Dan Dan Dance\n[03:09.18]Fantastic Baby\n[03:10.31]Dance\n[03:13.37]I Wanna Dan Dan Dan Dan Dance\n[03:15.92]Wow Fantastic Baby\n[03:17.72]Boom Shaka Laka\n[03:19.55]Boom Shaka Laka\n[03:21.40]Boom Shaka Laka\n[03:23.27]Dan Dan Dan Dan Dance\n[03:25.15]Boom Shaka Laka\n[03:27.00]Boom Shaka Laka\n[03:28.81]Boom Shaka Laka\n[03:30.62]Dan-Dan-Dan Dan Dance\n[03:32.52]さぁ選ぼうか\n[03:34.80]Yeh Yeh Yeh\n[03:36.21]敗者か勝者\n[03:38.50]Yeh Yeh Yeh\n[03:39.88]僕なら後者\n[03:42.18]Yeh Yeh Yeh\n[03:43.58]君とは今夜\n[03:45.38]Wow Fantastic Baby",
-			BPM:                  0,
-			Channels:             0,
-			OrderTitle:           "",
-			MBZReleaseTrackID:    "",
-			RgAlbumGain:          0.0,
-			RgAlbumPeak:          0.0,
-			RgTrackGain:          0.0,
-			RgTrackPeak:          0.0,
-			MediumImageURL:       "http://localhost:4533/rest/getCoverArt?u=mozhi&t=be470bc4c1556004e26c4780c0121030&s=9V8he3&v=1.12.0&c=nsmusics&f=json&id=134d47460ed29e6df249df31ff55240c",
-		},
-	}
-
-	for _, cfg := range initConfigs {
-		_, err := coll.InsertOne(ctx, cfg)
-		if err != nil {
-			return fmt.Errorf("应用配置初始化失败: %w", err)
-		}
-	}
-	return nil
-}
-
-func (si *Initializer) initFileEntityFolder(ctx context.Context) error {
-	coll := si.db.Collection(domain.CollectionFileEntityFolderInfo)
-
-	initConfigs := []*domain_file_entity.LibraryFolderMetadata{
-		// 音频文件夹示例（包含多文件元数据）
-		{
-			ID:          primitive.NewObjectID(),
-			Name:        "Music",
-			FolderPath:  "c:/users/17741/Music",
-			FolderType:  1,
-			Status:      domain_file_entity.StatusActive,
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
-			FileCount:   0,
-			LastScanned: time.Now(),
-		},
-		// 视频监控目录（含子文件夹）
-		{
-			ID:          primitive.NewObjectID(),
-			Name:        "Videos",
-			FolderPath:  "c:/users/17741/Videos",
-			FolderType:  2,
-			Status:      domain_file_entity.StatusActive,
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
-			FileCount:   0,
-			LastScanned: time.Now(),
-		},
-		// 图片资源库（按年份组织）
-		{
-			ID:          primitive.NewObjectID(),
-			Name:        "Pictures",
-			FolderPath:  "c:/users/17741/Pictures",
-			FolderType:  3,
-			Status:      domain_file_entity.StatusActive,
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
-			FileCount:   0,
-			LastScanned: time.Now(),
-		},
-		//// 文档共享目录（企业级）
-		//{
-		//
-		//},
-		//// 系统日志目录（带访问控制）
-		//{
-		//
-		//},
-		//// 数据库备份目录（新增类型）
-		//{
-		//
-		//},
-	}
-
-	// 批量插入优化
-	models := make([]interface{}, len(initConfigs))
-	for i, cfg := range initConfigs {
-		models[i] = cfg
-	}
-
-	if _, err := coll.InsertMany(ctx, models); err != nil {
-		log.Println(err)
-	}
-	return nil
-}
-
 func (si *Initializer) initFileEntityAudioTempMetadata(ctx context.Context) error {
 	coll := si.db.Collection(domain.CollectionFileEntityAudioSceneTempMetadata)
+
+	// 获取当前操作系统的主目录
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Printf("Error getting user home directory: %v", err)
+		return err
+	}
+
+	// 使用统一的路径基准
+	var basePath string
+	switch runtime.GOOS {
+	case "windows":
+		// 使用公共文档目录更合理
+		basePath = filepath.Join(os.Getenv("PUBLIC"), "Documents", "NineSong", "MetaData")
+	default: // Linux, macOS, Docker等
+		// 兼容Docker中常用的/app目录结构
+		if _, err := os.Stat("/app"); err == nil {
+			basePath = "/app/MetaData"
+		} else {
+			// 使用用户主目录下的自定义目录
+			basePath = filepath.Join(homeDir, "NineSong", "MetaData")
+		}
+	}
 
 	initConfigs := []*scene_audio_db_models.ExternalResource{
 		{
 			ID:           primitive.NewObjectID(),
 			MetadataType: "cover",
-			FolderPath:   "c:/Users/Public/Documents/NineSong/MetaData/Cover",
+			FolderPath:   filepath.Join(basePath, "Cover"),
 		},
 		{
 			ID:           primitive.NewObjectID(),
 			MetadataType: "lyrics",
-			FolderPath:   "c:/Users/Public/Documents/NineSong/MetaData/Lyrics",
+			FolderPath:   filepath.Join(basePath, "Lyrics"),
 		},
 		{
 			ID:           primitive.NewObjectID(),
 			MetadataType: "stream",
-			FolderPath:   "c:/Users/Public/Documents/NineSong/MetaData/Steam",
+			FolderPath:   filepath.Join(basePath, "Stream"),
 		},
 	}
 
 	// 批量插入优化
 	models := make([]interface{}, len(initConfigs))
 	for i, cfg := range initConfigs {
+		// 确保目录实际存在
+		if err := os.MkdirAll(cfg.FolderPath, 0755); err != nil {
+			log.Printf("Failed to create directory %s: %v", cfg.FolderPath, err)
+		}
 		models[i] = cfg
 	}
 
 	if _, err := coll.InsertMany(ctx, models); err != nil {
-		log.Println(err)
+		log.Printf("Database insert error: %v", err)
+		return err
 	}
 	return nil
 }
