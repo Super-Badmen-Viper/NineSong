@@ -31,7 +31,7 @@ func (m *MediaFileCueMetadata) ToUpdateDoc() bson.M {
 	raw["back_image_url"] = m.CueResources.BackImage
 	raw["cover_image_url"] = m.CueResources.CoverImage
 	raw["disc_image_url"] = m.CueResources.DiscImage
-	raw["has_cover_art"] = m.CueResources.CoverImage
+	raw["has_cover_art"] = m.CueResources.CoverImage != ""
 	raw["updated_at"] = time.Now().UTC()
 
 	return bson.M{"$set": raw}
