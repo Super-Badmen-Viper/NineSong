@@ -116,7 +116,7 @@ func (c *RetrievalController) DownloadHandler(ctx *gin.Context) {
 	serveFixedMediaFile(ctx, filePath, req.MediaFileID, tempSteamFolderPath, "")
 }
 
-func (c *RetrievalController) CoverArtHandler(ctx *gin.Context) {
+func (c *RetrievalController) CoverArtIDHandler(ctx *gin.Context) {
 	var req struct {
 		Type     string `form:"type" binding:"required,oneof=media album artist"`
 		TargetID string `form:"target_id" binding:"required,hexadecimal,len=24"`
@@ -130,7 +130,34 @@ func (c *RetrievalController) CoverArtHandler(ctx *gin.Context) {
 		return
 	}
 
-	filePath, err := c.RetrievalUsecase.GetCoverArt(ctx.Request.Context(), req.Type, req.TargetID)
+	filePath, err := c.RetrievalUsecase.GetCoverArtID(ctx.Request.Context(), req.Type, req.TargetID)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"code":    "COVER_NOT_FOUND",
+			"message": "封面文件不存在",
+		})
+		return
+	}
+
+	ctx.Header("Content-Type", "image/jpeg")
+	ctx.File(filePath)
+}
+
+func (c *RetrievalController) CoverArtPathHandler(ctx *gin.Context) {
+	var req struct {
+		Type     string `form:"type" binding:"required,oneof=back cover disc"`
+		TargetID string `form:"target_id" binding:"required,hexadecimal,len=24"`
+	}
+
+	if err := ctx.ShouldBind(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"code":    "INVALID_PARAMETERS",
+			"message": "参数格式错误: type必须为media或album，target_id必须为24位十六进制",
+		})
+		return
+	}
+
+	filePath, err := c.RetrievalUsecase.GetCoverArtID(ctx.Request.Context(), req.Type, req.TargetID)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{
 			"code":    "COVER_NOT_FOUND",

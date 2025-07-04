@@ -38,14 +38,18 @@ type MediaFileCueMetadata struct {
 	DiscImageURL  string `bson:"disc_image_url"`
 
 	// 音频分析 (综合)
-	CueSampleRate int     `bson:"cue_sample_rate"` // 音频采样率（Hz）
-	CueDuration   float64 `bson:"cue_duration"`    // 音频时长（秒）
-	CueBitRate    int     `bson:"cue_bit_rate"`    // 比特率（bps）
-	CueChannels   int     `bson:"cue_channels"`    // 音频通道数（如 2 表示立体声）
+	CueSampleRate  int     `bson:"cue_sample_rate"` // 音频采样率（Hz）
+	CueDuration    float64 `bson:"cue_duration"`    // 音频时长（秒）
+	CueBitRate     int     `bson:"cue_bit_rate"`    // 比特率（bps）
+	CueChannels    int     `bson:"cue_channels"`    // 音频通道数（如 2 表示立体声）
+	EncodingFormat string  `bson:"encoding_format"` // 编码格式（如 PCM、MP3、AAC 等）
 
 	// 高级音频参数 (github.com/go-audio/audio)
 	BitDepth      int    `bson:"bit_depth"`      // 音频位深（位）
 	ChannelLayout string `bson:"channel_layout"` // 声道布局（如立体声、环绕声等）
+
+	Compilation  bool           `bson:"compilation"`    // 是否为合辑（多艺术家作品合集）
+	AllArtistIDs []ArtistIDPair `bson:"all_artist_ids"` // 所有参与艺术家的唯一标识符列表
 }
 
 type CueConfig struct {

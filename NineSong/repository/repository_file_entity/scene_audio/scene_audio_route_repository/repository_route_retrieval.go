@@ -71,34 +71,70 @@ func (r *retrievalRepository) GetDownloadPath(ctx context.Context, mediaFileId s
 	return result.Path, nil
 }
 
-func (r *retrievalRepository) GetCoverArt(ctx context.Context, fileType string, targetID string) (string, error) {
+func (r *retrievalRepository) GetCoverArtID(ctx context.Context, fileType string, targetID string) (string, error) {
 	if _, err := primitive.ObjectIDFromHex(targetID); err != nil {
 		return "", errors.New("invalid target id format")
 	}
 
-	tempCollection := r.db.Collection(domain.CollectionFileEntityAudioSceneTempMetadata)
-	var tempMeta scene_audio_db_models.ExternalResource
-	err := tempCollection.FindOne(
-		ctx,
-		bson.M{"metadata_type": "cover"},
-	).Decode(&tempMeta)
-	if err != nil {
-		return "", fmt.Errorf("cover storage config not found: %w", err)
+	// 扩展参数校验
+	allowedTypes := map[string]bool{
+		"media": true, "album": true, "artist": true,
 	}
+	if !allowedTypes[fileType] {
+		// 处理back/cover/disc类型的图片路径查询
+		tempCollection := r.db.Collection(domain.CollectionFileEntityAudioSceneMediaFileCue)
 
-	typePath, err := r.checkCoverFile(filepath.Join(tempMeta.FolderPath, fileType, targetID), "cover.jpg")
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			typePath, err = r.checkCoverFile(filepath.Join(tempMeta.FolderPath, fileType, targetID), "cover.png")
-			if err != nil {
-				return "", fmt.Errorf("cover art not found: %w", err)
-			}
-			return typePath, nil
+		cueID, _ := primitive.ObjectIDFromHex(targetID)
+		filter := bson.M{
+			"_id": cueID,
 		}
-		return "", fmt.Errorf("file system error: %w", err)
-	}
 
-	return typePath, nil
+		var result scene_audio_db_models.MediaFileCueMetadata
+
+		err := tempCollection.FindOne(
+			ctx,
+			filter,
+		).Decode(&result)
+
+		if err != nil {
+			return "", fmt.Errorf("database query error: %w", err)
+		}
+
+		switch fileType {
+		case "back":
+			return result.BackImageURL, nil
+		case "cover":
+			return result.CoverImageURL, nil
+		case "disc":
+			return result.DiscImageURL, nil
+		default:
+			return "", fmt.Errorf("unsupported file type: %s", fileType)
+		}
+	} else {
+		tempCollection := r.db.Collection(domain.CollectionFileEntityAudioSceneTempMetadata)
+		var tempMeta scene_audio_db_models.ExternalResource
+		err := tempCollection.FindOne(
+			ctx,
+			bson.M{"metadata_type": "cover"},
+		).Decode(&tempMeta)
+		if err != nil {
+			return "", fmt.Errorf("cover storage config not found: %w", err)
+		}
+
+		typePath, err := r.checkCoverFile(filepath.Join(tempMeta.FolderPath, fileType, targetID), "cover.jpg")
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				typePath, err = r.checkCoverFile(filepath.Join(tempMeta.FolderPath, fileType, targetID), "cover.png")
+				if err != nil {
+					return "", fmt.Errorf("cover art not found: %w", err)
+				}
+				return typePath, nil
+			}
+			return "", fmt.Errorf("file system error: %w", err)
+		}
+
+		return typePath, nil
+	}
 }
 
 func (r *retrievalRepository) checkCoverFile(basePath string, fileName string) (string, error) {

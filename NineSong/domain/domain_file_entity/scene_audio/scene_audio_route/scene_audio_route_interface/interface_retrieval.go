@@ -11,7 +11,7 @@ type RetrievalRepository interface {
 
 	GetDownloadPath(ctx context.Context, mediaFileId string) (string, error)
 
-	GetCoverArt(ctx context.Context, fileType string, targetID string) (string, error)
+	GetCoverArtID(ctx context.Context, fileType string, targetID string) (string, error)
 
 	GetLyricsLrcMetaData(ctx context.Context, mediaFileId string) (string, error)
 

@@ -47,17 +47,20 @@ func (uc *retrievalUsecase) GetDownloadPath(ctx context.Context, mediaFileId str
 	return uc.repo.GetDownloadPath(ctx, mediaFileId)
 }
 
-func (uc *retrievalUsecase) GetCoverArt(ctx context.Context, fileType string, targetID string) (string, error) {
+func (uc *retrievalUsecase) GetCoverArtID(ctx context.Context, fileType string, targetID string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
 	defer cancel()
 
 	// 扩展参数校验
-	allowedTypes := map[string]bool{"media": true, "album": true}
+	allowedTypes := map[string]bool{
+		"media": true, "album": true, "artist": true,
+		"back": true, "cover": true, "disc": true,
+	}
 	if !allowedTypes[fileType] {
 		return "", errors.New("invalid file type parameter")
 	}
 
-	return uc.repo.GetCoverArt(ctx, fileType, targetID)
+	return uc.repo.GetCoverArtID(ctx, fileType, targetID)
 }
 
 func (uc *retrievalUsecase) GetLyricsLrcMetaData(ctx context.Context, mediaFileId string) (string, error) {

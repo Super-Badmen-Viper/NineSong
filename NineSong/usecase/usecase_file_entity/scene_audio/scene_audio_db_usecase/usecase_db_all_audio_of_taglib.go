@@ -441,6 +441,7 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFileCue(
 	}
 
 	mediaFileCue.CueTracks = tracks
+	mediaFileCue.CueTrackCount = len(tracks)
 
 	mediaFileCue.Rem = scene_audio_db_models.CueREM{
 		GENRE:   globalMeta["GENRE"],
@@ -461,6 +462,9 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFileCue(
 	mediaFileCue.CueDuration = float64(properties.Length)
 	mediaFileCue.CueBitRate = int(properties.Bitrate)
 	mediaFileCue.CueChannels = int(properties.Channels)
+
+	mediaFileCue.Compilation = compilationArtist
+	mediaFileCue.AllArtistIDs = allArtistIDs
 
 	return mediaFileCue, albumTag, formattedArtist, albumArtistTag, allArtistIDs
 }

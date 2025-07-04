@@ -23,7 +23,8 @@ func NewRetrievalRouter(
 		retrievalGroup.GET("/stream", ctrl.FixedStreamHandler)
 		retrievalGroup.GET("/stream/real", ctrl.RealStreamHandler)
 		retrievalGroup.GET("/download", ctrl.DownloadHandler)
-		retrievalGroup.GET("/cover", ctrl.CoverArtHandler)
+		retrievalGroup.GET("/cover", ctrl.CoverArtIDHandler)
+		retrievalGroup.GET("/cover/path", ctrl.CoverArtPathHandler)
 		retrievalGroup.GET("/lyrics", ctrl.LyricsHandlerMetadata)
 	}
 }
