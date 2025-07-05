@@ -29,6 +29,7 @@ func (c *RetrievalController) FixedStreamHandler(ctx *gin.Context) {
 	var req struct {
 		MediaFileID       string `form:"media_file_id" binding:"required"`
 		PlayComponentType string `form:"play_component_type"`
+		CueModel          bool   `form:"cue_model"`
 	}
 
 	if err := ctx.ShouldBind(&req); err != nil {
@@ -46,7 +47,7 @@ func (c *RetrievalController) FixedStreamHandler(ctx *gin.Context) {
 		req.PlayComponentType = "mpv"
 	}
 
-	filePath, err := c.RetrievalUsecase.GetStreamPath(ctx.Request.Context(), req.MediaFileID)
+	filePath, err := c.RetrievalUsecase.GetStreamPath(ctx.Request.Context(), req.MediaFileID, req.CueModel)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{
 			"code":    "RESOURCE_NOT_FOUND",
@@ -62,6 +63,7 @@ func (c *RetrievalController) RealStreamHandler(ctx *gin.Context) {
 	var req struct {
 		MediaFileID       string `form:"media_file_id" binding:"required"`
 		PlayComponentType string `form:"play_component_type"`
+		CueModel          bool   `form:"cue_model"`
 	}
 
 	if err := ctx.ShouldBind(&req); err != nil {
@@ -79,7 +81,7 @@ func (c *RetrievalController) RealStreamHandler(ctx *gin.Context) {
 		req.PlayComponentType = "mpv"
 	}
 
-	filePath, err := c.RetrievalUsecase.GetStreamPath(ctx.Request.Context(), req.MediaFileID)
+	filePath, err := c.RetrievalUsecase.GetStreamPath(ctx.Request.Context(), req.MediaFileID, req.CueModel)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{
 			"code":    "RESOURCE_NOT_FOUND",
@@ -94,6 +96,7 @@ func (c *RetrievalController) RealStreamHandler(ctx *gin.Context) {
 func (c *RetrievalController) DownloadHandler(ctx *gin.Context) {
 	var req struct {
 		MediaFileID string `form:"media_file_id" binding:"required"`
+		CueModel    bool   `form:"cue_model"`
 	}
 
 	if err := ctx.ShouldBind(&req); err != nil {
@@ -104,7 +107,7 @@ func (c *RetrievalController) DownloadHandler(ctx *gin.Context) {
 		return
 	}
 
-	filePath, err := c.RetrievalUsecase.GetStreamPath(ctx.Request.Context(), req.MediaFileID)
+	filePath, err := c.RetrievalUsecase.GetStreamPath(ctx.Request.Context(), req.MediaFileID, req.CueModel)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{
 			"code":    "RESOURCE_NOT_FOUND",

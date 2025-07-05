@@ -20,14 +20,14 @@ func NewRetrievalUsecase(repo scene_audio_route_interface.RetrievalRepository, t
 	}
 }
 
-func (uc *retrievalUsecase) GetStreamPath(ctx context.Context, mediaFileId string) (string, error) {
+func (uc *retrievalUsecase) GetStreamPath(ctx context.Context, mediaFileId string, cueModel bool) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
 	defer cancel()
 
 	if _, err := primitive.ObjectIDFromHex(mediaFileId); err != nil {
 		return "", errors.New("invalid media file id format")
 	}
-	return uc.repo.GetStreamPath(ctx, mediaFileId)
+	return uc.repo.GetStreamPath(ctx, mediaFileId, cueModel)
 }
 
 func (uc *retrievalUsecase) GetStreamTempPath(ctx context.Context, metadataType string) (string, error) {

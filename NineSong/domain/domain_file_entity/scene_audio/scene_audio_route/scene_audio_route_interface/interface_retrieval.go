@@ -5,7 +5,7 @@ import (
 )
 
 type RetrievalRepository interface {
-	GetStreamPath(ctx context.Context, mediaFileId string) (string, error)
+	GetStreamPath(ctx context.Context, mediaFileId string, cueModel bool) (string, error)
 
 	GetStreamTempPath(ctx context.Context, metadataType string) (string, error)
 

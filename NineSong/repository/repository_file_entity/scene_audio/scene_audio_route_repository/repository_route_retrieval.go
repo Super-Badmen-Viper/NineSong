@@ -23,19 +23,28 @@ func NewRetrievalRepository(db mongo.Database) scene_audio_route_interface.Retri
 	return &retrievalRepository{db: db}
 }
 
-func (r *retrievalRepository) GetStreamPath(ctx context.Context, mediaFileId string) (string, error) {
+func (r *retrievalRepository) GetStreamPath(ctx context.Context, mediaFileId string, cueModel bool) (string, error) {
 	objID, err := primitive.ObjectIDFromHex(mediaFileId)
 	if err != nil {
 		return "", errors.New("invalid media file id format")
 	}
-
-	collection := r.db.Collection(domain.CollectionFileEntityAudioSceneMediaFile)
-	var result scene_audio_route_models.MediaFileMetadata
-	err = collection.FindOne(ctx, bson.M{"_id": objID}).Decode(&result)
-	if err != nil {
-		return "", fmt.Errorf("stream metadata not found: %w", err)
+	if cueModel {
+		collection := r.db.Collection(domain.CollectionFileEntityAudioSceneMediaFileCue)
+		var result scene_audio_route_models.MediaFileCueMetadata
+		err = collection.FindOne(ctx, bson.M{"_id": objID}).Decode(&result)
+		if err != nil {
+			return "", fmt.Errorf("stream metadata not found: %w", err)
+		}
+		return result.Path, nil
+	} else {
+		collection := r.db.Collection(domain.CollectionFileEntityAudioSceneMediaFile)
+		var result scene_audio_route_models.MediaFileMetadata
+		err = collection.FindOne(ctx, bson.M{"_id": objID}).Decode(&result)
+		if err != nil {
+			return "", fmt.Errorf("stream metadata not found: %w", err)
+		}
+		return result.Path, nil
 	}
-	return result.Path, nil
 }
 
 func (r *retrievalRepository) GetStreamTempPath(ctx context.Context, metadataType string) (string, error) {
