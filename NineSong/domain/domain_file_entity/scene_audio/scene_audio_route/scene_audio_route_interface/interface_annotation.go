@@ -2,6 +2,7 @@ package scene_audio_route_interface
 
 import (
 	"context"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
 )
 
 type AnnotationRepository interface {
@@ -25,5 +26,17 @@ type AnnotationRepository interface {
 		ctx context.Context,
 		itemId string,
 		itemType string,
+	) (bool, error)
+	UpdateTagSource(
+		ctx context.Context,
+		itemId string,
+		itemType string,
+		tags []scene_audio_route_models.TagSource,
+	) (bool, error)
+	UpdateWeightedTag(
+		ctx context.Context,
+		itemId string,
+		itemType string,
+		tags []scene_audio_route_models.WeightedTag,
 	) (bool, error)
 }

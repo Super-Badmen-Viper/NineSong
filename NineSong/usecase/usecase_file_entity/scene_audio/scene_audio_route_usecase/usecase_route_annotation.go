@@ -3,6 +3,7 @@ package scene_audio_route_usecase
 import (
 	"context"
 	"errors"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
 	"time"
 
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
@@ -93,4 +94,34 @@ func (uc *annotationUsecase) UpdateScrobble(
 	defer cancel()
 
 	return uc.repo.UpdateScrobble(ctx, itemId, itemType)
+}
+
+func (uc *annotationUsecase) UpdateTagSource(
+	ctx context.Context,
+	itemId, itemType string,
+	tags []scene_audio_route_models.TagSource,
+) (bool, error) {
+	if err := uc.validateItemType(itemType); err != nil {
+		return false, err
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
+	defer cancel()
+
+	return uc.repo.UpdateTagSource(ctx, itemId, itemType, tags)
+}
+
+func (uc *annotationUsecase) UpdateWeightedTag(
+	ctx context.Context,
+	itemId, itemType string,
+	tags []scene_audio_route_models.WeightedTag,
+) (bool, error) {
+	if err := uc.validateItemType(itemType); err != nil {
+		return false, err
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
+	defer cancel()
+
+	return uc.repo.UpdateWeightedTag(ctx, itemId, itemType, tags)
 }

@@ -196,3 +196,73 @@ func (r *annotationRepository) UpdateScrobble(
 
 	return true, nil
 }
+
+func (r *annotationRepository) UpdateTagSource(
+	ctx context.Context,
+	itemId, itemType string,
+	tags []scene_audio_route_models.TagSource,
+) (bool, error) {
+	filter, err := r.createFilter(itemId, itemType)
+	if err != nil {
+		return false, err
+	}
+
+	// 合并新旧标签并更新频率
+	update := bson.M{
+		"$set": bson.M{
+			"word_cloud_tags": tags, // 完全替换标签数组
+			"updated_at":      time.Now().UTC(),
+		},
+		"$setOnInsert": bson.M{
+			"created_at": time.Now().UTC(),
+			"starred":    false,
+			"rating":     0,
+			"play_count": 0,
+		},
+	}
+
+	opts := options.Update().SetUpsert(true)
+	coll := r.db.Collection(domain.CollectionFileEntityAudioSceneAnnotation)
+
+	_, err = coll.UpdateOne(ctx, filter, update, opts)
+	if err != nil {
+		return false, fmt.Errorf("tag source update failed: %w", err)
+	}
+
+	return true, nil
+}
+
+func (r *annotationRepository) UpdateWeightedTag(
+	ctx context.Context,
+	itemId, itemType string,
+	tags []scene_audio_route_models.WeightedTag,
+) (bool, error) {
+	filter, err := r.createFilter(itemId, itemType)
+	if err != nil {
+		return false, err
+	}
+
+	// 动态权重更新算法
+	update := bson.M{
+		"$set": bson.M{
+			"weighted_tags": tags, // 替换权重标签数组
+			"updated_at":    time.Now().UTC(),
+		},
+		"$setOnInsert": bson.M{
+			"created_at": time.Now().UTC(),
+			"starred":    false,
+			"rating":     0,
+			"play_count": 0,
+		},
+	}
+
+	opts := options.Update().SetUpsert(true)
+	coll := r.db.Collection(domain.CollectionFileEntityAudioSceneAnnotation)
+
+	_, err = coll.UpdateOne(ctx, filter, update, opts)
+	if err != nil {
+		return false, fmt.Errorf("weighted tag update failed: %w", err)
+	}
+
+	return true, nil
+}
