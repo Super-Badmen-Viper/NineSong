@@ -46,11 +46,12 @@ type MediaFileCueMetadata struct {
 	Compilation  bool           `bson:"compilation"`    // 是否为合辑（多艺术家作品合集）
 	AllArtistIDs []ArtistIDPair `bson:"all_artist_ids"` // 所有参与艺术家的唯一标识符列表
 
-	PlayCount int       `bson:"play_count"`
-	PlayDate  time.Time `bson:"play_date"`
-	Rating    int       `bson:"rating"`
-	Starred   bool      `bson:"starred"`
-	StarredAt time.Time `bson:"starred_at"`
+	PlayCount         int       `bson:"play_count"`
+	PlayCompleteCount int       `bson:"play_complete_count"`
+	PlayDate          time.Time `bson:"play_date"`
+	Rating            int       `bson:"rating"`
+	Starred           bool      `bson:"starred"`
+	StarredAt         time.Time `bson:"starred_at"`
 
 	Index int `bson:"index" json:"Index"`
 }

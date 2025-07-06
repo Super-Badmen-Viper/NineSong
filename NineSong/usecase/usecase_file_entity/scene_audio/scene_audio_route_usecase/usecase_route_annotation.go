@@ -96,6 +96,20 @@ func (uc *annotationUsecase) UpdateScrobble(
 	return uc.repo.UpdateScrobble(ctx, itemId, itemType)
 }
 
+func (uc *annotationUsecase) UpdateCompleteScrobble(
+	ctx context.Context,
+	itemId, itemType string,
+) (bool, error) {
+	if err := uc.validateItemType(itemType); err != nil {
+		return false, err
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
+	defer cancel()
+
+	return uc.repo.UpdateCompleteScrobble(ctx, itemId, itemType)
+}
+
 func (uc *annotationUsecase) UpdateTagSource(
 	ctx context.Context,
 	itemId, itemType string,

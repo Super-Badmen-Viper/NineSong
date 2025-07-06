@@ -25,6 +25,7 @@ func NewAnnotationRouter(
 		router.POST("/unstar", ctrl.UpdateUnStarred)
 		router.POST("/rating", ctrl.UpdateRating)
 		router.POST("/scrobble", ctrl.UpdateScrobble)
+		router.POST("/scrobble/complete", ctrl.UpdateCompleteScrobble)
 		router.POST("/tags", ctrl.UpdateTagSource)
 		router.POST("/weights", ctrl.UpdateWeightedTag)
 	}

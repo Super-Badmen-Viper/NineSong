@@ -197,6 +197,44 @@ func (r *annotationRepository) UpdateScrobble(
 	return true, nil
 }
 
+func (r *annotationRepository) UpdateCompleteScrobble(
+	ctx context.Context,
+	itemId, itemType string,
+) (bool, error) {
+	filter, err := r.createFilter(itemId, itemType)
+	if err != nil {
+		return false, err
+	}
+
+	update := bson.M{
+		"$inc": bson.M{"play_complete_count": 1},
+		"$setOnInsert": bson.M{
+			"created_at": time.Now().UTC(),
+			"starred":    false,
+			"rating":     0,
+		},
+	}
+
+	opts := options.Update().SetUpsert(true)
+	coll := r.db.Collection(domain.CollectionFileEntityAudioSceneAnnotation)
+
+	res, err := coll.UpdateOne(ctx, filter, update, opts)
+	if err != nil {
+		return false, fmt.Errorf("update operation failed: %w", err)
+	}
+
+	var doc scene_audio_route_models.AnnotationMetadata
+	if res.UpsertedID != nil {
+		filter = bson.M{"_id": res.UpsertedID}
+	}
+
+	if err := coll.FindOne(ctx, filter).Decode(&doc); err != nil {
+		return false, fmt.Errorf("fetch document failed: %w", err)
+	}
+
+	return true, nil
+}
+
 func (r *annotationRepository) UpdateTagSource(
 	ctx context.Context,
 	itemId, itemType string,

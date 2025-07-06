@@ -23,11 +23,12 @@ type ArtistMetadata struct {
 
 	ImageFiles string `bson:"image_files"` // 为空则不存在cover封面，从媒体文件中提取
 
-	PlayCount int       `bson:"play_count"`
-	PlayDate  time.Time `bson:"play_date"`
-	Rating    int       `bson:"rating"`
-	Starred   bool      `bson:"starred"`
-	StarredAt time.Time `bson:"starred_at"`
+	PlayCount         int       `bson:"play_count"`
+	PlayCompleteCount int       `bson:"play_complete_count"`
+	PlayDate          time.Time `bson:"play_date"`
+	Rating            int       `bson:"rating"`
+	Starred           bool      `bson:"starred"`
+	StarredAt         time.Time `bson:"starred_at"`
 }
 
 type ArtistFilterCounts struct {

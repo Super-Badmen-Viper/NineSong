@@ -90,6 +90,22 @@ func (c *AnnotationController) UpdateScrobble(ctx *gin.Context) {
 	controller.SuccessResponse(ctx, "result", result, 1)
 }
 
+func (c *AnnotationController) UpdateCompleteScrobble(ctx *gin.Context) {
+	var req BaseAnnotationRequest
+	if err := ctx.ShouldBind(&req); err != nil {
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "INVALID_PARAMS", err.Error())
+		return
+	}
+
+	result, err := c.usecase.UpdateCompleteScrobble(ctx, req.ItemID, req.ItemType)
+	if err != nil {
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "UPDATE_FAILED", err.Error())
+		return
+	}
+
+	controller.SuccessResponse(ctx, "result", result, 1)
+}
+
 type UpdateTagSourceRequest struct {
 	ItemID   string                               `json:"item_id" form:"item_id" binding:"required"`
 	ItemType string                               `json:"item_type" form:"item_type" binding:"required,oneof=artist album media"`
