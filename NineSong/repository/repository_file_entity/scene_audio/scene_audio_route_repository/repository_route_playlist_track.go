@@ -91,6 +91,7 @@ func (r *playlistTrackRepository) GetPlaylistTrackItems(
 		{
 			{Key: "$addFields", Value: bson.D{
 				{Key: "media_file.play_count", Value: "$annotations.play_count"},
+				{Key: "media_file.play_complete_count", Value: "$annotations.play_complete_count"},
 				{Key: "media_file.play_date", Value: "$annotations.play_date"},
 				{Key: "media_file.rating", Value: "$annotations.rating"},
 				{Key: "media_file.starred", Value: "$annotations.starred"},

@@ -67,6 +67,7 @@ func (r *artistRepository) GetArtistItems(
 		{
 			{Key: "$addFields", Value: bson.D{
 				{Key: "play_count", Value: "$annotations.play_count"},
+				{Key: "play_complete_count", Value: "$annotations.play_complete_count"},
 				{Key: "play_date", Value: "$annotations.play_date"},
 				{Key: "rating", Value: "$annotations.rating"},
 				{Key: "starred", Value: "$annotations.starred"},
