@@ -1314,6 +1314,15 @@ func (uc *FileUsecase) processFile(
 			return
 		}
 
+		if mediaFile.Title == "" {
+			mediaFile.Title = mediaFile.FileName
+			mediaFile.OrderTitle = mediaFile.FileName
+			mediaFile.SortTitle = mediaFile.FileName
+		}
+		if mediaFileCue != nil && mediaFileCue.Title == "" {
+			mediaFileCue.Title = mediaFileCue.FileName
+		}
+
 		if err := uc.processAudioHierarchy(ctx, artists, album, mediaFile, mediaFileCue); err != nil {
 			return
 		}

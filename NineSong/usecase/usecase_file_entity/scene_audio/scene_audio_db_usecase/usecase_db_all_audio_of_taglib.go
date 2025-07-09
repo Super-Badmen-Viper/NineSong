@@ -260,6 +260,16 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 		}
 	}
 
+	if len(artistTag) == 0 {
+		artistTag = "null"
+	}
+	if len(albumArtistTag) == 0 {
+		albumArtistTag = "null"
+	}
+	if len(albumTag) == 0 {
+		albumTag = "null"
+	}
+
 	albumID = generateDeterministicID(artistTag + albumTag)
 	artistID = generateDeterministicID(artistTag)
 	albumArtistID = generateDeterministicID(albumArtistTag)
@@ -398,6 +408,9 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFileCue(
 		albumTag = title
 	}
 
+	if len(artistTag) == 0 {
+		artistTag = "null"
+	}
 	artistID := generateDeterministicID(artistTag)
 
 	compilationArtist := e.hasMultipleArtists(artistTag)
@@ -450,7 +463,10 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFileCue(
 		COMMENT: globalMeta["COMMENT"],
 	}
 	mediaFileCue.Performer = globalMeta["PERFORMER"]
-	mediaFileCue.PerformerID = generateDeterministicID(globalMeta["PERFORMER"]).Hex()
+	if len(mediaFileCue.Performer) == 0 {
+		mediaFileCue.Performer = "null"
+	}
+	mediaFileCue.PerformerID = generateDeterministicID(mediaFileCue.Performer).Hex()
 	mediaFileCue.Title = globalMeta["TITLE"]
 	mediaFileCue.File = scene_audio_db_models.CueFile{
 		FilePath: globalMeta["FILE"],
@@ -738,6 +754,9 @@ func formatMultipleArtists(artistTag string) (string, []scene_audio_db_models.Ar
 
 	allArtistPairs := make([]scene_audio_db_models.ArtistIDPair, len(dedupedList))
 	for i, artist := range dedupedList {
+		if len(artist) == 0 {
+			artist = "null"
+		}
 		artistID := generateDeterministicID(artist).Hex()
 		allArtistPairs[i] = scene_audio_db_models.ArtistIDPair{
 			ArtistName: artist,
@@ -934,6 +953,9 @@ func parseCueFile(cuePath string) (
 				}
 			case strings.HasPrefix(trimmedLine, "PERFORMER "):
 				if value, ok := extractQuotedValue(rawLine, "PERFORMER"); ok {
+					if len(value) == 0 {
+						value = "null"
+					}
 					currentTrack.Performer = value
 					currentTrack.PerformerID = generateDeterministicID(value).Hex()
 				}
