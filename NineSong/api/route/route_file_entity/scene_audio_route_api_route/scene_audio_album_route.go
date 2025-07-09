@@ -24,6 +24,7 @@ func NewAlbumRouter(
 	albumGroup := group.Group("/albums")
 	{
 		albumGroup.GET("", ctrl.GetAlbumItems)
+		albumGroup.GET("/sort", ctrl.GetAlbumItemsMultipleSorting)
 		albumGroup.GET("/filter_counts", ctrl.GetAlbumFilterCounts)
 	}
 }

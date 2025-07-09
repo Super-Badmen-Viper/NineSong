@@ -22,6 +22,7 @@ func NewPlaylistTrackRouter(
 	playlistTrackGroup := group.Group("/playlists/tracks")
 	{
 		playlistTrackGroup.GET("", ctrl.GetPlaylistTracks)
+		playlistTrackGroup.GET("/sort", ctrl.GetPlaylistTracksMultipleSorting)
 		playlistTrackGroup.GET("/filter_counts", ctrl.GetPlaylistFilterCounts)
 		playlistTrackGroup.POST("/add", ctrl.AddPlaylistTracks)
 		playlistTrackGroup.POST("/remove", ctrl.RemovePlaylistTracks)

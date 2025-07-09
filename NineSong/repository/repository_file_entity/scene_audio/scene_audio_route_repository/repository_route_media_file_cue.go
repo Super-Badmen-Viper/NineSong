@@ -112,6 +112,153 @@ func (r *mediaFileCueRepository) GetMediaFileCueItems(
 	return results, nil
 }
 
+// GetMediaFileCueItemsMultipleSorting 新增：支持多重排序的媒体文件CUE查询
+func (r *mediaFileCueRepository) GetMediaFileCueItemsMultipleSorting(
+	ctx context.Context,
+	start, end string,
+	sortOrder []domain.SortOrder,
+	search, starred, albumId, artistId, year string,
+) ([]scene_audio_route_models.MediaFileCueMetadata, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	coll := r.db.Collection(r.collection)
+
+	// 构建聚合管道
+	pipeline := []bson.D{
+		{
+			{Key: "$lookup", Value: bson.D{
+				{Key: "from", Value: domain.CollectionFileEntityAudioSceneAnnotation},
+				{Key: "let", Value: bson.D{{Key: "mediaId", Value: "$_id"}}},
+				{Key: "pipeline", Value: []bson.D{
+					{
+						{Key: "$match", Value: bson.D{
+							{Key: "$expr", Value: bson.D{
+								{Key: "$and", Value: bson.A{
+									bson.D{{Key: "$eq", Value: bson.A{"$item_id", "$$mediaId"}}},
+									bson.D{{Key: "$eq", Value: bson.A{"$item_type", "media_cue"}}},
+								}},
+							}},
+						}},
+					},
+				}},
+				{Key: "as", Value: "annotations"},
+			}},
+		},
+		{
+			{Key: "$unwind", Value: bson.D{
+				{Key: "path", Value: "$annotations"},
+				{Key: "preserveNullAndEmptyArrays", Value: true},
+			}},
+		},
+		{
+			{Key: "$addFields", Value: bson.D{
+				{Key: "play_count", Value: "$annotations.play_count"},
+				{Key: "play_complete_count", Value: "$annotations.play_complete_count"},
+				{Key: "play_date", Value: "$annotations.play_date"},
+				{Key: "rating", Value: "$annotations.rating"},
+				{Key: "starred", Value: "$annotations.starred"},
+				{Key: "starred_at", Value: "$annotations.starred_at"},
+			}},
+		},
+	}
+
+	// 添加基础过滤条件
+	if match := r.buildMatchStage(search, starred, albumId, artistId, year); len(match) > 0 {
+		pipeline = append(pipeline, bson.D{{Key: "$match", Value: match}})
+	}
+
+	// 检查是否需要播放相关过滤
+	if hasPlayDateSortMediaCue(sortOrder) {
+		pipeline = append(pipeline, bson.D{
+			{Key: "$match", Value: bson.D{
+				{Key: "play_count", Value: bson.D{{Key: "$gt", Value: 0}}},
+			}},
+		})
+	}
+
+	// 添加多重排序阶段
+	if sortStage := buildCueMultiSortStage(sortOrder); sortStage != nil {
+		pipeline = append(pipeline, *sortStage)
+	}
+
+	// 添加分页阶段
+	if paginationStages := r.buildPaginationStage(start, end); paginationStages != nil {
+		pipeline = append(pipeline, paginationStages...)
+	}
+
+	// 执行聚合查询
+	cursor, err := coll.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("database query failed: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var results []scene_audio_route_models.MediaFileCueMetadata
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, fmt.Errorf("decode error: %w", err)
+	}
+
+	return results, nil
+}
+
+// 新增：构建CUE多重排序阶段
+func buildCueMultiSortStage(sortOrder []domain.SortOrder) *bson.D {
+	if len(sortOrder) == 0 {
+		return nil
+	}
+
+	sortCriteria := bson.D{}
+	for _, so := range sortOrder {
+		mappedField := mapCueSortField(so.Sort)
+		orderVal := 1
+		if strings.ToLower(so.Order) == "desc" {
+			orderVal = -1
+		}
+		sortCriteria = append(sortCriteria, bson.E{Key: mappedField, Value: orderVal})
+	}
+	// 添加稳定性排序字段
+	sortCriteria = append(sortCriteria, bson.E{Key: "_id", Value: 1})
+
+	return &bson.D{{Key: "$sort", Value: sortCriteria}}
+}
+
+// 新增：CUE排序字段映射
+func mapCueSortField(sort string) string {
+	sortMappings := map[string]string{
+		"title":           "title",
+		"performer":       "performer",
+		"year":            "rem.date",
+		"rating":          "rating",
+		"starred_at":      "starred_at",
+		"genre":           "rem.genre",
+		"play_count":      "play_count",
+		"play_date":       "play_date",
+		"size":            "size",
+		"created_at":      "created_at",
+		"updated_at":      "updated_at",
+		"cue_track_count": "cue_track_count",
+		"bit_rate":        "cue_bit_rate",
+		"duration":        "cue_duration",
+		"sample_rate":     "cue_sample_rate",
+		"track_title":     "cue_tracks.track_title",     // 嵌套字段排序
+		"track_performer": "cue_tracks.track_performer", // 嵌套字段排序
+	}
+	if mapped, ok := sortMappings[strings.ToLower(sort)]; ok {
+		return mapped
+	}
+	return sort
+}
+
+// 新增：检查排序条件是否包含play_date
+func hasPlayDateSortMediaCue(sortOrder []domain.SortOrder) bool {
+	for _, so := range sortOrder {
+		if mapCueSortField(so.Sort) == "play_date" {
+			return true
+		}
+	}
+	return false
+}
+
 func (r *mediaFileCueRepository) GetMediaFileCueFilterItemsCount(
 	ctx context.Context,
 	search, starred, albumId, artistId, year string,

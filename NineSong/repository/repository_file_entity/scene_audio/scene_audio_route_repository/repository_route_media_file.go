@@ -115,6 +115,151 @@ func (r *mediaFileRepository) GetMediaFileItems(
 	return results, nil
 }
 
+// GetMediaFileItemsMultipleSorting 新增：支持多重排序的媒体文件查询
+func (r *mediaFileRepository) GetMediaFileItemsMultipleSorting(
+	ctx context.Context,
+	start, end string,
+	sortOrder []domain.SortOrder,
+	search, starred, albumId, artistId, year string,
+) ([]scene_audio_route_models.MediaFileMetadata, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	coll := r.db.Collection(r.collection)
+
+	// 构建聚合管道
+	pipeline := []bson.D{
+		{
+			{Key: "$lookup", Value: bson.D{
+				{Key: "from", Value: domain.CollectionFileEntityAudioSceneAnnotation},
+				{Key: "let", Value: bson.D{{Key: "mediaId", Value: "$_id"}}},
+				{Key: "pipeline", Value: []bson.D{
+					{
+						{Key: "$match", Value: bson.D{
+							{Key: "$expr", Value: bson.D{
+								{Key: "$and", Value: bson.A{
+									bson.D{{Key: "$eq", Value: bson.A{"$item_id", "$$mediaId"}}},
+									bson.D{{Key: "$eq", Value: bson.A{"$item_type", "media"}}},
+								}},
+							}},
+						}},
+					},
+				}},
+				{Key: "as", Value: "annotations"},
+			}},
+		},
+		{
+			{Key: "$unwind", Value: bson.D{
+				{Key: "path", Value: "$annotations"},
+				{Key: "preserveNullAndEmptyArrays", Value: true},
+			}},
+		},
+		{
+			{Key: "$addFields", Value: bson.D{
+				{Key: "play_count", Value: "$annotations.play_count"},
+				{Key: "play_complete_count", Value: "$annotations.play_complete_count"},
+				{Key: "play_date", Value: "$annotations.play_date"},
+				{Key: "rating", Value: "$annotations.rating"},
+				{Key: "starred", Value: "$annotations.starred"},
+				{Key: "starred_at", Value: "$annotations.starred_at"},
+			}},
+		},
+	}
+
+	// 添加基础过滤条件
+	if match := buildMatchStage(search, starred, albumId, artistId, year); len(match) > 0 {
+		pipeline = append(pipeline, bson.D{{Key: "$match", Value: match}})
+	}
+
+	// 检查是否需要play_date过滤
+	if hasPlayDateSort(sortOrder) {
+		pipeline = append(pipeline, bson.D{
+			{Key: "$match", Value: bson.D{
+				{Key: "play_count", Value: bson.D{{Key: "$gt", Value: 0}}},
+			}},
+		})
+	}
+
+	// 添加多重排序阶段
+	if sortStage := buildMultiSortStage(sortOrder); sortStage != nil {
+		pipeline = append(pipeline, *sortStage)
+	}
+
+	// 添加分页阶段
+	if paginationStages := buildMediaPaginationStage(start, end); paginationStages != nil {
+		pipeline = append(pipeline, paginationStages...)
+	}
+
+	// 执行聚合查询
+	cursor, err := coll.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("database query failed: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var results []scene_audio_route_models.MediaFileMetadata
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, fmt.Errorf("decode error: %w", err)
+	}
+
+	return results, nil
+}
+
+// 新增：构建多重排序阶段
+func buildMultiSortStage(sortOrder []domain.SortOrder) *bson.D {
+	if len(sortOrder) == 0 {
+		return nil
+	}
+
+	sortCriteria := bson.D{}
+	for _, so := range sortOrder {
+		mappedField := mapSortField(so.Sort)
+		orderVal := 1
+		if strings.ToLower(so.Order) == "desc" {
+			orderVal = -1
+		}
+		sortCriteria = append(sortCriteria, bson.E{Key: mappedField, Value: orderVal})
+	}
+	// 添加稳定性排序字段
+	sortCriteria = append(sortCriteria, bson.E{Key: "_id", Value: 1})
+
+	return &bson.D{{Key: "$sort", Value: sortCriteria}}
+}
+
+// 新增：检查排序条件是否包含play_date
+func hasPlayDateSort(sortOrder []domain.SortOrder) bool {
+	for _, so := range sortOrder {
+		if mapSortField(so.Sort) == "play_date" {
+			return true
+		}
+	}
+	return false
+}
+
+// 新增：排序字段映射（无albumId逻辑）
+func mapSortField(sort string) string {
+	sortMappings := map[string]string{
+		"title":        "order_title",
+		"album":        "order_album_name",
+		"artist":       "order_artist_name",
+		"album_artist": "order_album_artist_name",
+		"year":         "year",
+		"rating":       "rating",
+		"starred_at":   "starred_at",
+		"genre":        "genre",
+		"play_count":   "play_count",
+		"play_date":    "play_date",
+		"duration":     "duration",
+		"bit_rate":     "bit_rate",
+		"size":         "size",
+		"created_at":   "created_at",
+		"updated_at":   "updated_at",
+	}
+	if mapped, ok := sortMappings[strings.ToLower(sort)]; ok {
+		return mapped
+	}
+	return sort
+}
+
 func (r *mediaFileRepository) GetMediaFileFilterItemsCount(
 	ctx context.Context,
 	search, starred, albumId, artistId, year string,

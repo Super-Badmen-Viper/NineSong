@@ -148,6 +148,174 @@ func (r *playlistTrackRepository) GetPlaylistTrackItems(
 	return results, nil
 }
 
+// GetPlaylistTrackItemsMultipleSorting 新增：支持多重排序的播放列表曲目查询
+func (r *playlistTrackRepository) GetPlaylistTrackItemsMultipleSorting(
+	ctx context.Context,
+	start, end string,
+	sortOrder []domain.SortOrder,
+	search, starred, albumId, artistId, year, playlistId string,
+) ([]scene_audio_route_models.MediaFileMetadata, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	coll := r.db.Collection(r.collection)
+
+	// 构建聚合管道
+	pipeline := []bson.D{
+		// 匹配播放列表
+		{
+			{Key: "$match", Value: bson.D{
+				{Key: "playlist_id", Value: mustObjectID(playlistId)},
+			}},
+		},
+		// 关联媒体文件
+		{
+			{Key: "$lookup", Value: bson.D{
+				{Key: "from", Value: domain.CollectionFileEntityAudioSceneMediaFile},
+				{Key: "localField", Value: "media_file_id"},
+				{Key: "foreignField", Value: "_id"},
+				{Key: "as", Value: "media_file"},
+			}},
+		},
+		{
+			{Key: "$unwind", Value: bson.D{
+				{Key: "path", Value: "$media_file"},
+				{Key: "preserveNullAndEmptyArrays", Value: false},
+			}},
+		},
+		// 关联注解数据
+		{
+			{Key: "$lookup", Value: bson.D{
+				{Key: "from", Value: domain.CollectionFileEntityAudioSceneAnnotation},
+				{Key: "let", Value: bson.D{{Key: "mediaId", Value: "$media_file._id"}}},
+				{Key: "pipeline", Value: []bson.D{
+					{
+						{Key: "$match", Value: bson.D{
+							{Key: "$expr", Value: bson.D{
+								{Key: "$and", Value: bson.A{
+									bson.D{{Key: "$eq", Value: bson.A{"$item_id", "$$mediaId"}}},
+									bson.D{{Key: "$eq", Value: bson.A{"$item_type", "media"}}},
+								}},
+							}},
+						}},
+					},
+				}},
+				{Key: "as", Value: "annotations"},
+			}},
+		},
+		{
+			{Key: "$unwind", Value: bson.D{
+				{Key: "path", Value: "$annotations"},
+				{Key: "preserveNullAndEmptyArrays", Value: true},
+			}},
+		},
+		// 合并字段
+		{
+			{Key: "$addFields", Value: bson.D{
+				{Key: "media_file.play_count", Value: "$annotations.play_count"},
+				{Key: "media_file.play_complete_count", Value: "$annotations.play_complete_count"},
+				{Key: "media_file.play_date", Value: "$annotations.play_date"},
+				{Key: "media_file.rating", Value: "$annotations.rating"},
+				{Key: "media_file.starred", Value: "$annotations.starred"},
+				{Key: "media_file.starred_at", Value: "$annotations.starred_at"},
+				{Key: "media_file.index", Value: "$index"}, // 关键修改点
+			}},
+		},
+		// 替换根节点
+		{
+			{Key: "$replaceRoot", Value: bson.D{
+				{Key: "newRoot", Value: bson.D{
+					{Key: "$mergeObjects", Value: bson.A{
+						"$media_file",
+						bson.D{
+							{Key: "Index", Value: "$index"}, // 匹配模型字段名(首字母大写)
+						},
+					}},
+				}},
+			}},
+		},
+	}
+
+	// 构建过滤条件
+	if match := buildMediaMatch(search, starred, albumId, artistId, year); len(match) > 0 {
+		pipeline = append(pipeline, bson.D{{Key: "$match", Value: match}})
+	}
+
+	// 添加多重排序阶段
+	if sortStage := buildPlaylistMultiSortStage(sortOrder); sortStage != nil {
+		pipeline = append(pipeline, *sortStage)
+	}
+
+	// 分页处理
+	paginationStages := buildMediaPaginationStage(start, end)
+	if paginationStages != nil {
+		pipeline = append(pipeline, paginationStages...)
+	}
+
+	cursor, err := coll.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("database query failed: %w", err)
+	}
+	defer func(cursor mongo.Cursor, ctx context.Context) {
+		err := cursor.Close(ctx)
+		if err != nil {
+			fmt.Printf("error closing cursor: %v\n", err)
+		}
+	}(cursor, ctx)
+
+	var results []scene_audio_route_models.MediaFileMetadata
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, fmt.Errorf("解码错误: %w", err)
+	}
+
+	return results, nil
+}
+
+// 新增：构建播放列表多重排序阶段
+func buildPlaylistMultiSortStage(sortOrder []domain.SortOrder) *bson.D {
+	if len(sortOrder) == 0 {
+		return nil
+	}
+
+	sortCriteria := bson.D{}
+	for _, so := range sortOrder {
+		mappedField := mapPlaylistSortField(so.Sort)
+		orderVal := 1
+		if strings.ToLower(so.Order) == "desc" {
+			orderVal = -1
+		}
+		sortCriteria = append(sortCriteria, bson.E{Key: mappedField, Value: orderVal})
+	}
+	// 添加稳定性排序字段
+	sortCriteria = append(sortCriteria, bson.E{Key: "_id", Value: 1})
+
+	return &bson.D{{Key: "$sort", Value: sortCriteria}}
+}
+
+// 新增：播放列表排序字段映射
+func mapPlaylistSortField(sort string) string {
+	sortMappings := map[string]string{
+		"index":        "index", // 播放列表中的位置
+		"title":        "order_title",
+		"album":        "order_album_name",
+		"artist":       "order_artist_name",
+		"album_artist": "order_album_artist_name",
+		"play_count":   "play_count",
+		"year":         "year",
+		"duration":     "duration",
+		"bit_rate":     "bit_rate",
+		"size":         "size",
+		"rating":       "rating",
+		"starred_at":   "starred_at",
+		"created_at":   "created_at",
+		"updated_at":   "updated_at",
+	}
+
+	if mapped, ok := sortMappings[strings.ToLower(sort)]; ok {
+		return mapped
+	}
+	return sort
+}
+
 func (r *playlistTrackRepository) GetPlaylistTrackFilterItemsCount(
 	ctx context.Context,
 	search, albumId, artistId, year string,

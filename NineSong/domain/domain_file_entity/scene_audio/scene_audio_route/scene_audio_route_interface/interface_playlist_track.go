@@ -2,6 +2,7 @@ package scene_audio_route_interface
 
 import (
 	"context"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
 
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
 )
@@ -9,15 +10,20 @@ import (
 type PlaylistTrackRepository interface {
 	GetPlaylistTrackItems(
 		ctx context.Context,
-		end string,
-		order string,
-		sort string,
-		start string,
-		search string,
-		starred string,
-		albumId string,
-		artistId string,
-		year string,
+		start, end, sort, order,
+		search, starred,
+		albumId, artistId,
+		year,
+		playlistId string,
+	) ([]scene_audio_route_models.MediaFileMetadata, error)
+
+	GetPlaylistTrackItemsMultipleSorting(
+		ctx context.Context,
+		start, end string,
+		sortOrder []domain.SortOrder,
+		search, starred,
+		albumId, artistId,
+		year,
 		playlistId string,
 	) ([]scene_audio_route_models.MediaFileMetadata, error)
 

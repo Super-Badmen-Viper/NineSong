@@ -119,6 +119,147 @@ func (r *artistRepository) GetArtistItems(
 	return results, nil
 }
 
+// GetArtistItemsMultipleSorting 新增：支持多重排序的艺术家查询
+func (r *artistRepository) GetArtistItemsMultipleSorting(
+	ctx context.Context,
+	start, end string,
+	sortOrder []domain.SortOrder,
+	search, starred string,
+) ([]scene_audio_route_models.ArtistMetadata, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	coll := r.db.Collection(r.collection)
+
+	// 构建聚合管道
+	pipeline := []bson.D{
+		{
+			{Key: "$lookup", Value: bson.D{
+				{Key: "from", Value: domain.CollectionFileEntityAudioSceneAnnotation},
+				{Key: "let", Value: bson.D{{Key: "artistId", Value: "$_id"}}},
+				{Key: "pipeline", Value: []bson.D{
+					{
+						{Key: "$match", Value: bson.D{
+							{Key: "$expr", Value: bson.D{
+								{Key: "$and", Value: bson.A{
+									bson.D{{Key: "$eq", Value: bson.A{"$item_id", "$$artistId"}}},
+									bson.D{{Key: "$eq", Value: bson.A{"$item_type", "artist"}}},
+								}},
+							}},
+						}},
+					},
+					{{Key: "$limit", Value: 1}}, // 只取第一个注解
+				}},
+				{Key: "as", Value: "annotations"},
+			}},
+		},
+		{
+			{Key: "$unwind", Value: bson.D{
+				{Key: "path", Value: "$annotations"},
+				{Key: "preserveNullAndEmptyArrays", Value: true},
+			}},
+		},
+		{
+			{Key: "$addFields", Value: bson.D{
+				{Key: "play_count", Value: "$annotations.play_count"},
+				{Key: "play_complete_count", Value: "$annotations.play_complete_count"},
+				{Key: "play_date", Value: "$annotations.play_date"},
+				{Key: "rating", Value: "$annotations.rating"},
+				{Key: "starred", Value: "$annotations.starred"},
+				{Key: "starred_at", Value: "$annotations.starred_at"},
+			}},
+		},
+	}
+
+	// 添加基础过滤条件
+	if match := buildArtistMatch(search, starred); len(match) > 0 {
+		pipeline = append(pipeline, bson.D{{Key: "$match", Value: match}})
+	}
+
+	// 检查是否需要播放相关过滤
+	if hasPlaySortArtist(sortOrder) {
+		pipeline = append(pipeline, bson.D{
+			{Key: "$match", Value: bson.D{
+				{Key: "play_count", Value: bson.D{{Key: "$gt", Value: 0}}},
+			}},
+		})
+	}
+
+	// 添加多重排序阶段
+	if sortStage := buildArtistMultiSortStage(sortOrder); sortStage != nil {
+		pipeline = append(pipeline, *sortStage)
+	}
+
+	// 添加分页阶段
+	if paginationStages := buildArtistPaginationStage(start, end); paginationStages != nil {
+		pipeline = append(pipeline, paginationStages...)
+	}
+
+	// 执行聚合查询
+	cursor, err := coll.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("database query failed: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var results []scene_audio_route_models.ArtistMetadata
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, fmt.Errorf("decode error: %w", err)
+	}
+
+	return results, nil
+}
+
+// 新增：构建艺术家多重排序阶段
+func buildArtistMultiSortStage(sortOrder []domain.SortOrder) *bson.D {
+	if len(sortOrder) == 0 {
+		return nil
+	}
+
+	sortCriteria := bson.D{}
+	for _, so := range sortOrder {
+		mappedField := mapArtistSortField(so.Sort)
+		orderVal := 1
+		if strings.ToLower(so.Order) == "desc" {
+			orderVal = -1
+		}
+		sortCriteria = append(sortCriteria, bson.E{Key: mappedField, Value: orderVal})
+	}
+	// 添加稳定性排序字段
+	sortCriteria = append(sortCriteria, bson.E{Key: "_id", Value: 1})
+
+	return &bson.D{{Key: "$sort", Value: sortCriteria}}
+}
+
+// 新增：艺术家排序字段映射
+func mapArtistSortField(sort string) string {
+	sortMappings := map[string]string{
+		"name":        "order_artist_name",
+		"album_count": "album_count",
+		"song_count":  "song_count",
+		"play_count":  "play_count",
+		"play_date":   "play_date",
+		"rating":      "rating",
+		"starred_at":  "starred_at",
+		"size":        "size",
+		"created_at":  "created_at",
+		"updated_at":  "updated_at",
+	}
+	if mapped, ok := sortMappings[strings.ToLower(sort)]; ok {
+		return mapped
+	}
+	return sort
+}
+
+// 新增：检查排序条件是否包含播放相关字段
+func hasPlaySortArtist(sortOrder []domain.SortOrder) bool {
+	for _, so := range sortOrder {
+		if mapArtistSortField(so.Sort) == "play_count" || mapArtistSortField(so.Sort) == "play_date" {
+			return true
+		}
+	}
+	return false
+}
+
 func (r *artistRepository) GetArtistFilterItemsCount(
 	ctx context.Context,
 	search, starred string,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -89,6 +90,74 @@ func (uc *playlistTrackUsecase) GetPlaylistTrackItems(
 	}
 
 	return uc.repo.GetPlaylistTrackItems(ctx, start, end, sort, order, search, starred, albumId, artistId, year, playlistId)
+}
+
+func (uc *playlistTrackUsecase) GetPlaylistTrackItemsMultipleSorting(
+	ctx context.Context,
+	start, end string,
+	sortOrder []domain.SortOrder,
+	search, starred, albumId, artistId, year, playlistId string,
+) ([]scene_audio_route_models.MediaFileMetadata, error) {
+	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
+	defer cancel()
+
+	// 参数验证
+	if err := validateObjectID("playlistId", playlistId); err != nil {
+		return nil, err
+	}
+
+	if _, err := strconv.Atoi(start); start != "" && err != nil {
+		return nil, errors.New("invalid start parameter")
+	}
+
+	if _, err := strconv.Atoi(end); end != "" && err != nil {
+		return nil, errors.New("invalid end parameter")
+	}
+
+	if albumId != "" {
+		if err := validateObjectID("albumId", albumId); err != nil {
+			return nil, err
+		}
+	}
+
+	if artistId != "" {
+		if err := validateObjectID("artistId", artistId); err != nil {
+			return nil, err
+		}
+	}
+
+	if year != "" {
+		if _, err := strconv.Atoi(year); err != nil {
+			return nil, errors.New("invalid year format")
+		}
+	}
+
+	if starred != "" {
+		if _, err := strconv.ParseBool(starred); err != nil {
+			return nil, errors.New("invalid starred value")
+		}
+	}
+
+	// 验证排序参数
+	validSortFields := map[string]bool{
+		"index": true, "title": true, "artist": true, "album": true,
+		"year": true, "rating": true, "starred_at": true, "genre": true,
+		"play_count": true, "play_date": true, "duration": true,
+		"bit_rate": true, "size": true, "created_at": true, "updated_at": true,
+	}
+
+	for _, so := range sortOrder {
+		if !validSortFields[strings.ToLower(so.Sort)] {
+			return nil, fmt.Errorf("invalid sort field: %s", so.Sort)
+		}
+		if so.Order != "asc" && so.Order != "desc" {
+			return nil, fmt.Errorf("invalid sort order: %s", so.Order)
+		}
+	}
+
+	return uc.repo.GetPlaylistTrackItemsMultipleSorting(
+		ctx, start, end, sortOrder, search, starred, albumId, artistId, year, playlistId,
+	)
 }
 
 func (uc *playlistTrackUsecase) GetPlaylistTrackFilterItemsCount(

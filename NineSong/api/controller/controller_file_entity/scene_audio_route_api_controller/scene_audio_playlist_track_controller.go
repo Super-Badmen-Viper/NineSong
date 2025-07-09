@@ -2,6 +2,7 @@ package scene_audio_route_api_controller
 
 import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/controller"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -41,6 +42,59 @@ func (c *PlaylistTrackController) GetPlaylistTracks(ctx *gin.Context) {
 		params.End,
 		params.Sort,
 		params.Order,
+		params.Search,
+		params.Starred,
+		params.AlbumId,
+		params.ArtistId,
+		params.Year,
+		params.PlaylistId,
+	)
+
+	if err != nil {
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "DATABASE_ERROR", err.Error())
+		return
+	}
+
+	controller.SuccessResponse(ctx, "mediaFiles", results, len(results))
+}
+
+func (c *PlaylistTrackController) GetPlaylistTracksMultipleSorting(ctx *gin.Context) {
+	var params struct {
+		Start      string   `form:"start" binding:"required"`
+		End        string   `form:"end" binding:"required"`
+		Search     string   `form:"search"`
+		Starred    string   `form:"starred"`
+		AlbumId    string   `form:"albumId"`
+		ArtistId   string   `form:"artistId"`
+		Year       string   `form:"year"`
+		PlaylistId string   `form:"playlistId" binding:"required"`
+		Sort       []string `form:"sort"` // 格式: "field:order"
+	}
+
+	if err := ctx.ShouldBindQuery(&params); err != nil {
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "PARAMS_ERROR", parseBindingError(err))
+		return
+	}
+
+	// 解析排序参数
+	sortOrders := make([]domain.SortOrder, 0, len(params.Sort))
+	for _, s := range params.Sort {
+		parts := strings.Split(s, ":")
+		if len(parts) != 2 {
+			controller.ErrorResponse(ctx, http.StatusBadRequest, "INVALID_SORT_FORMAT", "sort参数格式应为field:order")
+			return
+		}
+		sortOrders = append(sortOrders, domain.SortOrder{
+			Sort:  parts[0],
+			Order: parts[1],
+		})
+	}
+
+	results, err := c.PlaylistTrackUsecase.GetPlaylistTrackItemsMultipleSorting(
+		ctx.Request.Context(),
+		params.Start,
+		params.End,
+		sortOrders,
 		params.Search,
 		params.Starred,
 		params.AlbumId,

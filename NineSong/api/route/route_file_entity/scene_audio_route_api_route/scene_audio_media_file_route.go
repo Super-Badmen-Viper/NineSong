@@ -23,6 +23,7 @@ func NewMediaFileRouter(
 	mediaGroup := group.Group("/medias")
 	{
 		mediaGroup.GET("", ctrl.GetMediaFiles)
+		mediaGroup.GET("/sort", ctrl.GetMediaFilesMultipleSorting)
 		mediaGroup.GET("/filter_counts", ctrl.GetMediaFilterCounts)
 	}
 }

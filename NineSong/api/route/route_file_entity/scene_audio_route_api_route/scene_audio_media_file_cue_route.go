@@ -20,9 +20,10 @@ func NewMediaFileCueRouter(
 	usecase := scene_audio_route_usecase.NewMediaFileCueUsecase(repo, timeout)
 	ctrl := scene_audio_route_api_controller.NewMediaFileCueController(usecase)
 
-	mediaGroup := group.Group("/cues")
+	mediaCueGroup := group.Group("/cues")
 	{
-		mediaGroup.GET("", ctrl.GetMediaFileCues)
-		mediaGroup.GET("/filter_counts", ctrl.GetMediaCueFilterCounts)
+		mediaCueGroup.GET("", ctrl.GetMediaFileCues)
+		mediaCueGroup.GET("/sort", ctrl.GetMediaFileCuesMultipleSorting)
+		mediaCueGroup.GET("/filter_counts", ctrl.GetMediaCueFilterCounts)
 	}
 }
