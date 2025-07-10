@@ -40,6 +40,9 @@ func NewMongoDatabase(env *Env) mongo.Client {
 		log.Fatal(err)
 	}
 
+	// Create indexes
+	go mongo.CreateIndexes(client.Database(env.DBName))
+
 	return client
 }
 

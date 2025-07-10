@@ -33,6 +33,7 @@ type Collection interface {
 	UpdateOne(context.Context, interface{}, interface{}, ...*options.UpdateOptions) (*mongo.UpdateResult, error)
 	UpdateMany(context.Context, interface{}, interface{}, ...*options.UpdateOptions) (*mongo.UpdateResult, error)
 	UpdateByID(ctx context.Context, id interface{}, update interface{}) (*mongo.UpdateResult, error)
+	Indexes() IndexView
 }
 
 type SingleResult interface {
@@ -55,6 +56,10 @@ type Client interface {
 	Ping(context.Context) error
 }
 
+type IndexView interface {
+	CreateOne(ctx context.Context, model mongo.IndexModel) (string, error)
+}
+
 type mongoClient struct {
 	cl *mongo.Client
 }
@@ -75,6 +80,10 @@ type mongoCursor struct {
 
 type mongoSession struct {
 	mongo.Session
+}
+
+type mongoIndexView struct {
+	iv *mongo.IndexView
 }
 
 type nullawareDecoder struct {
@@ -202,6 +211,11 @@ func (mc *mongoCollection) CountDocuments(ctx context.Context, filter interface{
 	return mc.coll.CountDocuments(ctx, filter, opts...)
 }
 
+func (mc *mongoCollection) Indexes() IndexView {
+	indexView := mc.coll.Indexes()
+	return &mongoIndexView{iv: &indexView}
+}
+
 func (sr *mongoSingleResult) Decode(v interface{}) error {
 	return sr.sr.Decode(v)
 }
@@ -220,4 +234,8 @@ func (mr *mongoCursor) Decode(v interface{}) error {
 
 func (mr *mongoCursor) All(ctx context.Context, result interface{}) error {
 	return mr.mc.All(ctx, result)
+}
+
+func (miv *mongoIndexView) CreateOne(ctx context.Context, model mongo.IndexModel) (string, error) {
+	return miv.iv.CreateOne(ctx, model)
 }
