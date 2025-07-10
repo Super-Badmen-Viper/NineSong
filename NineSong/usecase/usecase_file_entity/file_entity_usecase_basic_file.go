@@ -1314,7 +1314,7 @@ func (uc *FileUsecase) processFile(
 			return
 		}
 
-		if mediaFile.Title == "" {
+		if mediaFile != nil && mediaFile.Title == "" {
 			mediaFile.Title = mediaFile.FileName
 			mediaFile.OrderTitle = mediaFile.FileName
 			mediaFile.SortTitle = mediaFile.FileName
