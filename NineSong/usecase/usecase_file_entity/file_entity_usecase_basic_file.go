@@ -686,6 +686,7 @@ func (uc *FileUsecase) ProcessMusicDirectory(
 		// 第二次遍历：处理文件
 		err = filepath.Walk(folder.FolderPath, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
+
 				log.Printf("访问路径 %s 出错: %v", path, err)
 				return nil // 跳过错误继续遍历
 			}
@@ -1259,7 +1260,7 @@ func (uc *FileUsecase) processFile(
 	libraryFolderID primitive.ObjectID,
 	wg *sync.WaitGroup,
 	errChan chan<- error,
-	taskProg *taskProgress, // 新增：接收任务进度
+	taskProg *taskProgress,
 ) {
 	defer func() {
 		// 修复：更新任务级别的处理计数器
@@ -1315,12 +1316,12 @@ func (uc *FileUsecase) processFile(
 		}
 
 		if mediaFile != nil && mediaFile.Title == "" {
-			mediaFile.Title = mediaFile.FileName
-			mediaFile.OrderTitle = mediaFile.FileName
-			mediaFile.SortTitle = mediaFile.FileName
+			mediaFile.Title = "Unknown Title"
+			mediaFile.OrderTitle = "Unknown Title"
+			mediaFile.SortTitle = "Unknown Title"
 		}
 		if mediaFileCue != nil && mediaFileCue.Title == "" {
-			mediaFileCue.Title = mediaFileCue.FileName
+			mediaFileCue.Title = "Unknown Title"
 		}
 
 		if err := uc.processAudioHierarchy(ctx, artists, album, mediaFile, mediaFileCue); err != nil {

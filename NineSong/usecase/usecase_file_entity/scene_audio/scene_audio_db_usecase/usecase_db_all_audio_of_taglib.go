@@ -27,6 +27,8 @@ import (
 	"go.senan.xyz/taglib"
 )
 
+type AudioMetadataExtractorTaglib struct{}
+
 func (e *AudioMetadataExtractorTaglib) Extract(
 	path string, libraryPath string,
 	fileMetadata *domain_file_entity.FileMetadata,
@@ -161,7 +163,12 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 			if err != nil {
 				log.Fatal(err)
 			}
-			defer f.Close()
+			defer func(f *os.File) {
+				err := f.Close()
+				if err != nil {
+					log.Printf("文件关闭失败[%s]: %v", path, err)
+				}
+			}(f)
 
 			d := wav.NewDecoder(f)
 			d.ReadMetadata()
@@ -261,13 +268,13 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 	}
 
 	if len(artistTag) == 0 {
-		artistTag = "Unknown"
+		artistTag = "Unknown Artist"
 	}
 	if len(albumArtistTag) == 0 {
-		albumArtistTag = "Unknown"
+		albumArtistTag = "Unknown Album Artist"
 	}
 	if len(albumTag) == 0 {
-		albumTag = "Unknown"
+		albumTag = "Unknown Album"
 	}
 
 	albumID = generateDeterministicID(artistTag + albumTag)
@@ -409,7 +416,7 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFileCue(
 	}
 
 	if len(artistTag) == 0 {
-		artistTag = "Unknown"
+		artistTag = "Unknown Artist"
 	}
 	artistID := generateDeterministicID(artistTag)
 
@@ -464,7 +471,7 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFileCue(
 	}
 	mediaFileCue.Performer = globalMeta["PERFORMER"]
 	if len(mediaFileCue.Performer) == 0 {
-		mediaFileCue.Performer = "Unknown"
+		mediaFileCue.Performer = "Unknown Performer"
 	}
 	mediaFileCue.PerformerID = generateDeterministicID(mediaFileCue.Performer).Hex()
 	mediaFileCue.Title = globalMeta["TITLE"]
@@ -550,7 +557,7 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 
 	return &scene_audio_db_models.MediaFileMetadata{
 			// 系统保留字段 (综合)
-			ID:          e.mediaID,
+			ID:          fileMetadata.ID,
 			CreatedAt:   fileMetadata.CreatedAt,
 			UpdatedAt:   fileMetadata.UpdatedAt,
 			FullText:    fullText,
@@ -703,10 +710,6 @@ func (e *AudioMetadataExtractorTaglib) buildArtist(
 	}
 }
 
-type AudioMetadataExtractorTaglib struct {
-	mediaID primitive.ObjectID
-}
-
 func generateDeterministicID(seed string) primitive.ObjectID {
 	hash := sha256.Sum256([]byte(seed))
 	return primitive.ObjectID(hash[:12])
@@ -755,7 +758,7 @@ func formatMultipleArtists(artistTag string) (string, []scene_audio_db_models.Ar
 	allArtistPairs := make([]scene_audio_db_models.ArtistIDPair, len(dedupedList))
 	for i, artist := range dedupedList {
 		if len(artist) == 0 {
-			artist = "Unknown"
+			artist = "Unknown Artist"
 		}
 		artistID := generateDeterministicID(artist).Hex()
 		allArtistPairs[i] = scene_audio_db_models.ArtistIDPair{
@@ -954,7 +957,7 @@ func parseCueFile(cuePath string) (
 			case strings.HasPrefix(trimmedLine, "PERFORMER "):
 				if value, ok := extractQuotedValue(rawLine, "PERFORMER"); ok {
 					if len(value) == 0 {
-						value = "Unknown"
+						value = "Unknown Performer"
 					}
 					currentTrack.Performer = value
 					currentTrack.PerformerID = generateDeterministicID(value).Hex()
