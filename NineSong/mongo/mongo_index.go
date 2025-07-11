@@ -73,8 +73,33 @@ func createIndex(ctx context.Context, collection Collection, keys bson.D, name s
 	}
 	_, err := collection.Indexes().CreateOne(ctx, index)
 	if err != nil {
-		fmt.Printf("Failed to create index '%s': %v\n", name, err)
+		fmt.Printf("Failed to create index '%s': %v \n", name, err)
 	} else {
-		fmt.Printf("Index '%s' created successfully.\n", name)
+		fmt.Printf("Index '%s' created successfully. \n", name)
+	}
+}
+
+func DropAllIndexes(db Database) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	collections := []string{
+		domain.CollectionFileEntityAudioSceneAnnotation,
+		domain.CollectionFileEntityAudioSceneAlbum,
+		domain.CollectionFileEntityAudioSceneArtist,
+		domain.CollectionFileEntityAudioSceneMediaFile,
+		domain.CollectionFileEntityAudioSceneMediaFileCue,
+		domain.CollectionFileEntityAudioScenePlaylist,
+		domain.CollectionFileEntityAudioScenePlaylistTrack,
+	}
+
+	for _, collName := range collections {
+		collection := db.Collection(collName)
+		_, err := collection.Indexes().DropAll(ctx)
+		if err != nil {
+			fmt.Printf("Failed to drop indexes for collection '%s': %v \n", collName, err)
+		} else {
+			fmt.Printf("Indexes for collection '%s' dropped successfully. \n", collName)
+		}
 	}
 }

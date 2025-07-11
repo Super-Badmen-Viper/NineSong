@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 	"errors"
+	"go.mongodb.org/mongo-driver/bson"
 	"reflect"
 	"time"
 
@@ -58,6 +59,7 @@ type Client interface {
 
 type IndexView interface {
 	CreateOne(ctx context.Context, model mongo.IndexModel) (string, error)
+	DropAll(ctx context.Context) (bson.Raw, error)
 }
 
 type mongoClient struct {
@@ -238,4 +240,8 @@ func (mr *mongoCursor) All(ctx context.Context, result interface{}) error {
 
 func (miv *mongoIndexView) CreateOne(ctx context.Context, model mongo.IndexModel) (string, error) {
 	return miv.iv.CreateOne(ctx, model)
+}
+
+func (miv *mongoIndexView) DropAll(ctx context.Context) (bson.Raw, error) {
+	return miv.iv.DropAll(ctx)
 }

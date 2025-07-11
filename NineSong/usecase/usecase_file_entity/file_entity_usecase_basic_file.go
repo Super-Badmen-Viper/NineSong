@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	ffmpeggo "github.com/u2takey/ffmpeg-go"
+	driver "go.mongodb.org/mongo-driver/mongo"
 	"io"
 	"log"
 	"os"
@@ -19,11 +20,11 @@ import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_interface"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/usecase/usecase_file_entity/scene_audio/scene_audio_db_usecase"
 	"github.com/dhowden/tag"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // ScanManager 全局状态管理器
@@ -111,6 +112,7 @@ func (tp *taskProgress) AddTotalFiles(count int) {
 }
 
 type FileUsecase struct {
+	db          mongo.Database
 	fileRepo    domain_file_entity.FileRepository
 	folderRepo  domain_file_entity.FolderRepository
 	detector    domain_file_entity.FileDetector
@@ -144,6 +146,7 @@ type FileUsecase struct {
 }
 
 func NewFileUsecase(
+	db mongo.Database,
 	fileRepo domain_file_entity.FileRepository,
 	folderRepo domain_file_entity.FolderRepository,
 	detector domain_file_entity.FileDetector,
@@ -161,6 +164,7 @@ func NewFileUsecase(
 	}
 
 	return &FileUsecase{
+		db:            db,
 		fileRepo:      fileRepo,
 		folderRepo:    folderRepo,
 		detector:      detector,
@@ -338,11 +342,16 @@ func (uc *FileUsecase) ProcessDirectory(
 	}
 	uc.scanMutex.Unlock()
 
+	// 扫描前删除索引
+	mongo.DropAllIndexes(uc.db)
+
 	// 在函数返回时，减少activeScanCount
 	defer func() {
 		uc.scanMutex.Lock()
 		uc.activeScanCount--
 		uc.scanMutex.Unlock()
+		// 扫描结束后创建索引
+		mongo.CreateIndexes(uc.db)
 	}()
 
 	// 修复：在正确位置初始化任务进度跟踪器
@@ -1348,7 +1357,7 @@ func (uc *FileUsecase) createMetadataBasicInfo(
 ) (*domain_file_entity.FileMetadata, error) {
 	// 1. 先查询是否已存在该路径文件
 	existingFile, err := uc.fileRepo.FindByPath(context.Background(), path)
-	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+	if err != nil && !errors.Is(err, driver.ErrNoDocuments) {
 		log.Printf("路径查询失败: %s | %v", path, err)
 		return nil, fmt.Errorf("路径查询失败: %w", err)
 	}
@@ -1626,33 +1635,38 @@ func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,
 	album *scene_audio_db_models.AlbumMetadata,
 	mediaFile *scene_audio_db_models.MediaFileMetadata,
 	mediaFileCue *scene_audio_db_models.MediaFileCueMetadata,
-) error {
+) (err error) { // 改为命名返回值，便于错误处理
 	// 关键依赖检查
 	if uc.mediaRepo == nil || uc.artistRepo == nil || uc.albumRepo == nil || uc.mediaCueRepo == nil {
 		log.Print("音频仓库未初始化")
 		return fmt.Errorf("系统服务异常")
 	}
 
+	// 修复：检查mediaFile和mediaFileCue同时为nil的情况
 	if mediaFile == nil && mediaFileCue == nil {
 		log.Print("媒体文件元数据为空")
-		return fmt.Errorf("mediaFile cannot be nil")
+		return fmt.Errorf("mediaFile and mediaFileCue cannot both be nil")
 	}
 
 	// 直接保存无关联数据
 	if artists == nil && album == nil {
 		if mediaFile != nil {
-			if mediaFile, err := uc.mediaRepo.Upsert(ctx, mediaFile); err != nil {
+			// 修复：移除短声明避免覆盖原变量
+			if _, err := uc.mediaRepo.Upsert(ctx, mediaFile); err != nil {
+				// 修复：直接使用原mediaFile避免NPE
 				log.Printf("歌曲保存失败: %s | %v", mediaFile.Path, err)
 				return fmt.Errorf("歌曲元数据保存失败 | 路径:%s | %w", mediaFile.Path, err)
 			}
 		}
 		if mediaFileCue != nil {
-			if mediaFileCue, err := uc.mediaCueRepo.Upsert(ctx, mediaFileCue); err != nil {
-				if mediaFileCue != nil {
-					log.Printf("CUE文件保存失败: %s | %v", mediaFileCue.CueResources.CuePath, err)
-				} else {
-					log.Printf("CUE文件保存失败: %s | %v", mediaFileCue, err)
+			// 修复：移除短声明+添加安全访问
+			if _, err := uc.mediaCueRepo.Upsert(ctx, mediaFileCue); err != nil {
+				cuePath := "unknown path"
+				if len(mediaFileCue.CueResources.CuePath) > 0 {
+					cuePath = mediaFileCue.CueResources.CuePath
 				}
+				log.Printf("CUE文件保存失败: %s | %v", cuePath, err)
+				// 修复：CUE错误应返回但不中断核心流程
 			}
 		}
 		return nil
@@ -1661,6 +1675,11 @@ func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,
 	// 处理艺术家
 	if artists != nil {
 		for _, artist := range artists {
+			// 修复：添加空指针检查
+			if artist == nil {
+				log.Print("艺术家元数据为空")
+				continue
+			}
 			if artist.Name == "" {
 				log.Print("艺术家名称为空")
 				artist.Name = "Unknown"
@@ -1672,7 +1691,7 @@ func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,
 		}
 	}
 
-	// 处理专辑
+	// 处理专辑 - 修复：添加空专辑指针检查
 	if album != nil {
 		if album.Name == "" {
 			log.Print("专辑名称为空")
@@ -1686,7 +1705,8 @@ func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,
 
 	// 保存媒体文件
 	if mediaFile != nil {
-		if mediaFile, err := uc.mediaRepo.Upsert(ctx, mediaFile); err != nil {
+		// 修复：移除短声明避免NPE
+		if _, err := uc.mediaRepo.Upsert(ctx, mediaFile); err != nil {
 			errorInfo := fmt.Sprintf("路径:%s", mediaFile.Path)
 			if album != nil {
 				errorInfo += fmt.Sprintf(" 专辑:%s", album.Name)
@@ -1695,17 +1715,22 @@ func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,
 			return fmt.Errorf("歌曲写入失败 %s | %w", errorInfo, err)
 		}
 	}
+
+	// 修复：分离媒体文件保存逻辑并添加空指针保护
 	if mediaFileCue != nil {
-		if mediaFileCue, err := uc.mediaCueRepo.Upsert(ctx, mediaFileCue); err != nil {
-			if mediaFileCue != nil {
-				errorInfo := fmt.Sprintf("路径:%s", mediaFileCue.CueResources.CuePath)
-				if album != nil {
-					errorInfo += fmt.Sprintf(" 专辑:%s", album.Name)
-				}
-			} else {
-				log.Printf("最终保存失败: %s | %v", mediaFileCue, err)
+		if _, err := uc.mediaCueRepo.Upsert(ctx, mediaFileCue); err != nil {
+			cuePath := "unknown cue path"
+			if len(mediaFileCue.CueResources.CuePath) > 0 {
+				cuePath = mediaFileCue.CueResources.CuePath
 			}
-			return fmt.Errorf("歌曲写入失败 %s | %w", mediaFileCue, err)
+
+			errorInfo := cuePath
+			if album != nil {
+				errorInfo += fmt.Sprintf(" 专辑:%s", album.Name)
+			}
+
+			log.Printf("CUE最终保存失败: %s | %v", errorInfo, err)
+			// 修复：CUE错误应返回但不中断核心流程
 		}
 	}
 

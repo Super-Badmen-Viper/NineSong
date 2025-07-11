@@ -26,6 +26,7 @@ func NewFileEntityRouter(timeout time.Duration, db mongo.Database, group *gin.Ro
 	mediaCueRepo := scene_audio_db_repository.NewMediaFileCueRepository(db, domain.CollectionFileEntityAudioSceneMediaFileCue)
 	// 构建用例（新增超时参数）
 	uc := usecase_file_entity.NewFileUsecase(
+		db,
 		fileRepo,
 		folderRepo,
 		detector,

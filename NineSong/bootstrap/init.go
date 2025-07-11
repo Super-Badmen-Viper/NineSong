@@ -8,7 +8,6 @@ import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_app/domain_app_config"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
 	"golang.org/x/crypto/bcrypt"
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -92,7 +91,7 @@ func (si *Initializer) isSystemInitialized(ctx context.Context) bool {
 func (si *Initializer) checkAndCreateCollections(ctx context.Context) error {
 	existingCollections, err := si.db.ListCollectionNames(ctx, bson.M{})
 	if err != nil {
-		return fmt.Errorf("获取集合列表失败: %w", err)
+		return fmt.Errorf("获取集合列表失败: %w \n", err)
 	}
 
 	collectionSet := make(map[string]bool)
@@ -105,9 +104,9 @@ func (si *Initializer) checkAndCreateCollections(ctx context.Context) error {
 	for _, collName := range si.requiredCollections {
 		if !collectionSet[collName] {
 			if err := si.db.CreateCollection(ctx, collName); err != nil && !isCollectionExistsError(err) {
-				return fmt.Errorf("创建集合 %s 失败: %w", collName, err)
+				return fmt.Errorf("创建集合 %s 失败: %w \n", collName, err)
 			}
-			log.Printf("已创建缺失集合: %s", collName)
+			fmt.Printf("已创建缺失集合: %s \n", collName)
 			coll := si.db.Collection(collName)
 			if _, err := coll.InsertOne(ctx, bson.M{
 				"_id":         testID,
@@ -118,12 +117,12 @@ func (si *Initializer) checkAndCreateCollections(ctx context.Context) error {
 					"init_version": "20250525",
 				},
 			}); err != nil {
-				return fmt.Errorf("插入测试数据到 %s 失败: %w", collName, err)
+				return fmt.Errorf("插入测试数据到 %s 失败: %w \n", collName, err)
 			}
 			if _, err := coll.DeleteOne(ctx, bson.M{"_id": testID}); err != nil {
-				return fmt.Errorf("删除测试数据失败: %w", err)
+				return fmt.Errorf("删除测试数据失败: %w \n", err)
 			}
-			log.Printf("该集合测试完毕: %s", collName)
+			fmt.Printf("该集合测试完毕: %s \n", collName)
 		}
 	}
 	return nil
@@ -470,7 +469,7 @@ func (si *Initializer) initAppConfigs(ctx context.Context) error {
 	for _, cfg := range initConfigs {
 		_, err := coll.InsertOne(ctx, cfg)
 		if err != nil {
-			return fmt.Errorf("应用配置初始化失败: %w", err)
+			return fmt.Errorf("应用配置初始化失败: %w \n", err)
 		}
 	}
 	return nil
@@ -488,7 +487,7 @@ func (si *Initializer) initAppLibraryConfigs(ctx context.Context) error {
 	for _, cfg := range initConfigs {
 		_, err := coll.InsertOne(ctx, cfg)
 		if err != nil {
-			return fmt.Errorf("应用配置初始化失败: %w", err)
+			return fmt.Errorf("应用配置初始化失败: %w \n", err)
 		}
 	}
 	return nil
@@ -525,7 +524,7 @@ func (si *Initializer) initAppAudioConfigs(ctx context.Context) error {
 	for _, cfg := range initConfigs {
 		_, err := coll.InsertOne(ctx, cfg)
 		if err != nil {
-			return fmt.Errorf("应用配置初始化失败: %w", err)
+			return fmt.Errorf("应用配置初始化失败: %w \n", err)
 		}
 	}
 	return nil
@@ -553,7 +552,7 @@ func (si *Initializer) initAppUIConfigs(ctx context.Context) error {
 	for _, cfg := range initConfigs {
 		_, err := coll.InsertOne(ctx, cfg)
 		if err != nil {
-			return fmt.Errorf("应用配置初始化失败: %w", err)
+			return fmt.Errorf("应用配置初始化失败: %w \n", err)
 		}
 	}
 	return nil
@@ -598,7 +597,7 @@ func (si *Initializer) initAppPlaylistIDConfigs(ctx context.Context) error {
 	for _, cfg := range initConfigs {
 		_, err := coll.InsertOne(ctx, cfg)
 		if err != nil {
-			return fmt.Errorf("应用配置初始化失败: %w", err)
+			return fmt.Errorf("应用配置初始化失败: %w \n", err)
 		}
 	}
 	return nil
@@ -610,7 +609,7 @@ func (si *Initializer) initFileEntityAudioTempMetadata(ctx context.Context) erro
 	// 获取当前操作系统的主目录
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		log.Printf("Error getting user home directory: %v", err)
+		fmt.Printf("Error getting user home directory: %v \n", err)
 		return err
 	}
 
@@ -653,13 +652,13 @@ func (si *Initializer) initFileEntityAudioTempMetadata(ctx context.Context) erro
 	for i, cfg := range initConfigs {
 		// 确保目录实际存在
 		if err := os.MkdirAll(cfg.FolderPath, 0755); err != nil {
-			log.Printf("Failed to create directory %s: %v", cfg.FolderPath, err)
+			fmt.Printf("Failed to create directory %s: %v \n", cfg.FolderPath, err)
 		}
 		models[i] = cfg
 	}
 
 	if _, err := coll.InsertMany(ctx, models); err != nil {
-		log.Printf("Database insert error: %v", err)
+		fmt.Printf("Database insert error: %v \n", err)
 		return err
 	}
 	return nil
