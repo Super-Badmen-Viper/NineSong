@@ -15,7 +15,7 @@ For NineSong, it only needs to respond to users around the world who need it and
 
 ## DownLoad For 0.5.0~0.9.9-Beta Version (Music Scene): Released on June 15th, 2025
 You need to put the. env and docker-compose.yaml files in the same folder. You can customize the parameter configuration of. env and docker-compose.yaml, such as mapping the media library folder to the Volumes of the NineSong container.  
-[download](https://github.com/Super-Badmen-Viper/NineSong/releases/tag/NineSong-v0.5.0-Beta): https://github.com/Super-Badmen-Viper/NineSong/releases/tag/NineSong-v0.5.0-Beta
+[download](https://github.com/Super-Badmen-Viper/NineSong/releases/): https://github.com/Super-Badmen-Viper/NineSong/releases
 Note that currently only the beta version is open for testing, and a truly complete experience will need to wait for the release of the 1.0.0 official version. If you want to try using it and help NineSong test bugs, you can install and deploy the 0.5.0 beta version, which provides sufficient basic functions for you to use. Even with the 0.5.0 beta version, its music experience surpasses all current Github music servers, let alone the 1.0.0 official version.  
 The features currently available in the 0.5.0 Beta version:  
  - Regular music library management
@@ -54,6 +54,18 @@ Compared to other music servers (such as Navidrome, Jellyfin, Emby, Plex, Subson
 - - Phase 2 (August): Use lightweight recommendation algorithms based on usage data.
 - - Phase 3 (October): Build a music knowledge graph by analyzing music metadata to achieve smarter recommendations.
 - - Phase 4 (December): Combine the knowledge graph with LLM (DeepSeek) for advanced music recommendations.
+
+## How to Deploy Docker [releases](https://github.com/Super-Badmen-Viper/NineSong/releases/):
+You need to put the. env and docker-compose.yaml files [in the same folder](https://github.com/Super-Badmen-Viper/NineSong/releases/). You can customize the parameter configuration of. env and docker-compose.yaml, such as mapping the media library folder to the Volumes of the NineSong container.  
+Note that if you update the mirrored version of NineSong, temporary resources in the media library (such as album covers) will also be deleted. You need to rescan the media library in the settings to regenerate temporary resources
+```sh
+run: docker compose up -d
+login mail: admin@gmail.com
+login password: admin123
+```
+How to Thoroughly Reinstall NineSong: Need to Clear Data Together with Volumes in Docker.  
+Because considering that the image upgrade cannot affect the database data, if you delete the containers of NineSong, the data in their databases will not disappear unless you clear it together with the data in Volumes in Docker.
+
 
 ## NineSong | NineSong Multimedia(Server) : 九歌多媒体
 - [ ] Compatible with streaming media servers (Jellyfin、Emby、Navidrome、Plex)
