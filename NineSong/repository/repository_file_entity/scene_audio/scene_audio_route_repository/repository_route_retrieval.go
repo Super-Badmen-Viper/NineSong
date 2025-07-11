@@ -49,7 +49,6 @@ func (r *retrievalRepository) GetStreamPath(ctx context.Context, mediaFileId str
 
 func (r *retrievalRepository) GetStreamTempPath(ctx context.Context, metadataType string) (string, error) {
 	collection := r.db.Collection(domain.CollectionFileEntityAudioSceneTempMetadata)
-
 	filter := bson.M{"metadata_type": metadataType}
 
 	var result scene_audio_db_models.ExternalResource
@@ -60,6 +59,14 @@ func (r *retrievalRepository) GetStreamTempPath(ctx context.Context, metadataTyp
 
 	if result.FolderPath == "" {
 		return "", errors.New("数据库返回空路径")
+	}
+
+	if _, err := os.Stat(result.FolderPath); os.IsNotExist(err) {
+		if err := os.MkdirAll(result.FolderPath, os.ModePerm); err != nil {
+			return "", fmt.Errorf("创建目录失败: %w | 路径: %s", err, result.FolderPath)
+		}
+	} else if err != nil {
+		return "", fmt.Errorf("目录检测失败: %w | 路径: %s", err, result.FolderPath)
 	}
 
 	return result.FolderPath, nil
