@@ -13,7 +13,8 @@ type ArtistMetadata struct {
 
 	// 基础元数据 (综合)
 	Name            string   `bson:"name"`
-	NamePinyin      []string `bson:"name_pinyin"` // 艺术家名称拼音
+	NamePinyin      []string `bson:"name_pinyin"`      // 艺术家名称拼音
+	NamePinyinFull  string   `bson:"name_pinyin_full"` // 艺术家名称完整拼音
 	AlbumCount      int      `bson:"album_count"`
 	GuestAlbumCount int      `bson:"guest_album_count"`
 	SongCount       int      `bson:"song_count"`

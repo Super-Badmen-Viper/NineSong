@@ -349,10 +349,22 @@ func buildArtistMatch(search, starred string) bson.D {
 
 	if search != "" {
 		filter = append(filter, bson.E{
-			Key: "name",
-			Value: bson.D{
-				{Key: "$regex", Value: search},
-				{Key: "$options", Value: "i"},
+			Key: "$or",
+			Value: bson.A{
+				// 原始名称字段的模糊搜索（正则匹配）
+				bson.D{{Key: "name", Value: bson.D{
+					{Key: "$regex", Value: search},
+					{Key: "$options", Value: "i"},
+				}}},
+				//// 新增拼音字段的精确匹配
+				//bson.D{{Key: "name_pinyin", Value: bson.D{
+				//	{Key: "$in", Value: bson.A{search}},
+				//}}},
+				// 拼音字段的模糊搜索（正则匹配）
+				bson.D{{Key: "name_pinyin_full", Value: bson.D{
+					{Key: "$regex", Value: search},
+					{Key: "$options", Value: "i"},
+				}}},
 			},
 		})
 	}

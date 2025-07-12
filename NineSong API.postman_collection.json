@@ -576,12 +576,12 @@
 									"urlencoded": [
 										{
 											"key": "email",
-											"value": "admin@gmail.com",
+											"value": "test@gmail.com",
 											"type": "text"
 										},
 										{
 											"key": "password",
-											"value": "admin123",
+											"value": "test123",
 											"type": "text"
 										},
 										{
@@ -601,7 +601,7 @@
 										"signup"
 									]
 								},
-								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/signup](http://localhost:8082/signup)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/signup](http://localhost:8082/signup)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 							},
 							"response": []
 						},
@@ -641,7 +641,7 @@
 										"login"
 									]
 								},
-								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 							},
 							"response": []
 						},
@@ -753,7 +753,7 @@
 										"username"
 									]
 								},
-								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 							},
 							"response": []
 						},
@@ -792,7 +792,7 @@
 										"email"
 									]
 								},
-								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 							},
 							"response": []
 						},
@@ -816,7 +816,7 @@
 									"urlencoded": [
 										{
 											"key": "old_password",
-											"value": "admin123",
+											"value": "test123",
 											"type": "text"
 										},
 										{
@@ -836,7 +836,7 @@
 										"password"
 									]
 								},
-								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 							},
 							"response": []
 						}
@@ -1120,7 +1120,7 @@
 									"urlencoded": [
 										{
 											"key": "folder_path",
-											"value": "e:/0_Music",
+											"value": "E:/0_Music",
 											"type": "text"
 										},
 										{
@@ -1130,7 +1130,7 @@
 										},
 										{
 											"key": "scan_model",
-											"value": "0",
+											"value": "3",
 											"type": "text"
 										}
 									]
@@ -1179,7 +1179,7 @@
 										"scan_progress"
 									]
 								},
-								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+								"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 							},
 							"response": []
 						}
@@ -1274,7 +1274,7 @@
 								}
 							]
 						},
-						"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+						"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 					},
 					"response": []
 				},
@@ -1451,7 +1451,7 @@
 								"libraries"
 							]
 						},
-						"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+						"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 					},
 					"response": []
 				}
@@ -1463,84 +1463,6 @@
 				{
 					"name": "Music",
 					"item": [
-						{
-							"name": "CUE",
-							"item": [
-								{
-									"name": "Cues",
-									"request": {
-										"auth": {
-											"type": "bearer",
-											"bearer": [
-												{
-													"key": "token",
-													"value": "{{accessToken}}",
-													"type": "string"
-												}
-											]
-										},
-										"method": "GET",
-										"header": [],
-										"url": {
-											"raw": "{{baseUrl}}/cues?start=0&end=20",
-											"host": [
-												"{{baseUrl}}"
-											],
-											"path": [
-												"cues"
-											],
-											"query": [
-												{
-													"key": "start",
-													"value": "0"
-												},
-												{
-													"key": "end",
-													"value": "20"
-												},
-												{
-													"key": "sort",
-													"value": "play_date",
-													"disabled": true
-												},
-												{
-													"key": "order",
-													"value": "desc",
-													"disabled": true
-												},
-												{
-													"key": "starred",
-													"value": "false",
-													"disabled": true
-												},
-												{
-													"key": "search",
-													"value": "心跳",
-													"disabled": true
-												},
-												{
-													"key": "year",
-													"value": "2015",
-													"disabled": true
-												},
-												{
-													"key": "album_id",
-													"value": "27bb7a2525af6ec7e1d5c4b8",
-													"disabled": true
-												},
-												{
-													"key": "artist_id",
-													"value": "8e8465680c603c710351902e",
-													"disabled": true
-												}
-											]
-										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
-									},
-									"response": []
-								}
-							]
-						},
 						{
 							"name": "Artists",
 							"item": [
@@ -1560,7 +1482,7 @@
 										"method": "GET",
 										"header": [],
 										"url": {
-											"raw": "{{baseUrl}}/artists?start=0&end=20&sort=song_count&order=desc&search=李玉刚",
+											"raw": "{{baseUrl}}/artists?start=0&end=20&sort=song_count&order=desc",
 											"host": [
 												"{{baseUrl}}"
 											],
@@ -1591,11 +1513,69 @@
 												},
 												{
 													"key": "search",
-													"value": "李玉刚"
+													"value": "李玉刚",
+													"disabled": true
 												}
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Artists Sort",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/artists/sort?start=0&end=20&sort=size:desc&sort=name:desc",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"artists",
+												"sort"
+											],
+											"query": [
+												{
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "20"
+												},
+												{
+													"key": "sort",
+													"value": "size:desc"
+												},
+												{
+													"key": "sort",
+													"value": "name:desc"
+												},
+												{
+													"key": "starred",
+													"value": "false",
+													"disabled": true
+												},
+												{
+													"key": "search",
+													"value": "李玉刚",
+													"disabled": true
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 									},
 									"response": []
 								},
@@ -1624,7 +1604,7 @@
 												"filter_counts"
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 									},
 									"response": []
 								}
@@ -1649,7 +1629,7 @@
 										"method": "GET",
 										"header": [],
 										"url": {
-											"raw": "{{baseUrl}}/albums?start=0&end=100&sort=_id&order=desc",
+											"raw": "{{baseUrl}}/albums?start=0&end=100&sort=created_at&order=asc&artist_id=72a3bda8d92da836a6a4705b",
 											"host": [
 												"{{baseUrl}}"
 											],
@@ -1667,11 +1647,82 @@
 												},
 												{
 													"key": "sort",
-													"value": "_id"
+													"value": "created_at"
 												},
 												{
 													"key": "order",
-													"value": "desc"
+													"value": "asc"
+												},
+												{
+													"key": "starred",
+													"value": "false",
+													"disabled": true
+												},
+												{
+													"key": "search",
+													"value": "李玉刚",
+													"disabled": true
+												},
+												{
+													"key": "min_year",
+													"value": "2011",
+													"disabled": true
+												},
+												{
+													"key": "max_year",
+													"value": "2011",
+													"disabled": true
+												},
+												{
+													"key": "artist_id",
+													"value": "72a3bda8d92da836a6a4705b"
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Albums Sort",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/albums/sort?start=0&end=100&sort=artist:desc&sort=name:desc",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"albums",
+												"sort"
+											],
+											"query": [
+												{
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "100"
+												},
+												{
+													"key": "sort",
+													"value": "artist:desc"
+												},
+												{
+													"key": "sort",
+													"value": "name:desc"
 												},
 												{
 													"key": "starred",
@@ -1700,7 +1751,7 @@
 												}
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 									},
 									"response": []
 								},
@@ -1729,7 +1780,7 @@
 												"filter_counts"
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 									},
 									"response": []
 								}
@@ -1810,7 +1861,79 @@
 												}
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Medias Sort",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/medias/sort?sort=year:desc&sort=size:desc&start=0&end=30",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"medias",
+												"sort"
+											],
+											"query": [
+												{
+													"key": "starred",
+													"value": "false",
+													"disabled": true
+												},
+												{
+													"key": "year",
+													"value": "2015",
+													"disabled": true
+												},
+												{
+													"key": "artist_id",
+													"value": "9fb5c8d585ae9c2d2317a14f",
+													"disabled": true
+												},
+												{
+													"key": "search",
+													"value": "公轉",
+													"disabled": true
+												},
+												{
+													"key": "album_id",
+													"value": "d83ca60bd8830d6471c1daaf",
+													"disabled": true
+												},
+												{
+													"key": "sort",
+													"value": "year:desc"
+												},
+												{
+													"key": "sort",
+													"value": "size:desc"
+												},
+												{
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "30"
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 									},
 									"response": []
 								},
@@ -1846,7 +1969,155 @@
 												}
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Media Cues",
+							"item": [
+								{
+									"name": "Media_Cues",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/cues?start=0&end=20&sort=size&order=desc",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"cues"
+											],
+											"query": [
+												{
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "20"
+												},
+												{
+													"key": "sort",
+													"value": "size"
+												},
+												{
+													"key": "order",
+													"value": "desc"
+												},
+												{
+													"key": "starred",
+													"value": "false",
+													"disabled": true
+												},
+												{
+													"key": "search",
+													"value": "心跳",
+													"disabled": true
+												},
+												{
+													"key": "year",
+													"value": "2015",
+													"disabled": true
+												},
+												{
+													"key": "album_id",
+													"value": "27bb7a2525af6ec7e1d5c4b8",
+													"disabled": true
+												},
+												{
+													"key": "artist_id",
+													"value": "8e8465680c603c710351902e",
+													"disabled": true
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Media_Cues Sort",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/cues/sort?start=0&end=20&sort=size:desc&sort=performer:desc",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"cues",
+												"sort"
+											],
+											"query": [
+												{
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "20"
+												},
+												{
+													"key": "sort",
+													"value": "size:desc"
+												},
+												{
+													"key": "sort",
+													"value": "performer:desc"
+												},
+												{
+													"key": "starred",
+													"value": "false",
+													"disabled": true
+												},
+												{
+													"key": "search",
+													"value": "心跳",
+													"disabled": true
+												},
+												{
+													"key": "year",
+													"value": "2015",
+													"disabled": true
+												},
+												{
+													"key": "album_id",
+													"value": "27bb7a2525af6ec7e1d5c4b8",
+													"disabled": true
+												},
+												{
+													"key": "artist_id",
+													"value": "8e8465680c603c710351902e",
+													"disabled": true
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 									},
 									"response": []
 								}
@@ -1895,7 +2166,7 @@
 												"star"
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 									},
 									"response": []
 								},
@@ -1939,7 +2210,7 @@
 												"unstar"
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 									},
 									"response": []
 								},
@@ -1988,7 +2259,7 @@
 												"rating"
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 									},
 									"response": []
 								},
@@ -2032,7 +2303,128 @@
 												"scrobble"
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Scrobble Complete",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "urlencoded",
+											"urlencoded": [
+												{
+													"key": "item_id",
+													"value": "00f848d31cde1a210c67b58b",
+													"type": "text"
+												},
+												{
+													"key": "item_type",
+													"value": "artist",
+													"type": "text"
+												}
+											]
+										},
+										"url": {
+											"raw": "{{baseUrl}}/annotations/scrobble/complete",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"annotations",
+												"scrobble",
+												"complete"
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Tags",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\t\r\n    \"item_id\": \"00f848d31cde1a210c67b58b\",\t\r\n    \"item_type\": \"artist\",\t\r\n    \"tags\": [\t\r\n        {\r\n            \"tag\": \"摇滚\",\r\n            \"sources\": [\"genre\", \"custom_tags\"],\r\n            \"tag_type\": \"artist\",\r\n            \"frequency\": 12\r\n        },\r\n        {\r\n            \"tag\": \"现场版\",\r\n            \"sources\": [\"comment\"],\r\n            \"tag_type\": \"media\",\r\n            \"frequency\": 5\r\n        }\r\n    ]\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/annotations/tags",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"annotations",
+												"tags"
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Weights",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\t\r\n    \"item_id\": \"f9b972753bbe19eb9f6555b2\",\t\r\n    \"item_type\": \"album\",\t\r\n    \"tags\": [\t\r\n        {\r\n            \"tag\": \"学习\",\r\n            \"weight\": 0.85,\r\n            \"tag_type\": \"scene\"\r\n        },\r\n        {\r\n            \"tag\": \"轻音乐\",\r\n            \"weight\": 0.72,\r\n            \"tag_type\": \"genre\"\r\n        }\r\n    ]\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/annotations/weights",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"annotations",
+												"weights"
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 									},
 									"response": []
 								}
@@ -2072,7 +2464,7 @@
 												"playlists"
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 									},
 									"response": []
 								},
@@ -2141,7 +2533,7 @@
 										"method": "GET",
 										"header": [],
 										"url": {
-											"raw": "{{baseUrl}}/playlists/detail?id=6810b6f60b6ac9ea59499348",
+											"raw": "{{baseUrl}}/playlists/detail?id=686dd7bb3fbe870850030ea5",
 											"host": [
 												"{{baseUrl}}"
 											],
@@ -2152,7 +2544,7 @@
 											"query": [
 												{
 													"key": "id",
-													"value": "6810b6f60b6ac9ea59499348"
+													"value": "686dd7bb3fbe870850030ea5"
 												}
 											]
 										},
@@ -2183,7 +2575,7 @@
 											"urlencoded": []
 										},
 										"url": {
-											"raw": "{{baseUrl}}/playlists/tracks?start=0&end=10&sort=_id&order=asc&playlistId=682da9132ec736d27d0c768c",
+											"raw": "{{baseUrl}}/playlists/tracks?start=0&end=10&sort=_id&order=asc&playlistId=686dd7bb3fbe870850030ea5",
 											"host": [
 												"{{baseUrl}}"
 											],
@@ -2235,11 +2627,95 @@
 												},
 												{
 													"key": "playlistId",
-													"value": "682da9132ec736d27d0c768c"
+													"value": "686dd7bb3fbe870850030ea5"
 												}
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "GetPlaylistTracks Sort",
+									"protocolProfileBehavior": {
+										"disableBodyPruning": true
+									},
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"body": {
+											"mode": "urlencoded",
+											"urlencoded": []
+										},
+										"url": {
+											"raw": "{{baseUrl}}/playlists/tracks/sort?start=0&end=10&sort=size:desc&sort=artist:desc&playlistId=686dd7bb3fbe870850030ea5",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"playlists",
+												"tracks",
+												"sort"
+											],
+											"query": [
+												{
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "10"
+												},
+												{
+													"key": "sort",
+													"value": "size:desc"
+												},
+												{
+													"key": "sort",
+													"value": "artist:desc"
+												},
+												{
+													"key": "search",
+													"value": "",
+													"disabled": true
+												},
+												{
+													"key": "starred",
+													"value": "",
+													"disabled": true
+												},
+												{
+													"key": "albumId",
+													"value": "27bb7a2525af6ec7e1d5c4b8",
+													"disabled": true
+												},
+												{
+													"key": "artistId",
+													"value": "8e8465680c603c710351902e",
+													"disabled": true
+												},
+												{
+													"key": "year",
+													"value": "2015",
+													"disabled": true
+												},
+												{
+													"key": "playlistId",
+													"value": "686dd7bb3fbe870850030ea5"
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 									},
 									"response": []
 								},
@@ -2276,7 +2752,7 @@
 												"filter_counts"
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 									},
 									"response": []
 								},
@@ -2407,7 +2883,7 @@
 												"add"
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 									},
 									"response": []
 								},
@@ -2452,7 +2928,7 @@
 												"remove"
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 									},
 									"response": []
 								}
@@ -2529,7 +3005,7 @@
 													"urlencoded": []
 												},
 												"url": {
-													"raw": "{{baseUrl}}/media/stream?media_file_id=681dfab0694d7b3fc40aced4&access_token={{accessToken}}",
+													"raw": "{{baseUrl}}/media/stream?media_file_id=685a43eb53fb4901ba7cf0f3&access_token={{accessToken}}&play_component_type=mpv",
 													"host": [
 														"{{baseUrl}}"
 													],
@@ -2540,15 +3016,63 @@
 													"query": [
 														{
 															"key": "media_file_id",
+															"value": "685a43eb53fb4901ba7cf0f3"
+														},
+														{
+															"key": "access_token",
+															"value": "{{accessToken}}"
+														},
+														{
+															"key": "play_component_type",
+															"value": "mpv"
+														}
+													]
+												},
+												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+											},
+											"response": []
+										},
+										{
+											"name": "GetStream ID (Real Time)",
+											"protocolProfileBehavior": {
+												"disableBodyPruning": true
+											},
+											"request": {
+												"auth": {
+													"type": "noauth"
+												},
+												"method": "GET",
+												"header": [],
+												"body": {
+													"mode": "urlencoded",
+													"urlencoded": []
+												},
+												"url": {
+													"raw": "{{baseUrl}}/media/stream/real?media_file_id=681dfab0694d7b3fc40aced4&access_token={{accessToken}}&play_component_type=web",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"media",
+														"stream",
+														"real"
+													],
+													"query": [
+														{
+															"key": "media_file_id",
 															"value": "681dfab0694d7b3fc40aced4"
 														},
 														{
 															"key": "access_token",
 															"value": "{{accessToken}}"
+														},
+														{
+															"key": "play_component_type",
+															"value": "web"
 														}
 													]
 												},
-												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 											},
 											"response": []
 										},
@@ -2590,7 +3114,7 @@
 														}
 													]
 												},
-												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 											},
 											"response": []
 										}
@@ -2653,7 +3177,7 @@
 														}
 													]
 												},
-												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 											},
 											"response": []
 										}
@@ -2678,7 +3202,7 @@
 													"urlencoded": []
 												},
 												"url": {
-													"raw": "{{baseUrl}}/media/cover?type=album&target_id=27bb7a2525af6ec7e1d5c4b8&access_token={{accessToken}}",
+													"raw": "{{baseUrl}}/media/cover?type=media&target_id=685a1a3e53fb4901ba7cce18&access_token={{accessToken}}",
 													"host": [
 														"{{baseUrl}}"
 													],
@@ -2689,11 +3213,11 @@
 													"query": [
 														{
 															"key": "type",
-															"value": "album"
+															"value": "media"
 														},
 														{
 															"key": "target_id",
-															"value": "27bb7a2525af6ec7e1d5c4b8"
+															"value": "685a1a3e53fb4901ba7cce18"
 														},
 														{
 															"key": "access_token",
@@ -2701,7 +3225,47 @@
 														}
 													]
 												},
-												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+											},
+											"response": []
+										},
+										{
+											"name": "GetCoverArt Path",
+											"protocolProfileBehavior": {
+												"disableBodyPruning": true
+											},
+											"request": {
+												"auth": {
+													"type": "noauth"
+												},
+												"method": "GET",
+												"header": [],
+												"body": {
+													"mode": "urlencoded",
+													"urlencoded": []
+												},
+												"url": {
+													"raw": "{{baseUrl}}/media/cover/path?path=C:\\Users\\Public\\Documents\\NineSong\\MetaData\\Cover\\media\\685a1a3e53fb4901ba7cce18\\cover.jpg&access_token={{accessToken}}",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"media",
+														"cover",
+														"path"
+													],
+													"query": [
+														{
+															"key": "path",
+															"value": "C:\\Users\\Public\\Documents\\NineSong\\MetaData\\Cover\\media\\685a1a3e53fb4901ba7cce18\\cover.jpg"
+														},
+														{
+															"key": "access_token",
+															"value": "{{accessToken}}"
+														}
+													]
+												},
+												"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 											},
 											"response": []
 										}
@@ -2748,7 +3312,7 @@
 												}
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 									},
 									"response": []
 								},
@@ -2788,7 +3352,7 @@
 												}
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 									},
 									"response": []
 								},
@@ -2828,7 +3392,7 @@
 												}
 											]
 										},
-										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=admin@gmail.com  \n\\--data password=test  \n\\--data 'name=admin'"
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 									},
 									"response": []
 								}

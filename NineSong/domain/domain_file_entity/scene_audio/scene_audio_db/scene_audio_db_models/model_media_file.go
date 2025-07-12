@@ -20,24 +20,28 @@ type MediaFileMetadata struct {
 	LibraryPath string             `bson:"library_path"` // 音频文件所在的音乐库路径
 
 	// 基础元数据 (github.com/dhowden/tag、go.senan.xyz/taglib)
-	Title             string   `bson:"title"`               // 标准曲目标题
-	Album             string   `bson:"album"`               // 所属专辑名称
-	Artist            string   `bson:"artist"`              // 表演者名称
-	AlbumArtist       string   `bson:"album_artist"`        // 专辑级艺术家名称（可能不同于曲目艺术家）
-	TitlePinyin       []string `bson:"title_pinyin"`        // 曲目标题的拼音表示（用于搜索和排序）
-	AlbumPinyin       []string `bson:"album_pinyin"`        // 专辑名称的拼音表示（用于搜索和排序）
-	ArtistPinyin      []string `bson:"artist_pinyin"`       // 表演者名称的拼音表示（用于搜索和排序）
-	AlbumArtistPinyin []string `bson:"album_artist_pinyin"` // 专辑艺术家名称的拼音表示（用于搜索和排序）
-	Genre             string   `bson:"genre"`               // 音乐流派（如流行、摇滚等）
-	Year              int      `bson:"year"`                // 发行年份
-	TrackNumber       int      `bson:"track_number"`        // 轨道序号（曲目在专辑中的编号）
-	DiscNumber        int      `bson:"disc_number"`         // 光盘编号（多光盘专辑中的编号）
-	TotalTracks       int      `bson:"total_tracks"`        // 专辑总轨道数
-	TotalDiscs        int      `bson:"total_discs"`         // 总光盘数
-	Composer          string   `bson:"composer"`            // 作曲家名称
-	Comment           string   `bson:"comment"`             // 注释信息
-	Lyrics            string   `bson:"lyrics"`              // 歌词文本内容
-	Compilation       bool     `bson:"compilation"`         // 是否为合辑（多艺术家作品合集）
+	Title                 string   `bson:"title"`                    // 标准曲目标题
+	Album                 string   `bson:"album"`                    // 所属专辑名称
+	Artist                string   `bson:"artist"`                   // 表演者名称
+	AlbumArtist           string   `bson:"album_artist"`             // 专辑级艺术家名称（可能不同于曲目艺术家）
+	TitlePinyin           []string `bson:"title_pinyin"`             // 曲目标题的拼音表示（用于搜索和排序）
+	TitlePinyinFull       string   `bson:"title_pinyin_full"`        // 曲目标题的完整拼音表示（用于搜索和排序）
+	AlbumPinyin           []string `bson:"album_pinyin"`             // 专辑名称的拼音表示（用于搜索和排序）
+	AlbumPinyinFull       string   `bson:"album_pinyin_full"`        // 专辑名称的完整拼音表示（用于搜索和排序）
+	ArtistPinyin          []string `bson:"artist_pinyin"`            // 表演者名称的拼音表示（用于搜索和排序）
+	ArtistPinyinFull      string   `bson:"artist_pinyin_full"`       // 表演者名称的完整拼音表示（用于搜索和排序）
+	AlbumArtistPinyin     []string `bson:"album_artist_pinyin"`      // 专辑艺术家名称的拼音表示（用于搜索和排序）
+	AlbumArtistPinyinFull string   `bson:"album_artist_pinyin_full"` // 专辑艺术家名称的完整拼音表示（用于搜索和排序）
+	Genre                 string   `bson:"genre"`                    // 音乐流派（如流行、摇滚等）
+	Year                  int      `bson:"year"`                     // 发行年份
+	TrackNumber           int      `bson:"track_number"`             // 轨道序号（曲目在专辑中的编号）
+	DiscNumber            int      `bson:"disc_number"`              // 光盘编号（多光盘专辑中的编号）
+	TotalTracks           int      `bson:"total_tracks"`             // 专辑总轨道数
+	TotalDiscs            int      `bson:"total_discs"`              // 总光盘数
+	Composer              string   `bson:"composer"`                 // 作曲家名称
+	Comment               string   `bson:"comment"`                  // 注释信息
+	Lyrics                string   `bson:"lyrics"`                   // 歌词文本内容
+	Compilation           bool     `bson:"compilation"`              // 是否为合辑（多艺术家作品合集）
 
 	// 基础元数据: 关系ID索引
 	ArtistID          string         `bson:"artist_id"`            // 艺术家在系统中的唯一标识符

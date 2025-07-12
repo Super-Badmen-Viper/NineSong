@@ -1,16 +1,13 @@
 version: "3.8"
 
 services:
-  mongodb:
+  mongodb-local:
     image: mongo:6.0
-    container_name: mongodb-local
+    container_name: ninesong-mongodb-local
     restart: unless-stopped
     env_file: .env
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${DB_USER}
-      - MONGO_INITDB_ROOT_PASSWORD=${DB_PASS}
     ports:
-      - "${DB_PORT}:27017"
+      - "27017:27017"
     volumes:
       - C:/Users/Public/Documents/NineSong/MongoDB:/data/db
     deploy:

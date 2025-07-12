@@ -19,14 +19,17 @@ type MediaFileCueMetadata struct {
 	LibraryPath string             `bson:"library_path"` // 音频文件所在的音乐库路径
 
 	// CUE记录信息
-	Rem         CueREM     `bson:"rem"`
-	Performer   string     `bson:"performer"`
-	PerformerID string     `bson:"performer_id"`
-	Title       string     `bson:"title"`
-	File        CueFile    `bson:"file"`
-	Catalog     string     `bson:"catalog"`    // 新增：唱片唯一EAN编号[8](@ref)
-	SongWriter  string     `bson:"songwriter"` // 新增：乐曲编曲者[8](@ref)
-	CueTracks   []CueTrack `bson:"cue_tracks"` // CUE 文件中的曲目信息列表
+	Rem                 CueREM     `bson:"rem"`
+	Title               string     `bson:"title"`
+	Performer           string     `bson:"performer"`
+	TitlePinyin         []string   `bson:"track_title_pinyin"`
+	TitlePinyinFull     string     `bson:"track_title_pinyin_full"` // 曲目标题的完整拼音表示（用于搜索和排序）
+	PerformerPinyin     []string   `bson:"track_performer_pinyin"`
+	PerformerPinyinFull string     `bson:"track_performer_pinyin_full"` // 表演者名称的完整拼音表示（用于搜索和排序）
+	File                CueFile    `bson:"file"`
+	Catalog             string     `bson:"catalog"`    // 新增：唱片唯一EAN编号[8](@ref)
+	SongWriter          string     `bson:"songwriter"` // 新增：乐曲编曲者[8](@ref)
+	CueTracks           []CueTrack `bson:"cue_tracks"` // CUE 文件中的曲目信息列表
 
 	CueTrackCount int       `bson:"cue_track_count"` // CUE 文件中的曲目数量
 	CueResources  CueConfig `bson:"cue_resources"`   // CUE 文件相关资源信息
@@ -48,6 +51,7 @@ type MediaFileCueMetadata struct {
 	BitDepth      int    `bson:"bit_depth"`      // 音频位深（位）
 	ChannelLayout string `bson:"channel_layout"` // 声道布局（如立体声、环绕声等）
 
+	PerformerID  string         `bson:"performer_id"`
 	Compilation  bool           `bson:"compilation"`    // 是否为合辑（多艺术家作品合集）
 	AllArtistIDs []ArtistIDPair `bson:"all_artist_ids"` // 所有参与艺术家的唯一标识符列表
 }
@@ -87,15 +91,19 @@ type CueIndex struct {
 	TIME  string `bson:"time"`
 }
 type CueTrack struct {
-	TRACK       int               `bson:"track"`
-	TYPE        string            `bson:"track_type"`
-	Title       string            `bson:"track_title"`
-	Performer   string            `bson:"track_performer"`
-	PerformerID string            `bson:"track_performer_id"`
-	FLAGS       string            `bson:"track_flags"`
-	INDEXES     []CueIndex        `bson:"track_indexes"`
-	ISRC        string            `bson:"track_isrc"`
-	GAIN        float64           `bson:"track_gain"`
-	PEAK        float64           `bson:"track_peak"`
-	Extended    MediaFileMetadata `bson:"cue_track_extended"` // 嵌入 MediaFileMetadata 以复用通用字段
+	TRACK               int               `bson:"track"`
+	TYPE                string            `bson:"track_type"`
+	Title               string            `bson:"track_title"`
+	Performer           string            `bson:"track_performer"`
+	TitlePinyin         []string          `bson:"track_title_pinyin"`
+	TitlePinyinFull     string            `bson:"track_title_pinyin_full"` // 曲目标题的完整拼音表示（用于搜索和排序）
+	PerformerPinyin     []string          `bson:"track_performer_pinyin"`
+	PerformerPinyinFull string            `bson:"track_performer_pinyin_full"` // 表演者名称的完整拼音表示（用于搜索和排序）
+	PerformerID         string            `bson:"track_performer_id"`
+	FLAGS               string            `bson:"track_flags"`
+	INDEXES             []CueIndex        `bson:"track_indexes"`
+	ISRC                string            `bson:"track_isrc"`
+	GAIN                float64           `bson:"track_gain"`
+	PEAK                float64           `bson:"track_peak"`
+	Extended            MediaFileMetadata `bson:"cue_track_extended"` // 嵌入 MediaFileMetadata 以复用通用字段
 }

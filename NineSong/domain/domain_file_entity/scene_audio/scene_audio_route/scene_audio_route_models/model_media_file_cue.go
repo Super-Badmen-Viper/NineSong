@@ -19,14 +19,13 @@ type MediaFileCueMetadata struct {
 	LibraryPath string             `bson:"library_path"` // 音频文件所在的音乐库路径
 
 	// CUE记录信息
-	Rem         CueREM     `bson:"rem"`
-	Performer   string     `bson:"performer"`
-	PerformerID string     `bson:"performer_id"`
-	Title       string     `bson:"title"`
-	File        CueFile    `bson:"file"`
-	Catalog     string     `bson:"catalog"`    // 新增：唱片唯一EAN编号[8](@ref)
-	SongWriter  string     `bson:"songwriter"` // 新增：乐曲编曲者[8](@ref)
-	CueTracks   []CueTrack `bson:"cue_tracks"` // CUE 文件中的曲目信息列表
+	Rem        CueREM     `bson:"rem"`
+	Title      string     `bson:"title"`
+	Performer  string     `bson:"performer"`
+	File       CueFile    `bson:"file"`
+	Catalog    string     `bson:"catalog"`    // 新增：唱片唯一EAN编号[8](@ref)
+	SongWriter string     `bson:"songwriter"` // 新增：乐曲编曲者[8](@ref)
+	CueTracks  []CueTrack `bson:"cue_tracks"` // CUE 文件中的曲目信息列表
 
 	CueTrackCount int `bson:"cue_track_count"` // CUE 文件中的曲目数量
 
@@ -43,6 +42,7 @@ type MediaFileCueMetadata struct {
 	CueChannels    int     `bson:"cue_channels"`    // 音频通道数（如 2 表示立体声）
 	EncodingFormat string  `bson:"encoding_format"` // 编码格式（如 PCM、MP3、AAC 等）
 
+	PerformerID  string         `bson:"performer_id"`
 	Compilation  bool           `bson:"compilation"`    // 是否为合辑（多艺术家作品合集）
 	AllArtistIDs []ArtistIDPair `bson:"all_artist_ids"` // 所有参与艺术家的唯一标识符列表
 

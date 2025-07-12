@@ -425,10 +425,7 @@ func buildMatchStage(search, starred, albumId, artistId, year string) bson.D {
 		artistFilter := bson.D{
 			{Key: "$or", Value: bson.A{
 				bson.D{{Key: "artist_id", Value: artistId}},
-				bson.D{{
-					Key:   "all_artist_ids.artist_id",
-					Value: artistId,
-				}},
+				bson.D{{Key: "all_artist_ids.artist_id", Value: artistId}},
 			}},
 		}
 		filter = append(filter, bson.E{Key: "$and", Value: bson.A{artistFilter}})
@@ -442,11 +439,23 @@ func buildMatchStage(search, starred, albumId, artistId, year string) bson.D {
 		}
 	}
 	if search != "" {
-		filter = append(filter, bson.E{Key: "$or", Value: []bson.D{
-			{{Key: "title", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
-			{{Key: "artist", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
-			{{Key: "album", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
-		}})
+		searchFilter := bson.A{
+			// 原始名称字段的模糊搜索（正则匹配）
+			bson.D{{Key: "title", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
+			bson.D{{Key: "artist", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
+			bson.D{{Key: "album", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
+			////// 新增拼音字段的精确匹配
+			//bson.D{{Key: "title_pinyin", Value: bson.D{{Key: "$in", Value: bson.A{search}}}}},
+			//bson.D{{Key: "album_pinyin", Value: bson.D{{Key: "$in", Value: bson.A{search}}}}},
+			//bson.D{{Key: "artist_pinyin", Value: bson.D{{Key: "$in", Value: bson.A{search}}}}},
+			//bson.D{{Key: "album_artist_pinyin", Value: bson.D{{Key: "$in", Value: bson.A{search}}}}},
+			// 拼音字段的模糊搜索（正则匹配）
+			bson.D{{Key: "title_pinyin_full", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
+			bson.D{{Key: "album_pinyin_full", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
+			bson.D{{Key: "artist_pinyin_full", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
+			bson.D{{Key: "album_artist_pinyin_full", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
+		}
+		filter = append(filter, bson.E{Key: "$or", Value: searchFilter})
 	}
 	if starred != "" {
 		if isStarred, err := strconv.ParseBool(starred); err == nil {

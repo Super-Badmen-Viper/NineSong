@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"github.com/mozillazg/go-pinyin"
 	ffmpeggo "github.com/u2takey/ffmpeg-go"
 	driver "go.mongodb.org/mongo-driver/mongo"
 	"io"
@@ -1683,6 +1684,9 @@ func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,
 			if artist.Name == "" {
 				log.Print("艺术家名称为空")
 				artist.Name = "Unknown"
+			} else {
+				artist.NamePinyin = pinyin.LazyConvert(artist.Name, nil)
+				artist.NamePinyinFull = strings.Join(artist.NamePinyin, "")
 			}
 			if err := uc.updateAudioArtistMetadata(ctx, artist); err != nil {
 				log.Printf("艺术家处理失败: %s | %v", artist.Name, err)
@@ -1697,6 +1701,13 @@ func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,
 			log.Print("专辑名称为空")
 			album.Name = "Unknown"
 		}
+		if album.Artist == "" {
+			log.Print("专辑艺术家名称为空")
+			album.Artist = "Unknown Artist"
+		} else {
+			album.ArtistPinyin = pinyin.LazyConvert(album.Artist, nil)
+			album.ArtistPinyinFull = strings.Join(album.ArtistPinyin, "")
+		}
 		if err := uc.updateAudioAlbumMetadata(ctx, album); err != nil {
 			log.Printf("专辑处理失败: %s | %v", album.Name, err)
 			return fmt.Errorf("专辑处理失败 | 名称:%s | 原因:%w", album.Name, err)
@@ -1705,6 +1716,13 @@ func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,
 
 	// 保存媒体文件
 	if mediaFile != nil {
+		if mediaFile.Artist == "" {
+			log.Print("媒体文件艺术家名称为空")
+			mediaFile.Artist = "Unknown Artist"
+		} else {
+			mediaFile.ArtistPinyin = pinyin.LazyConvert(mediaFile.Artist, nil)
+			mediaFile.ArtistPinyinFull = strings.Join(mediaFile.ArtistPinyin, "")
+		}
 		// 修复：移除短声明避免NPE
 		if _, err := uc.mediaRepo.Upsert(ctx, mediaFile); err != nil {
 			errorInfo := fmt.Sprintf("路径:%s", mediaFile.Path)
@@ -1718,6 +1736,13 @@ func (uc *FileUsecase) processAudioHierarchy(ctx context.Context,
 
 	// 修复：分离媒体文件保存逻辑并添加空指针保护
 	if mediaFileCue != nil {
+		if mediaFileCue.Performer == "" {
+			log.Print("CUE文件艺术家名称为空")
+			mediaFileCue.Performer = "Unknown Artist"
+		} else {
+			mediaFileCue.PerformerPinyin = pinyin.LazyConvert(mediaFileCue.Performer, nil)
+			mediaFileCue.PerformerPinyinFull = strings.Join(mediaFileCue.PerformerPinyin, "")
+		}
 		if _, err := uc.mediaCueRepo.Upsert(ctx, mediaFileCue); err != nil {
 			cuePath := "unknown cue path"
 			if len(mediaFileCue.CueResources.CuePath) > 0 {
