@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/usecase/usecase_file_entity/scene_audio/scene_audio_util"
 	"github.com/mozillazg/go-pinyin"
 	ffmpeggo "github.com/u2takey/ffmpeg-go"
 	driver "go.mongodb.org/mongo-driver/mongo"
@@ -22,7 +23,6 @@ import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_interface"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/usecase/usecase_file_entity/scene_audio/scene_audio_db_usecase"
 	"github.com/dhowden/tag"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -138,7 +138,7 @@ type FileUsecase struct {
 		refactoring float32
 	}
 
-	audioExtractor scene_audio_db_usecase.AudioMetadataExtractorTaglib
+	audioExtractor usercase_audio_util.AudioMetadataExtractorTaglib
 	artistRepo     scene_audio_db_interface.ArtistRepository
 	albumRepo      scene_audio_db_interface.AlbumRepository
 	mediaRepo      scene_audio_db_interface.MediaFileRepository

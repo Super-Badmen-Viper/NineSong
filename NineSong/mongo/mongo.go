@@ -3,17 +3,31 @@ package mongo
 import (
 	"context"
 	"errors"
-	"go.mongodb.org/mongo-driver/bson"
-	"reflect"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
+
+// ============== 接口定义 ==============
+
+type BulkWriteResult interface {
+	InsertedCount() int64
+	MatchedCount() int64
+	ModifiedCount() int64
+	DeletedCount() int64
+	UpsertedCount() int64
+	UpsertedIDs() map[int64]interface{}
+}
+
+type BulkWrite interface {
+	AddModel(models ...BulkModel)
+	Execute(ctx context.Context) (BulkWriteResult, error)
+}
+
+type BulkModel interface{}
 
 type Database interface {
 	Collection(string) Collection
@@ -35,6 +49,8 @@ type Collection interface {
 	UpdateMany(context.Context, interface{}, interface{}, ...*options.UpdateOptions) (*mongo.UpdateResult, error)
 	UpdateByID(ctx context.Context, id interface{}, update interface{}) (*mongo.UpdateResult, error)
 	Indexes() IndexView
+	BulkWrite() BulkWrite
+	ListIndexSpecifications(ctx context.Context) ([]*mongo.IndexSpecification, error)
 }
 
 type SingleResult interface {
@@ -60,62 +76,63 @@ type Client interface {
 type IndexView interface {
 	CreateOne(ctx context.Context, model mongo.IndexModel) (string, error)
 	DropAll(ctx context.Context) (bson.Raw, error)
+	ListSpecifications(ctx context.Context) ([]*mongo.IndexSpecification, error)
 }
 
-type mongoClient struct {
-	cl *mongo.Client
-}
-type mongoDatabase struct {
-	db *mongo.Database
-}
-type mongoCollection struct {
-	coll *mongo.Collection
+// ============== 批量操作实现 ==============
+type mongoBulkWrite struct {
+	models []mongo.WriteModel
+	coll   *mongo.Collection
 }
 
-type mongoSingleResult struct {
-	sr *mongo.SingleResult
-}
-
-type mongoCursor struct {
-	mc *mongo.Cursor
-}
-
-type mongoSession struct {
-	mongo.Session
-}
-
-type mongoIndexView struct {
-	iv *mongo.IndexView
-}
-
-type nullawareDecoder struct {
-	defDecoder bsoncodec.ValueDecoder
-	zeroValue  reflect.Value
-}
-
-func (d *nullawareDecoder) DecodeValue(dctx bsoncodec.DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
-	if vr.Type() != bsontype.Null {
-		return d.defDecoder.DecodeValue(dctx, vr, val)
+func (mb *mongoBulkWrite) AddModel(models ...BulkModel) {
+	for _, model := range models {
+		mb.models = append(mb.models, model.(mongo.WriteModel))
 	}
-
-	if !val.CanSet() {
-		return errors.New("value not settable")
-	}
-	if err := vr.ReadNull(); err != nil {
-		return err
-	}
-	// Set the zero value of val's type:
-	val.Set(d.zeroValue)
-	return nil
 }
 
-func NewClient(connection string) (Client, error) {
+func (mb *mongoBulkWrite) Execute(ctx context.Context) (BulkWriteResult, error) {
+	if len(mb.models) == 0 {
+		return nil, errors.New("no operations to execute")
+	}
+	result, err := mb.coll.BulkWrite(ctx, mb.models)
+	if err != nil {
+		return nil, err
+	}
+	return &mongoBulkWriteResult{res: result}, nil
+}
 
-	time.Local = time.UTC
-	c, err := mongo.NewClient(options.Client().ApplyURI(connection))
+type mongoBulkWriteResult struct {
+	res *mongo.BulkWriteResult
+}
 
-	return &mongoClient{cl: c}, err
+func (m *mongoBulkWriteResult) InsertedCount() int64 { return m.res.InsertedCount }
+func (m *mongoBulkWriteResult) MatchedCount() int64  { return m.res.MatchedCount }
+func (m *mongoBulkWriteResult) ModifiedCount() int64 { return m.res.ModifiedCount }
+func (m *mongoBulkWriteResult) DeletedCount() int64  { return m.res.DeletedCount }
+func (m *mongoBulkWriteResult) UpsertedCount() int64 { return m.res.UpsertedCount }
+func (m *mongoBulkWriteResult) UpsertedIDs() map[int64]interface{} {
+	ids := make(map[int64]interface{})
+	for idx, id := range m.res.UpsertedIDs {
+		ids[int64(idx)] = id
+	}
+	return ids
+}
 
+// ============== 核心实现 ==============
+type mongoClient struct{ cl *mongo.Client }
+type mongoDatabase struct{ db *mongo.Database }
+type mongoCollection struct{ coll *mongo.Collection }
+type mongoSingleResult struct{ sr *mongo.SingleResult }
+type mongoCursor struct{ mc *mongo.Cursor }
+type mongoSession struct{ mongo.Session }
+type mongoIndexView struct{ iv *mongo.IndexView }
+
+func (mc *mongoCollection) BulkWrite() BulkWrite {
+	return &mongoBulkWrite{
+		coll:   mc.coll,
+		models: make([]mongo.WriteModel, 0),
+	}
 }
 
 func (mc *mongoClient) Ping(ctx context.Context) error {
@@ -218,6 +235,10 @@ func (mc *mongoCollection) Indexes() IndexView {
 	return &mongoIndexView{iv: &indexView}
 }
 
+func (mc *mongoCollection) ListIndexSpecifications(ctx context.Context) ([]*mongo.IndexSpecification, error) {
+	return mc.coll.Indexes().ListSpecifications(ctx)
+}
+
 func (sr *mongoSingleResult) Decode(v interface{}) error {
 	return sr.sr.Decode(v)
 }
@@ -244,4 +265,16 @@ func (miv *mongoIndexView) CreateOne(ctx context.Context, model mongo.IndexModel
 
 func (miv *mongoIndexView) DropAll(ctx context.Context) (bson.Raw, error) {
 	return miv.iv.DropAll(ctx)
+}
+
+func (miv *mongoIndexView) ListSpecifications(ctx context.Context) ([]*mongo.IndexSpecification, error) {
+	return (*miv.iv).ListSpecifications(ctx)
+}
+
+// ============== 客户端初始化 ==============
+
+func NewClient(connection string) (Client, error) {
+	time.Local = time.UTC
+	c, err := mongo.NewClient(options.Client().ApplyURI(connection))
+	return &mongoClient{cl: c}, err
 }

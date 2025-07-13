@@ -21,7 +21,10 @@ require (
 	golang.org/x/text v0.26.0
 )
 
-require github.com/michiwend/gomusicbrainz v0.0.0-20181012083520-6c07e13dd396 // indirect
+require (
+	github.com/michiwend/gomusicbrainz v0.0.0-20181012083520-6c07e13dd396 // indirect
+	github.com/yanyiwu/gojieba v1.4.6 // indirect
+)
 
 require (
 	github.com/aws/aws-sdk-go v1.55.7 // indirect

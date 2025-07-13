@@ -44,11 +44,6 @@ type AlbumFilterCounts struct {
 	RecentPlay int `json:"recent_play"`
 }
 
-type AlbumListResponse struct {
-	Albums []AlbumMetadata `json:"albums"`
-	Count  int             `json:"count"`
-}
-
 type ArtistIDPair struct {
 	ArtistName string `bson:"artist_name"` // 艺术家名称
 	ArtistID   string `bson:"artist_id"`   // 艺术家唯一 ID

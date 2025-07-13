@@ -1,13 +1,16 @@
 package scene_audio_db_repository
 
 import (
+	"container/heap"
 	"context"
 	"errors"
 	"fmt"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_interface"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
+	"github.com/yanyiwu/gojieba"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	driver "go.mongodb.org/mongo-driver/mongo"
@@ -15,20 +18,260 @@ import (
 	"log"
 	"path/filepath"
 	"regexp"
+	"runtime"
+	"sort"
 	"strings"
+	"sync"
 	"time"
+	"unicode/utf8"
 )
 
 type mediaFileRepository struct {
-	db         mongo.Database
-	collection string
+	db                 mongo.Database
+	collection         string
+	jieba              *gojieba.Jieba
+	stopWords          map[string]bool
+	wordCloudMutex     sync.Mutex
+	wordCloudCancel    context.CancelFunc
+	isWordCloudRunning bool
 }
 
 func NewMediaFileRepository(db mongo.Database, collection string) scene_audio_db_interface.MediaFileRepository {
+	jieba := gojieba.NewJieba()
+	stopWords, err := domain_util.LoadCombinedStopWords()
+	if err != nil {
+		log.Printf("警告: 初始化组合停用词词典失败: %v", err)
+		stopWords = make(map[string]bool)
+	}
+
 	return &mediaFileRepository{
 		db:         db,
 		collection: collection,
+		jieba:      jieba,
+		stopWords:  stopWords,
 	}
+}
+
+func (r *mediaFileRepository) GetHighFrequencyWords(
+	ctx context.Context,
+	limit int,
+) ([]scene_audio_db_models.WordCloudMetadata, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// 1. Concurrency and Cancellation Control
+	r.wordCloudMutex.Lock()
+	if r.isWordCloudRunning {
+		if r.wordCloudCancel != nil {
+			r.wordCloudCancel() // Cancel the previous running task
+		}
+	}
+
+	r.wordCloudCancel = cancel
+	r.isWordCloudRunning = true
+	r.wordCloudMutex.Unlock()
+
+	defer func() {
+		r.wordCloudMutex.Lock()
+		r.isWordCloudRunning = false
+		r.wordCloudMutex.Unlock()
+		cancel() // Ensure the context is cancelled on function exit
+	}()
+
+	// 2. Database Aggregation (Single Hit)
+	coll := r.db.Collection(r.collection)
+	pipeline := bson.A{
+		bson.D{{"$project", bson.D{
+			{"textField", bson.D{
+				{"$concat", bson.A{
+					bson.D{{"$ifNull", bson.A{"$title", ""}}}, " ",
+					bson.D{{"$ifNull", bson.A{"$artist", ""}}}, " ",
+					bson.D{{"$ifNull", bson.A{"$album", ""}}}, " ",
+					bson.D{{"$ifNull", bson.A{"$lyrics", ""}}},
+				}},
+			}},
+		}}},
+	}
+
+	cursor, err := coll.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("文本字段聚合失败: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var documents []struct{ TextField string }
+	if err = cursor.All(ctx, &documents); err != nil {
+		return nil, fmt.Errorf("读取聚合结果失败: %w", err)
+	}
+
+	// 3. Concurrent Worker Pool for Processing
+	numWorkers := runtime.NumCPU()
+	jobs := make(chan string, len(documents))
+	results := make(chan map[string]int, numWorkers)
+	var wg sync.WaitGroup
+
+	for i := 0; i < numWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			localWordMap := make(map[string]int)
+			numericRegex := regexp.MustCompile(`^[0-9.]+$`)
+
+			for docText := range jobs {
+				select {
+				case <-ctx.Done(): // Check for cancellation signal
+					return
+				default:
+					words := r.jieba.Cut(docText, true)
+					for _, word := range words {
+						// Normalize word to lowercase
+						lowerWord := strings.ToLower(word)
+						// Filter stopwords, short words, and numeric strings
+						if !r.stopWords[lowerWord] && utf8.RuneCountInString(lowerWord) > 1 && !numericRegex.MatchString(lowerWord) {
+							localWordMap[lowerWord]++
+						}
+					}
+				}
+			}
+			results <- localWordMap
+		}()
+	}
+
+	for _, doc := range documents {
+		jobs <- doc.TextField
+	}
+	close(jobs)
+
+	wg.Wait()
+	close(results)
+
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+
+	// 4. Aggregate final results
+	globalWordMap := make(map[string]int)
+	for localMap := range results {
+		for word, count := range localMap {
+			globalWordMap[word] += count
+		}
+	}
+
+	// 5. Extract Top-K using MinHeap
+	h := &domain_util.MinHeap{}
+	heap.Init(h)
+	for word, count := range globalWordMap {
+		if h.Len() < limit {
+			heap.Push(h, domain_util.WordCount{Word: word, Count: count})
+		} else if count > (*h)[0].Count {
+			heap.Pop(h)
+			heap.Push(h, domain_util.WordCount{Word: word, Count: count})
+		}
+	}
+
+	// 6. Format and sort the final list
+	wordCounts := make([]scene_audio_db_models.WordCloudMetadata, h.Len())
+	tempList := make([]domain_util.WordCount, h.Len())
+	for i := 0; h.Len() > 0; i++ {
+		tempList[i] = heap.Pop(h).(domain_util.WordCount)
+	}
+
+	sort.Slice(tempList, func(i, j int) bool {
+		return tempList[i].Count > tempList[j].Count
+	})
+
+	for i, wc := range tempList {
+		wordCounts[i] = scene_audio_db_models.WordCloudMetadata{
+			ID:    primitive.NewObjectID(),
+			Name:  wc.Word,
+			Count: wc.Count,
+			Type:  "media_file",
+			Rank:  i + 1,
+		}
+	}
+
+	return wordCounts, nil
+}
+
+func (r *mediaFileRepository) GetRecommendedByKeywords(
+	ctx context.Context,
+	keywords []string,
+	limit int,
+) ([]scene_audio_db_models.Recommendation, error) {
+	coll := r.db.Collection(r.collection)
+	if len(keywords) == 0 {
+		return []scene_audio_db_models.Recommendation{}, nil
+	}
+
+	// 1. 预过滤阶段（性能优化）
+	orConditions := make([]bson.M, 0, len(keywords)*4)
+	for _, kw := range keywords {
+		regex := bson.M{"$regex": kw, "$options": "i"}
+		orConditions = append(orConditions, bson.M{"title": regex})
+		orConditions = append(orConditions, bson.M{"artist": regex})
+		orConditions = append(orConditions, bson.M{"album": regex})
+		orConditions = append(orConditions, bson.M{"lyrics": regex})
+	}
+	matchStage := bson.D{{"$match", bson.M{"$or": orConditions}}}
+
+	// 2. 加权评分阶段
+	weightedConditions := bson.A{}
+	weights := map[string]int{"title": 3, "artist": 2, "album": 2, "lyrics": 1}
+	for field, weight := range weights {
+		for _, kw := range keywords {
+			weightedConditions = append(weightedConditions, bson.M{
+				"$cond": bson.A{
+					bson.M{"$regexMatch": bson.M{
+						"input":   "$" + field,
+						"regex":   kw, // 关键修正：使用regex而非pattern
+						"options": "i",
+					}},
+					weight, // 字段权重
+					0,
+				},
+			})
+		}
+	}
+	scoreStage := bson.D{{"$addFields", bson.M{
+		"relevance_score": bson.M{"$sum": weightedConditions},
+	}}}
+
+	// 3. 排序与分页
+	sortStage := bson.D{{"$sort", bson.D{
+		{"relevance_score", -1},
+		{"created_at", -1},
+	}}}
+	limitStage := bson.D{{"$limit", limit}}
+
+	// 4. 执行聚合管道
+	pipeline := driver.Pipeline{matchStage, scoreStage, sortStage, limitStage}
+	cursor, err := coll.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("推荐聚合查询失败: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	// 5. 结果解码（包含评分）
+	var files []struct {
+		ID    primitive.ObjectID `bson:"_id"`
+		Title string             `bson:"title"`
+		Score int                `bson:"relevance_score"`
+	}
+	if err := cursor.All(ctx, &files); err != nil {
+		return nil, fmt.Errorf("推荐结果解析失败: %w", err)
+	}
+
+	// 6. 转换为响应模型
+	results := make([]scene_audio_db_models.Recommendation, len(files))
+	for i, f := range files {
+		results[i] = scene_audio_db_models.Recommendation{
+			ID:    f.ID,
+			Type:  "media_file",
+			Name:  f.Title,
+			Score: float64(f.Score), // 保留原始评分
+		}
+	}
+	return results, nil
 }
 
 func (r *mediaFileRepository) Upsert(ctx context.Context, file *scene_audio_db_models.MediaFileMetadata) (*scene_audio_db_models.MediaFileMetadata, error) {
@@ -163,21 +406,18 @@ func (r *mediaFileRepository) DeleteAllInvalid(
 		return delResult, deletedArtists, nil
 	}
 
-	// 场景2：路径比对删除（全局处理）
 	validFilePaths := make(map[string]struct{})
 	for _, path := range filePaths {
 		cleanPath := filepath.Clean(path)
 		validFilePaths[cleanPath] = struct{}{}
 	}
 
-	// 查询所有文档（移除folderPath过滤）
 	cur, err := coll.Find(ctx, bson.M{}, options.Find().SetProjection(bson.M{"_id": 1, "path": 1, "artist_id": 1}))
 	if err != nil {
 		return 0, deletedArtists, fmt.Errorf("查询失败: %w", err)
 	}
 	defer cur.Close(ctx)
 
-	// 按艺术家分组待删除项
 	artistToIDs := make(map[primitive.ObjectID][]primitive.ObjectID)
 	var toDelete []primitive.ObjectID
 
@@ -418,13 +658,6 @@ func (r *mediaFileRepository) MediaCountByAlbum(
 	}
 
 	return count, nil
-}
-
-func takeMin(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 func (r *mediaFileRepository) inspectMedia(

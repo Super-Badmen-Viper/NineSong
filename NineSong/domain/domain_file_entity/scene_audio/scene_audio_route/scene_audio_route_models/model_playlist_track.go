@@ -8,8 +8,3 @@ type PlaylistTrackMetadata struct {
 	MediaFileID primitive.ObjectID `bson:"media_file_id"`
 	Index       int                `bson:"index"`
 }
-
-type PlaylistTrackListResponse struct {
-	PlaylistTracks []PlaylistTrackMetadata `json:"playlist_tracks"`
-	Count          int                     `json:"count"`
-}

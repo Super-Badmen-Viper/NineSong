@@ -82,6 +82,15 @@ func (uc *mediaFileUsecase) GetMediaFileItems(
 	return uc.mediaFileRepo.GetMediaFileItems(ctx, start, end, sort, order, search, starred, albumId, artistId, year)
 }
 
+func (uc *mediaFileUsecase) GetMediaFileItemsIds(
+	ctx context.Context, ids []string,
+) ([]scene_audio_route_models.MediaFileMetadata, error) {
+	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
+	defer cancel()
+
+	return uc.mediaFileRepo.GetMediaFileItemsIds(ctx, ids)
+}
+
 func (uc *mediaFileUsecase) GetMediaFileItemsMultipleSorting(
 	ctx context.Context,
 	start, end string,

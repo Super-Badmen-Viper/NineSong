@@ -36,8 +36,3 @@ type ArtistFilterCounts struct {
 	Starred    int `json:"starred"`
 	RecentPlay int `json:"recent_play"`
 }
-
-type ArtistListResponse struct {
-	Artists []ArtistMetadata `json:"artists"`
-	Count   int              `json:"count"`
-}

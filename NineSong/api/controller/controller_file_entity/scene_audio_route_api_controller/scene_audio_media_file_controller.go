@@ -62,6 +62,26 @@ func (c *MediaFileController) GetMediaFiles(ctx *gin.Context) {
 	controller.SuccessResponse(ctx, "mediaFiles", mediaFiles, len(mediaFiles))
 }
 
+func (c *MediaFileController) GetMediaFileIds(ctx *gin.Context) {
+	params := struct {
+		Ids string `form:"ids" binding:"required"`
+	}{
+		Ids: ctx.Query("ids"),
+	}
+
+	mediaFiles, err := c.MediaFileUsecase.GetMediaFileItemsIds(
+		ctx.Request.Context(),
+		strings.Split(params.Ids, ","),
+	)
+
+	if err != nil {
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
+		return
+	}
+
+	controller.SuccessResponse(ctx, "mediaFiles", mediaFiles, len(mediaFiles))
+}
+
 func (c *MediaFileController) GetMediaFilesMultipleSorting(ctx *gin.Context) {
 	params := struct {
 		Start    string   `form:"start" binding:"required"`

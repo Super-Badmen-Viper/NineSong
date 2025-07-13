@@ -1,4 +1,4 @@
-package scene_audio_db_usecase
+package usercase_audio_util
 
 import (
 	"context"

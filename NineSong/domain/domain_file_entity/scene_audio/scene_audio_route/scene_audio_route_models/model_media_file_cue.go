@@ -62,11 +62,6 @@ type MediaFileCueFilterCounts struct {
 	RecentPlay int `bson:"recent_play"`
 }
 
-type MediaFileCueListResponse struct {
-	MediaFiles []MediaFileCueMetadata `bson:"media_files_cue"`
-	Count      int                    `bson:"count"`
-}
-
 type CueREM struct {
 	GENRE   string `bson:"genre"`
 	DATE    string `bson:"date"`

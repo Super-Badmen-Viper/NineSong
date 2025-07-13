@@ -28,4 +28,8 @@ type MediaFileRepository interface {
 		ctx context.Context,
 		search, starred, albumId, artistId, year string,
 	) (*scene_audio_route_models.MediaFileFilterCounts, error)
+
+	GetMediaFileItemsIds(
+		ctx context.Context, ids []string,
+	) ([]scene_audio_route_models.MediaFileMetadata, error)
 }

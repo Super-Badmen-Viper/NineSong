@@ -18,8 +18,3 @@ type PlaylistMetadata struct {
 	Size      int                `bson:"size"`
 	//OwnerID   string             `bson:"owner_id"`
 }
-
-type PlaylistListResponse struct {
-	Playlists []PlaylistMetadata `json:"playlists"`
-	Count     int                `json:"count"`
-}

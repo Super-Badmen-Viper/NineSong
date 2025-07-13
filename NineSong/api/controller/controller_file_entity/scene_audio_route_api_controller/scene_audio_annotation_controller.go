@@ -18,7 +18,7 @@ func NewAnnotationController(uc scene_audio_route_interface.AnnotationRepository
 
 type BaseAnnotationRequest struct {
 	ItemID   string `form:"item_id" binding:"required"`
-	ItemType string `form:"item_type" binding:"required,oneof=artist album media"`
+	ItemType string `form:"item_type" binding:"required,oneof=artist album media media_cue"`
 }
 
 type UpdateRatingRequest struct {

@@ -9,6 +9,9 @@ import (
 
 // MediaFileRepository 基础CRUD接口
 type MediaFileRepository interface {
+	GetHighFrequencyWords(ctx context.Context, limit int) ([]scene_audio_db_models.WordCloudMetadata, error)
+	GetRecommendedByKeywords(ctx context.Context, keywords []string, limit int) ([]scene_audio_db_models.Recommendation, error)
+
 	// 创建/更新
 	Upsert(ctx context.Context, file *scene_audio_db_models.MediaFileMetadata) (*scene_audio_db_models.MediaFileMetadata, error)
 	BulkUpsert(ctx context.Context, files []*scene_audio_db_models.MediaFileMetadata) (int, error)

@@ -8,6 +8,7 @@ import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"strconv"
 	"strings"
 	"time"
@@ -115,7 +116,40 @@ func (r *mediaFileRepository) GetMediaFileItems(
 	return results, nil
 }
 
-// GetMediaFileItemsMultipleSorting 新增：支持多重排序的媒体文件查询
+func (r *mediaFileRepository) GetMediaFileItemsIds(
+	ctx context.Context, ids []string,
+) ([]scene_audio_route_models.MediaFileMetadata, error) {
+	if len(ids) == 0 {
+		return []scene_audio_route_models.MediaFileMetadata{}, nil
+	}
+
+	objectIDs := make([]primitive.ObjectID, 0, len(ids))
+	for _, idStr := range ids {
+		if oid, err := primitive.ObjectIDFromHex(idStr); err == nil {
+			objectIDs = append(objectIDs, oid)
+		}
+	}
+
+	coll := r.db.Collection(r.collection)
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	filter := bson.M{"_id": bson.M{"$in": objectIDs}}
+
+	cursor, err := coll.Find(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("ID查询失败: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var results []scene_audio_route_models.MediaFileMetadata
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, fmt.Errorf("结果解析失败: %w", err)
+	}
+
+	return results, nil
+}
+
 func (r *mediaFileRepository) GetMediaFileItemsMultipleSorting(
 	ctx context.Context,
 	start, end string,

@@ -47,6 +47,9 @@ const (
 	CollectionFileEntityAudioSceneMediaFile = "file_entity_audio_scene_media_file"
 )
 const (
+	CollectionFileEntityAudioSceneMediaFileWordCloud = "file_entity_audio_scene_media_file_word_cloud"
+)
+const (
 	CollectionFileEntityAudioSceneMediaFileCue = "file_entity_audio_scene_media_file_cue"
 )
 const (

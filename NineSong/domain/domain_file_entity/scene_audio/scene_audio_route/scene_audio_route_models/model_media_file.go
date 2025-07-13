@@ -49,8 +49,3 @@ type MediaFileFilterCounts struct {
 	Starred    int `json:"starred"`
 	RecentPlay int `json:"recent_play"`
 }
-
-type MediaFileListResponse struct {
-	MediaFiles []MediaFileMetadata `json:"media_files"`
-	Count      int                 `json:"count"`
-}
