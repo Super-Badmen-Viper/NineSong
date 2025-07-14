@@ -9,6 +9,7 @@ import (
 
 // MediaFileRepository 基础CRUD接口
 type MediaFileRepository interface {
+	GetAllGenre(ctx context.Context) ([]scene_audio_db_models.WordCloudMetadata, error)
 	GetHighFrequencyWords(ctx context.Context, limit int) ([]scene_audio_db_models.WordCloudMetadata, error)
 	GetRecommendedByKeywords(ctx context.Context, keywords []string, limit int) ([]scene_audio_db_models.Recommendation, error)
 

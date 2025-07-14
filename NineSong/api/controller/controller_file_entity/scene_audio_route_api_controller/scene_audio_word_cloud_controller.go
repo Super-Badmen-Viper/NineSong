@@ -25,7 +25,16 @@ func (c *WordCloudController) GetAllWordCloudHandler(ctx *gin.Context) {
 		controller.ErrorResponse(ctx, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
 		return
 	}
-	controller.SuccessResponse(ctx, "word_cloud", wordClouds, len(wordClouds))
+	controller.SuccessResponse(ctx, "wordClouds", wordClouds, len(wordClouds))
+}
+
+func (c *WordCloudController) GetAllGenreHandler(ctx *gin.Context) {
+	wordClouds, err := c.WordCloudUsecase.GetAllGenreSearch(ctx.Request.Context())
+	if err != nil {
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+	controller.SuccessResponse(ctx, "wordClouds", wordClouds, len(wordClouds))
 }
 
 func (c *WordCloudController) GetHighFrequencyWordCloudHandler(ctx *gin.Context) {
@@ -54,7 +63,7 @@ func (c *WordCloudController) GetHighFrequencyWordCloudHandler(ctx *gin.Context)
 		controller.ErrorResponse(ctx, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
 		return
 	}
-	controller.SuccessResponse(ctx, "word_cloud", highWordCloud, 1)
+	controller.SuccessResponse(ctx, "wordClouds", highWordCloud, 1)
 }
 
 func (c *WordCloudController) GetRecommendedWordCloudHandler(ctx *gin.Context) {
@@ -75,5 +84,5 @@ func (c *WordCloudController) GetRecommendedWordCloudHandler(ctx *gin.Context) {
 		controller.ErrorResponse(ctx, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
 		return
 	}
-	controller.SuccessResponse(ctx, "word_cloud", recommendWordCloud, 1)
+	controller.SuccessResponse(ctx, "wordClouds", recommendWordCloud, 1)
 }

@@ -52,6 +52,62 @@ func NewMediaFileRepository(db mongo.Database, collection string) scene_audio_db
 	}
 }
 
+func (r *mediaFileRepository) GetAllGenre(ctx context.Context) ([]scene_audio_db_models.WordCloudMetadata, error) {
+	coll := r.db.Collection(r.collection)
+
+	// 构建聚合管道获取所有流派及其计数
+	pipeline := bson.A{
+		bson.D{{"$match", bson.D{
+			{"genre", bson.D{{"$ne", ""}}}, // 过滤掉空流派
+		}}},
+		bson.D{{"$project", bson.D{
+			{"genres", bson.D{
+				{"$split", bson.A{"$genre", ";"}}, // 拆分多流派字符串
+			}},
+		}}},
+		bson.D{{"$unwind", "$genres"}}, // 展开流派数组
+		bson.D{{"$group", bson.D{
+			{"_id", bson.D{
+				{"$trim", bson.D{
+					{"input", "$genres"},
+					{"chars", " "}, // 去除前后空格
+				}},
+			}},
+			{"count", bson.D{{"$sum", 1}}},
+		}}},
+		bson.D{{"$sort", bson.D{{"count", -1}}}}, // 按数量降序
+	}
+
+	cursor, err := coll.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("流派聚合查询失败: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	// 解析聚合结果
+	var rawResults []struct {
+		ID    string `bson:"_id"`
+		Count int    `bson:"count"`
+	}
+	if err := cursor.All(ctx, &rawResults); err != nil {
+		return nil, fmt.Errorf("解析流派数据失败: %w", err)
+	}
+
+	// 转换为WordCloudMetadata结构
+	results := make([]scene_audio_db_models.WordCloudMetadata, len(rawResults))
+	for i, item := range rawResults {
+		results[i] = scene_audio_db_models.WordCloudMetadata{
+			ID:    primitive.NewObjectID(),
+			Name:  item.ID,
+			Count: item.Count,
+			Type:  "genre", // 明确标记为流派类型
+			Rank:  i + 1,   // 根据排序设置排名
+		}
+	}
+
+	return results, nil
+}
+
 func (r *mediaFileRepository) GetHighFrequencyWords(
 	ctx context.Context,
 	limit int,
@@ -210,6 +266,7 @@ func (r *mediaFileRepository) GetRecommendedByKeywords(
 		orConditions = append(orConditions, bson.M{"title": regex})
 		orConditions = append(orConditions, bson.M{"artist": regex})
 		orConditions = append(orConditions, bson.M{"album": regex})
+		orConditions = append(orConditions, bson.M{"genre": regex})
 		orConditions = append(orConditions, bson.M{"lyrics": regex})
 	}
 	matchStage := bson.D{{"$match", bson.M{"$or": orConditions}}}

@@ -23,6 +23,7 @@ func NewWordCloudRouter(
 	wordCloudGroup := group.Group("/word_cloud")
 	{
 		wordCloudGroup.GET("", ctrl.GetAllWordCloudHandler)
+		wordCloudGroup.GET("genre", ctrl.GetAllGenreHandler)
 		wordCloudGroup.GET("high", ctrl.GetHighFrequencyWordCloudHandler)
 		wordCloudGroup.POST("recommend", ctrl.GetRecommendedWordCloudHandler)
 	}

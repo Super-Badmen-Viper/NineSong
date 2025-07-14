@@ -10,6 +10,10 @@ type WordCloudMetadata interface {
 		ctx context.Context,
 	) ([]scene_audio_db_models.WordCloudMetadata, error)
 
+	GetAllGenreSearch(
+		ctx context.Context,
+	) ([]scene_audio_db_models.WordCloudMetadata, error)
+
 	GetHighFrequencyWordCloudSearch(
 		ctx context.Context, wordLimit int,
 	) ([]scene_audio_db_models.WordCloudMetadata, error)

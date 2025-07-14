@@ -71,6 +71,13 @@ func (w *wordCloudUsecase) GetAllWordCloudSearch(
 	return results, nil
 }
 
+func (w *wordCloudUsecase) GetAllGenreSearch(ctx context.Context) ([]scene_audio_db_models.WordCloudMetadata, error) {
+	ctx, cancel := context.WithTimeout(ctx, w.timeout)
+	defer cancel()
+
+	return w.repoMediaFile.GetAllGenre(ctx)
+}
+
 func (w *wordCloudUsecase) GetHighFrequencyWordCloudSearch(
 	ctx context.Context, wordLimit int,
 ) ([]scene_audio_db_models.WordCloudMetadata, error) {
