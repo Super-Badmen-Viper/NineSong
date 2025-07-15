@@ -358,12 +358,19 @@ func (uc *AudioProcessingUsecase) ProcessMusicDirectory(
 		return fmt.Errorf("获取艺术家ID列表失败: %w", err)
 	}
 
+	albumIDs, err := uc.albumRepo.GetAllIDs(ctx)
+	if err != nil {
+		return fmt.Errorf("获取专辑ID列表失败: %w", err)
+	}
+
 	// 区域2: 媒体库统计（仅当libraryStatistics为true时执行）
 	if libraryStatistics {
 		maxConcurrency := 50
 		sem := make(chan struct{}, maxConcurrency)
 		var wgUpdate sync.WaitGroup
-		counters := []struct {
+
+		// 定义艺术家计数器
+		artistCounters := []struct {
 			countMethod func(context.Context, string) (int64, error)
 			counterName string
 			countType   string
@@ -371,32 +378,32 @@ func (uc *AudioProcessingUsecase) ProcessMusicDirectory(
 			{
 				countMethod: uc.albumRepo.AlbumCountByArtist,
 				counterName: "album_count",
-				countType:   "专辑",
+				countType:   "艺术家-专辑",
 			},
 			{
 				countMethod: uc.albumRepo.GuestAlbumCountByArtist,
 				counterName: "guest_album_count",
-				countType:   "合作专辑",
+				countType:   "艺术家-合作专辑",
 			},
 			{
 				countMethod: uc.mediaRepo.MediaCountByArtist,
 				counterName: "song_count",
-				countType:   "单曲",
+				countType:   "艺术家-单曲",
 			},
 			{
 				countMethod: uc.mediaRepo.GuestMediaCountByArtist,
 				counterName: "guest_song_count",
-				countType:   "合作单曲",
+				countType:   "艺术家-合作单曲",
 			},
 			{
 				countMethod: uc.mediaCueRepo.MediaCueCountByArtist,
 				counterName: "cue_count",
-				countType:   "光盘",
+				countType:   "艺术家-光盘",
 			},
 			{
 				countMethod: uc.mediaCueRepo.GuestMediaCueCountByArtist,
 				counterName: "guest_cue_count",
-				countType:   "合作光盘",
+				countType:   "艺术家-合作光盘",
 			},
 		}
 
@@ -406,8 +413,9 @@ func (uc *AudioProcessingUsecase) ProcessMusicDirectory(
 		uc.scanMutex.Unlock()
 
 		totalArtists := len(artistIDs)
-		current := 0
+		currentArtist := 0
 
+		// 统计艺术家计数器
 		for _, artistID := range artistIDs {
 			wgUpdate.Add(1)
 			go func(id primitive.ObjectID) {
@@ -418,29 +426,95 @@ func (uc *AudioProcessingUsecase) ProcessMusicDirectory(
 				strID := id.Hex()
 				ctx := context.Background()
 
-				// 统一处理计数器更新
-				for _, counter := range counters {
+				// 统一处理艺术家计数器
+				for _, counter := range artistCounters {
 					count, err := counter.countMethod(ctx, strID)
 					if err != nil {
 						log.Printf("艺术家%s%s统计失败: %v", strID, counter.countType, err)
 						continue
 					}
-
-					if _, err = uc.artistRepo.UpdateCounter(ctx, id, counter.counterName, int(count)); err != nil {
-						log.Printf("艺术家%s%s计数更新失败: %v", strID, counter.countType, err)
+					if count == 0 {
+						if err = uc.artistRepo.DeleteByID(ctx, id); err != nil {
+							log.Printf("失效艺术家%s%s删除失败: %v", strID, counter.countType, err)
+						}
+					} else if count > 0 {
+						if _, err = uc.artistRepo.UpdateCounter(ctx, id, counter.counterName, int(count)); err != nil {
+							log.Printf("艺术家%s%s计数更新失败: %v", strID, counter.countType, err)
+						}
 					}
 				}
 
-				// 更新统计阶段进度
-				current++
+				// 更新艺术家统计进度
+				currentArtist++
 				uc.scanMutex.Lock()
 				traversalProgress := uc.scanStageWeights.traversal
-				statisticsProgress := uc.scanStageWeights.statistics * float32(current) / float32(totalArtists)
+				statisticsProgress := uc.scanStageWeights.statistics * float32(currentArtist) / float32(totalArtists) * 0.5
 				uc.scanProgress = traversalProgress + statisticsProgress
 				uc.scanMutex.Unlock()
 			}(artistID)
 		}
 		wgUpdate.Wait()
+
+		// ---- 新增专辑统计部分 ----
+		totalAlbums := len(albumIDs)
+		currentAlbum := 0
+		var wgAlbum sync.WaitGroup
+
+		// 定义专辑计数器
+		albumCounters := []struct {
+			countMethod func(context.Context, string) (int64, error)
+			counterName string
+			countType   string
+		}{
+			{
+				countMethod: uc.mediaRepo.MediaCountByAlbum,
+				counterName: "song_count",
+				countType:   "专辑-歌曲",
+			},
+			// 可在此处添加更多专辑计数器
+		}
+
+		// 统计专辑计数器
+		for _, albumID := range albumIDs {
+			wgAlbum.Add(1)
+			go func(id primitive.ObjectID) {
+				defer wgAlbum.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
+
+				strID := id.Hex()
+				ctx := context.Background()
+
+				// 处理专辑计数器
+				for _, counter := range albumCounters {
+					count, err := counter.countMethod(ctx, strID)
+					if err != nil {
+						log.Printf("专辑%s%s统计失败: %v", strID, counter.countType, err)
+						continue
+					}
+					if count == 0 {
+						if err = uc.albumRepo.DeleteByID(ctx, id); err != nil {
+							log.Printf("失效专辑%s%s删除失败: %v", strID, counter.countType, err)
+						}
+					} else if count > 0 {
+						if _, err = uc.albumRepo.UpdateCounter(ctx, id, counter.counterName, int(count)); err != nil {
+							log.Printf("专辑%s%s计数更新失败: %v", strID, counter.countType, err)
+						}
+					}
+				}
+
+				// 更新专辑统计进度
+				currentAlbum++
+				uc.scanMutex.Lock()
+				traversalProgress := uc.scanStageWeights.traversal
+				// 进度计算：艺术家部分(50%) + 专辑完成比例(50%)
+				albumRatio := float32(currentAlbum) / float32(totalAlbums)
+				statisticsProgress := uc.scanStageWeights.statistics * (0.5 + 0.5*albumRatio)
+				uc.scanProgress = traversalProgress + statisticsProgress
+				uc.scanMutex.Unlock()
+			}(albumID)
+		}
+		wgAlbum.Wait()
 	}
 
 	// 区域3: 媒体库重构（仅当libraryRefactoring为true时执行）

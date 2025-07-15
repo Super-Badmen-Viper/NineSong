@@ -176,6 +176,33 @@ func (r *albumRepository) GetByArtist(ctx context.Context, artistID string) ([]*
 	return albums, nil
 }
 
+func (r *albumRepository) GetAllIDs(ctx context.Context) ([]primitive.ObjectID, error) {
+	coll := r.db.Collection(r.collection)
+
+	opts := options.Find().SetProjection(bson.M{"_id": 1})
+
+	cursor, err := coll.Find(ctx, bson.M{}, opts)
+	if err != nil {
+		return nil, fmt.Errorf("查询艺术家ID失败: %w", err)
+	}
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
+
+	var ids []primitive.ObjectID
+	for cursor.Next(ctx) {
+		var result struct {
+			ID primitive.ObjectID `bson:"_id"`
+		}
+		if err := cursor.Decode(&result); err != nil {
+			return nil, fmt.Errorf("解码艺术家ID失败: %w", err)
+		}
+		ids = append(ids, result.ID)
+	}
+
+	return ids, nil
+}
+
 func (r *albumRepository) ResetALLField(ctx context.Context) (int64, error) {
 	coll := r.db.Collection(r.collection)
 

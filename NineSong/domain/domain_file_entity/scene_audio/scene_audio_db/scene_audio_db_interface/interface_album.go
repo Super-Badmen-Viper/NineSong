@@ -23,6 +23,7 @@ type AlbumRepository interface {
 	GetByID(ctx context.Context, id primitive.ObjectID) (*scene_audio_db_models.AlbumMetadata, error)
 	GetByName(ctx context.Context, name string) (*scene_audio_db_models.AlbumMetadata, error)
 	GetByArtist(ctx context.Context, artistID string) ([]*scene_audio_db_models.AlbumMetadata, error)
+	GetAllIDs(ctx context.Context) ([]primitive.ObjectID, error)
 
 	ResetALLField(ctx context.Context) (int64, error)
 	ResetField(ctx context.Context, field string) (int64, error)

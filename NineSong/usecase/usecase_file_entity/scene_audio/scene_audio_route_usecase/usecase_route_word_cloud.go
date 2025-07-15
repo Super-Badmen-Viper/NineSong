@@ -142,7 +142,7 @@ func (w *wordCloudUsecase) GetHighFrequencyWordCloudSearch(
 func (w *wordCloudUsecase) GetRecommendedWordCloudSearch(
 	ctx context.Context, keywords []string,
 ) ([]scene_audio_db_models.Recommendation, error) {
-	const recommendLimit = 10
+	const recommendLimit = 30
 	allRecommendations, err := w.repoMediaFile.GetRecommendedByKeywords(ctx, keywords, recommendLimit)
 	if err != nil {
 		return nil, fmt.Errorf("单曲推荐获取失败: %w", err)
