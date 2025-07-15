@@ -433,14 +433,8 @@ func (uc *AudioProcessingUsecase) ProcessMusicDirectory(
 						log.Printf("艺术家%s%s统计失败: %v", strID, counter.countType, err)
 						continue
 					}
-					if count == 0 {
-						if err = uc.artistRepo.DeleteByID(ctx, id); err != nil {
-							log.Printf("失效艺术家%s%s删除失败: %v", strID, counter.countType, err)
-						}
-					} else if count > 0 {
-						if _, err = uc.artistRepo.UpdateCounter(ctx, id, counter.counterName, int(count)); err != nil {
-							log.Printf("艺术家%s%s计数更新失败: %v", strID, counter.countType, err)
-						}
+					if _, err = uc.artistRepo.UpdateCounter(ctx, id, counter.counterName, int(count)); err != nil {
+						log.Printf("艺术家%s%s计数更新失败: %v", strID, counter.countType, err)
 					}
 				}
 
@@ -471,7 +465,6 @@ func (uc *AudioProcessingUsecase) ProcessMusicDirectory(
 				counterName: "song_count",
 				countType:   "专辑-歌曲",
 			},
-			// 可在此处添加更多专辑计数器
 		}
 
 		// 统计专辑计数器
@@ -948,10 +941,11 @@ func (uc *AudioProcessingUsecase) processFile(
 			return
 		}
 
-		if err := uc.processAudioMediaFilesAndAlbumCover(
+		if err := uc.processAudioCover(
 			ctx,
 			mediaFile,
 			album,
+			artists,
 			mediaFileCue,
 			path,
 			coverTempPath,
@@ -1024,10 +1018,11 @@ func (uc *AudioProcessingUsecase) createMetadataBasicInfo(
 	}, nil
 }
 
-func (uc *AudioProcessingUsecase) processAudioMediaFilesAndAlbumCover(
+func (uc *AudioProcessingUsecase) processAudioCover(
 	ctx context.Context,
 	media *scene_audio_db_models.MediaFileMetadata,
 	album *scene_audio_db_models.AlbumMetadata,
+	artists []*scene_audio_db_models.ArtistMetadata,
 	mediaCue *scene_audio_db_models.MediaFileCueMetadata,
 	path string,
 	coverBasePath string,
@@ -1101,6 +1096,14 @@ func (uc *AudioProcessingUsecase) processAudioMediaFilesAndAlbumCover(
 		// 4. 处理专辑封面（如果存在）
 		if album != nil && coverPath != "" {
 			uc.processAlbumCover(album, coverPath, coverBasePath, ctx)
+		}
+
+		for _, artist := range artists {
+			if artist != nil && coverPath != "" {
+				if artist.MediumImageURL == "" && !artist.HasCoverArt {
+					uc.processArtistCover(artist, coverPath, coverBasePath, ctx)
+				}
+			}
 		}
 	}
 
@@ -1241,12 +1244,42 @@ func (uc *AudioProcessingUsecase) processAlbumCover(album *scene_audio_db_models
 	}
 }
 
+func (uc *AudioProcessingUsecase) processArtistCover(artist *scene_audio_db_models.ArtistMetadata,
+	coverPath, coverBasePath string, ctx context.Context) {
+
+	if artist.MediumImageURL == "" {
+		artistCoverDir := filepath.Join(coverBasePath, "artist", artist.ID.Hex())
+		if err := os.MkdirAll(artistCoverDir, 0755); err != nil {
+			log.Printf("[WARN] 专辑封面目录创建失败: %v", err)
+			return
+		}
+
+		artistCoverPath := filepath.Join(artistCoverDir, "cover.jpg")
+		if err := uc.copyCoverFile(coverPath, artistCoverPath); err != nil {
+			log.Printf("[WARN] 专辑封面复制失败: %v", err)
+			return
+		}
+
+		artistUpdate := bson.M{
+			"$set": bson.M{
+				"medium_image_url": artistCoverPath,
+				"has_cover_art":    true,
+				"updated_at":       time.Now().UTC(),
+			},
+		}
+
+		if _, err := uc.artistRepo.UpdateByID(ctx, artist.ID, artistUpdate); err != nil {
+			log.Printf("[WARN] 专辑元数据更新失败: %v", err)
+		}
+	}
+}
+
 func (uc *AudioProcessingUsecase) processAudioHierarchy(ctx context.Context,
 	artists []*scene_audio_db_models.ArtistMetadata,
 	album *scene_audio_db_models.AlbumMetadata,
 	mediaFile *scene_audio_db_models.MediaFileMetadata,
 	mediaFileCue *scene_audio_db_models.MediaFileCueMetadata,
-) (err error) { // 改为命名返回值，便于错误处理
+) (err error) {
 	// 关键依赖检查
 	if uc.mediaRepo == nil || uc.artistRepo == nil || uc.albumRepo == nil || uc.mediaCueRepo == nil {
 		log.Print("音频仓库未初始化")
@@ -1446,6 +1479,8 @@ func (uc *AudioProcessingUsecase) updateAudioArtistMetadata(ctx context.Context,
 	// 仅同步ID，因为album会随着更新而新增字段
 	if existing != nil {
 		artist.ID = existing.ID
+		artist.MediumImageURL = existing.MediumImageURL
+		artist.HasCoverArt = existing.HasCoverArt
 	}
 	// 再次插入，将版本更新的字段覆盖到现有文档
 	if err := uc.artistRepo.Upsert(ctx, artist); err != nil {

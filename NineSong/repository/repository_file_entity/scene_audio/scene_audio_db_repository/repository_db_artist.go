@@ -61,6 +61,28 @@ func (r *artistRepository) BulkUpsert(ctx context.Context, artists []*scene_audi
 	return successCount, nil
 }
 
+func (r *artistRepository) UpdateByID(ctx context.Context, id primitive.ObjectID, update bson.M) (bool, error) {
+	coll := r.db.Collection(r.collection)
+
+	// 构建原子更新操作
+	result, err := coll.UpdateOne(
+		ctx,
+		bson.M{"_id": id},
+		update,
+		options.Update().SetUpsert(false),
+	)
+
+	if err != nil {
+		return false, fmt.Errorf("艺术家更新失败: %w", err)
+	}
+
+	if result.MatchedCount == 0 {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func (r *artistRepository) DeleteByID(ctx context.Context, id primitive.ObjectID) error {
 	coll := r.db.Collection(r.collection)
 	_, err := coll.DeleteOne(ctx, bson.M{"_id": id})
