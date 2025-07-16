@@ -16,7 +16,7 @@ type wordCloudRepository struct {
 	collection string
 }
 
-func NewWordCloudRepository(db mongo.Database, collection string) scene_audio_db_interface.WordCloudRepository {
+func NewWordCloudRepository(db mongo.Database, collection string) scene_audio_db_interface.WordCloudDBRepository {
 	return &wordCloudRepository{
 		db:         db,
 		collection: collection,

@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -42,6 +43,7 @@ type AudioProcessingUsecase struct {
 	mediaRepo        scene_audio_db_interface.MediaFileRepository
 	tempRepo         scene_audio_db_interface.TempRepository
 	mediaCueRepo     scene_audio_db_interface.MediaFileCueRepository
+	wordCloudRepo    scene_audio_db_interface.WordCloudDBRepository
 	scanMutex        sync.RWMutex
 	scanProgress     float32
 	scanStageWeights struct {
@@ -62,6 +64,7 @@ func NewAudioProcessingUsecase(
 	mediaRepo scene_audio_db_interface.MediaFileRepository,
 	tempRepo scene_audio_db_interface.TempRepository,
 	mediaCueRepo scene_audio_db_interface.MediaFileCueRepository,
+	wordCloudRepo scene_audio_db_interface.WordCloudDBRepository,
 ) *AudioProcessingUsecase {
 	workerCount := runtime.NumCPU() * 2
 	if workerCount < 4 {
@@ -69,17 +72,18 @@ func NewAudioProcessingUsecase(
 	}
 
 	return &AudioProcessingUsecase{
-		db:           db,
-		fileRepo:     fileRepo,
-		folderRepo:   folderRepo,
-		detector:     detector,
-		workerPool:   make(chan struct{}, workerCount),
-		scanTimeout:  time.Duration(timeoutMinutes) * time.Minute,
-		artistRepo:   artistRepo,
-		albumRepo:    albumRepo,
-		mediaRepo:    mediaRepo,
-		tempRepo:     tempRepo,
-		mediaCueRepo: mediaCueRepo,
+		db:            db,
+		fileRepo:      fileRepo,
+		folderRepo:    folderRepo,
+		detector:      detector,
+		workerPool:    make(chan struct{}, workerCount),
+		scanTimeout:   time.Duration(timeoutMinutes) * time.Minute,
+		artistRepo:    artistRepo,
+		albumRepo:     albumRepo,
+		mediaRepo:     mediaRepo,
+		tempRepo:      tempRepo,
+		mediaCueRepo:  mediaCueRepo,
+		wordCloudRepo: wordCloudRepo,
 	}
 }
 
@@ -861,7 +865,72 @@ func (uc *AudioProcessingUsecase) ProcessMusicDirectory(
 		}
 	}
 
+	// 区域3结束后（重构阶段完成）
+	uc.scanMutex.Lock()
+	// 执行词云处理
+	err = uc.processMusicWordCloud(ctx)
+	if err != nil {
+		return err
+	}
+	uc.scanMutex.Unlock()
+
 	return finalErr
+}
+
+func (uc *AudioProcessingUsecase) processMusicWordCloud(
+	ctx context.Context,
+) error {
+	// 1. 删除现有索引
+	if err := uc.wordCloudRepo.DropAllIndex(ctx); err != nil {
+		// 非致命错误，记录日志但继续执行
+		log.Printf("索引删除失败: %v", err)
+	}
+
+	// 2. 清空当前词云数据
+	if err := uc.wordCloudRepo.AllDelete(ctx); err != nil {
+		return fmt.Errorf("词云数据清空失败: %w", err)
+	}
+
+	// 3. 获取原始高频词数据
+	allWords, err := uc.mediaRepo.GetHighFrequencyWords(ctx, 100)
+	if err != nil {
+		return fmt.Errorf("高频词获取失败: %w", err)
+	}
+
+	// 4. 数据处理流水线（排序+截取TopN）
+	sort.Slice(allWords, func(i, j int) bool {
+		return allWords[i].Count > allWords[j].Count
+	})
+
+	topN := 50
+	if len(allWords) < topN {
+		topN = len(allWords)
+	}
+	topWords := allWords[:topN]
+
+	// 5. 构建最终结果集（使用指针切片）
+	results := make([]*scene_audio_db_models.WordCloudMetadata, 0, topN)
+	for i, word := range topWords {
+		results = append(results, &scene_audio_db_models.WordCloudMetadata{
+			ID:    primitive.NewObjectID(),
+			Type:  word.Type,
+			Name:  word.Name,
+			Count: word.Count,
+			Rank:  i + 1,
+		})
+	}
+
+	// 6. 批量保存（直接传递指针切片）
+	if _, err := uc.wordCloudRepo.BulkUpsert(ctx, results); err != nil {
+		return fmt.Errorf("词云数据保存失败: %w", err)
+	}
+
+	// 7. 重建索引（补充unique参数）
+	if err := uc.wordCloudRepo.CreateIndex(ctx, "name", true); err != nil {
+		log.Printf("索引重建警告: %v", err)
+	}
+
+	return nil
 }
 
 func (uc *AudioProcessingUsecase) processFile(
@@ -1101,7 +1170,9 @@ func (uc *AudioProcessingUsecase) processAudioCover(
 		for _, artist := range artists {
 			if artist != nil && coverPath != "" {
 				if artist.MediumImageURL == "" && !artist.HasCoverArt {
-					uc.processArtistCover(artist, coverPath, coverBasePath, ctx)
+					if !media.Compilation {
+						uc.processArtistCover(artist, coverPath, coverBasePath, ctx)
+					}
 				}
 			}
 		}

@@ -5,7 +5,7 @@ import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
 )
 
-type WordCloudMetadata interface {
+type WordCloudRouteRepository interface {
 	GetAllWordCloudSearch(
 		ctx context.Context,
 	) ([]scene_audio_db_models.WordCloudMetadata, error)

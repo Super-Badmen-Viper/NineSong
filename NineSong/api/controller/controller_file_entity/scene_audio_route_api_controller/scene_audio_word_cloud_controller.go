@@ -12,10 +12,10 @@ import (
 )
 
 type WordCloudController struct {
-	WordCloudUsecase scene_audio_route_interface.WordCloudMetadata
+	WordCloudUsecase scene_audio_route_interface.WordCloudRouteRepository
 }
 
-func NewWordCloudController(uc scene_audio_route_interface.WordCloudMetadata) *WordCloudController {
+func NewWordCloudController(uc scene_audio_route_interface.WordCloudRouteRepository) *WordCloudController {
 	return &WordCloudController{WordCloudUsecase: uc}
 }
 

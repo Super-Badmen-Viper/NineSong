@@ -15,15 +15,15 @@ import (
 
 type wordCloudUsecase struct {
 	repoMediaFile          scene_audio_db_interface.MediaFileRepository
-	repoMediaFileWordCloud scene_audio_db_interface.WordCloudRepository
+	repoMediaFileWordCloud scene_audio_db_interface.WordCloudDBRepository
 	timeout                time.Duration
 }
 
 func NewWordCloudUsecase(
 	repoMediaFile scene_audio_db_interface.MediaFileRepository,
-	repoMediaFileWordCloud scene_audio_db_interface.WordCloudRepository,
+	repoMediaFileWordCloud scene_audio_db_interface.WordCloudDBRepository,
 	timeout time.Duration,
-) scene_audio_route_interface.WordCloudMetadata {
+) scene_audio_route_interface.WordCloudRouteRepository {
 	return &wordCloudUsecase{
 		repoMediaFile:          repoMediaFile,
 		repoMediaFileWordCloud: repoMediaFileWordCloud,
