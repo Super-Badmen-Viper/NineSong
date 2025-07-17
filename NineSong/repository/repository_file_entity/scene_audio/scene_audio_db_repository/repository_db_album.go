@@ -9,6 +9,7 @@ import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	driver "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 )
@@ -59,6 +60,16 @@ func (r *albumRepository) BulkUpsert(ctx context.Context, albums []*scene_audio_
 		successCount++
 	}
 	return successCount, nil
+}
+
+func (r *albumRepository) UpdateMany(
+	ctx context.Context,
+	filter interface{},
+	update interface{},
+	opts ...*options.UpdateOptions,
+) (*driver.UpdateResult, error) {
+	coll := r.db.Collection(r.collection)
+	return coll.UpdateMany(ctx, filter, update, opts...)
 }
 
 func (r *albumRepository) UpdateByID(ctx context.Context, id primitive.ObjectID, update bson.M) (bool, error) {
@@ -201,6 +212,31 @@ func (r *albumRepository) GetAllIDs(ctx context.Context) ([]primitive.ObjectID, 
 	}
 
 	return ids, nil
+}
+
+func (r *albumRepository) GetAllCounts(ctx context.Context) ([]scene_audio_db_models.AlbumSongCounts, error) {
+	coll := r.db.Collection(r.collection)
+
+	// 直接投影 song_count 字段
+	filter := bson.M{}
+	projection := bson.M{
+		"_id":        1, // 保留 ID
+		"updated_at": 1,
+		"song_count": 1, // 返回歌曲数
+	}
+
+	cursor, err := coll.Find(ctx, filter, options.Find().SetProjection(projection))
+	if err != nil {
+		return nil, fmt.Errorf("查询失败: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var results []scene_audio_db_models.AlbumSongCounts
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, fmt.Errorf("解码失败: %w", err)
+	}
+
+	return results, nil
 }
 
 func (r *albumRepository) ResetALLField(ctx context.Context) (int64, error) {

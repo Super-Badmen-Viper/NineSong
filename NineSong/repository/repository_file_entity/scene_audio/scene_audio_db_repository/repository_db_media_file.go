@@ -331,6 +331,29 @@ func (r *mediaFileRepository) GetRecommendedByKeywords(
 	return results, nil
 }
 
+func (r *mediaFileRepository) GetAllCounts(ctx context.Context) ([]scene_audio_db_models.MediaFileCounts, error) {
+	coll := r.db.Collection(r.collection)
+
+	filter := bson.M{}
+	projection := bson.M{
+		"_id":        1,
+		"updated_at": 1,
+	}
+
+	cursor, err := coll.Find(ctx, filter, options.Find().SetProjection(projection))
+	if err != nil {
+		return nil, fmt.Errorf("查询失败: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var results []scene_audio_db_models.MediaFileCounts
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, fmt.Errorf("解码失败: %w", err)
+	}
+
+	return results, nil
+}
+
 func (r *mediaFileRepository) Upsert(ctx context.Context, file *scene_audio_db_models.MediaFileMetadata) (*scene_audio_db_models.MediaFileMetadata, error) {
 	coll := r.db.Collection(r.collection)
 	now := time.Now().UTC()

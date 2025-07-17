@@ -13,17 +13,14 @@ require (
 
 require (
 	github.com/dhowden/tag v0.0.0-20240417053706-3d75831295e8
+	github.com/djherbis/times v1.6.0
 	github.com/go-audio/wav v1.1.0
 	github.com/mozillazg/go-pinyin v0.20.0
 	github.com/tidwall/gjson v1.18.0
 	github.com/u2takey/ffmpeg-go v0.5.0
+	github.com/yanyiwu/gojieba v1.4.6
 	go.senan.xyz/taglib v0.7.1
 	golang.org/x/text v0.26.0
-)
-
-require (
-	github.com/michiwend/gomusicbrainz v0.0.0-20181012083520-6c07e13dd396 // indirect
-	github.com/yanyiwu/gojieba v1.4.6 // indirect
 )
 
 require (
@@ -35,7 +32,6 @@ require (
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.9 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
-	github.com/go-audio/aiff v1.1.0 // indirect
 	github.com/go-audio/audio v1.0.0 // indirect
 	github.com/go-audio/riff v1.0.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
@@ -54,7 +50,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirectw
+	github.com/pmezard/go-difflib v1.0.0 // indirect; indirectw
 	github.com/sagikazarmark/locafero v0.9.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.14.0 // indirect

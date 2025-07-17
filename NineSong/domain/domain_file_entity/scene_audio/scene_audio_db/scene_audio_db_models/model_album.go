@@ -69,3 +69,8 @@ type ArtistIDPair struct {
 	ArtistName string `bson:"artist_name"` // 艺术家名称
 	ArtistID   string `bson:"artist_id"`   // 艺术家唯一 ID
 }
+
+type AlbumSongCounts struct {
+	ID        primitive.ObjectID `bson:"_id"`        // 文档唯一标识符
+	SongCount int                `bson:"song_count"` // 专辑中的歌曲总数
+}

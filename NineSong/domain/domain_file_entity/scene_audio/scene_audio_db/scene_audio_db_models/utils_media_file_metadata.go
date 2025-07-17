@@ -2,7 +2,6 @@ package scene_audio_db_models
 
 import (
 	"go.mongodb.org/mongo-driver/bson"
-	"time"
 )
 
 func (m *MediaFileMetadata) ToUpdateDoc() bson.M {
@@ -16,7 +15,6 @@ func (m *MediaFileMetadata) ToUpdateDoc() bson.M {
 	raw["thumbnail_url"] = m.ThumbnailURL
 	raw["medium_image_url"] = m.MediumImageURL
 	raw["high_image_url"] = m.HighImageURL
-	raw["updated_at"] = time.Now().UTC()
 
 	return bson.M{"$set": raw}
 }
@@ -32,7 +30,6 @@ func (m *MediaFileCueMetadata) ToUpdateDoc() bson.M {
 	raw["cover_image_url"] = m.CueResources.CoverImage
 	raw["disc_image_url"] = m.CueResources.DiscImage
 	raw["has_cover_art"] = m.CueResources.CoverImage != ""
-	raw["updated_at"] = time.Now().UTC()
 
 	return bson.M{"$set": raw}
 }

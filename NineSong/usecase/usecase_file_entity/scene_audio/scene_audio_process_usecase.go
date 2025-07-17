@@ -147,8 +147,11 @@ func (uc *AudioProcessingUsecase) ProcessMusicDirectory(
 	var regularAudioPaths []string
 	var cueAudioPaths []string
 
+	// 扫描前记录数据库统计字段，用以后续比对决定是否设置UpdatedAt
+	artistCountsBeforeScanning, err := uc.artistRepo.GetAllCounts(ctx)
+	//albumCountsBeforeScanning, err := uc.albumRepo.GetAllCounts(ctx)
+	// 扫描前重置数据库统计字段
 	if libraryStatistics {
-		// 扫描前重置数据库统计字段
 		_, err := uc.albumRepo.ResetALLField(ctx)
 		if err != nil {
 			return err
@@ -891,16 +894,122 @@ func (uc *AudioProcessingUsecase) ProcessMusicDirectory(
 		}
 	}
 
-	// 区域3结束后（重构阶段完成）
+	// 在区域3结束后（重构阶段完成）
 	uc.scanMutex.Lock()
 	// 执行词云处理
 	err = uc.processMusicWordCloud(ctx)
 	if err != nil {
 		return err
 	}
+
+	// 获取扫描后的计数数据
+	artistCountsAfterScanning, err := uc.artistRepo.GetAllCounts(ctx)
+	//albumCountsAfterScanning, err := uc.albumRepo.GetAllCounts(ctx)
+
+	// 比较并更新发生变化的艺术家和专辑
+	if err := uc.updateChangedArtistsAndAlbums(
+		ctx,
+		artistCountsBeforeScanning,
+		artistCountsAfterScanning,
+		nil,
+		nil,
+	); err != nil {
+		log.Printf("更新变更记录失败: %v", err)
+	}
+
 	uc.scanMutex.Unlock()
 
 	return finalErr
+}
+
+// 比较并更新发生变化的艺术家和专辑
+func (uc *AudioProcessingUsecase) updateChangedArtistsAndAlbums(
+	ctx context.Context,
+	beforeArtist []scene_audio_db_models.ArtistAlbumAndSongCounts,
+	afterArtist []scene_audio_db_models.ArtistAlbumAndSongCounts,
+	beforeAlbum []scene_audio_db_models.AlbumSongCounts,
+	afterAlbum []scene_audio_db_models.AlbumSongCounts,
+) error {
+	// 4. 批量更新变更记录的UpdatedAt
+	currentTime := time.Now().UTC()
+
+	if beforeArtist != nil && afterArtist != nil {
+		// 1. 创建ID到计数的映射以便快速查找
+		beforeArtistMap := make(map[primitive.ObjectID]scene_audio_db_models.ArtistAlbumAndSongCounts)
+		for _, a := range beforeArtist {
+			beforeArtistMap[a.ID] = a
+		}
+
+		afterArtistMap := make(map[primitive.ObjectID]scene_audio_db_models.ArtistAlbumAndSongCounts)
+		for _, a := range afterArtist {
+			afterArtistMap[a.ID] = a
+		}
+
+		// 2. 识别变更的艺术家
+		var changedArtists []primitive.ObjectID
+		for id, after := range afterArtistMap {
+			before, exists := beforeArtistMap[id]
+			if !exists {
+				// 新增艺术家
+				changedArtists = append(changedArtists, id)
+				continue
+			}
+
+			// 比较所有计数字段
+			if before.AlbumCount != after.AlbumCount ||
+				before.GuestAlbumCount != after.GuestAlbumCount ||
+				before.SongCount != after.SongCount ||
+				before.GuestSongCount != after.GuestSongCount ||
+				before.CueCount != after.CueCount ||
+				before.GuestCueCount != after.GuestCueCount {
+				changedArtists = append(changedArtists, id)
+			}
+		}
+
+		// 更新艺术家
+		if len(changedArtists) > 0 {
+			filter := bson.M{"_id": bson.M{"$in": changedArtists}}
+			update := bson.M{"$set": bson.M{"updated_at": currentTime}}
+			if _, err := uc.artistRepo.UpdateMany(ctx, filter, update); err != nil {
+				return fmt.Errorf("艺术家更新时间失败: %w", err)
+			}
+			log.Printf("已更新 %d 位艺术家的更新时间", len(changedArtists))
+		}
+	}
+
+	if beforeAlbum != nil && afterAlbum != nil {
+		beforeAlbumMap := make(map[primitive.ObjectID]int)
+		for _, a := range beforeAlbum {
+			beforeAlbumMap[a.ID] = a.SongCount
+		}
+
+		// 3. 识别变更的专辑
+		var changedAlbums []primitive.ObjectID
+		for _, after := range afterAlbum {
+			beforeCount, exists := beforeAlbumMap[after.ID]
+			if !exists {
+				// 新增专辑
+				changedAlbums = append(changedAlbums, after.ID)
+				continue
+			}
+
+			if beforeCount != after.SongCount {
+				changedAlbums = append(changedAlbums, after.ID)
+			}
+		}
+
+		// 更新专辑
+		if len(changedAlbums) > 0 {
+			filter := bson.M{"_id": bson.M{"$in": changedAlbums}}
+			update := bson.M{"$set": bson.M{"updated_at": currentTime}}
+			if _, err := uc.albumRepo.UpdateMany(ctx, filter, update); err != nil {
+				return fmt.Errorf("专辑更新时间失败: %w", err)
+			}
+			log.Printf("已更新 %d 张专辑的更新时间", len(changedAlbums))
+		}
+	}
+
+	return nil
 }
 
 func (uc *AudioProcessingUsecase) processMusicWordCloud(
@@ -1613,7 +1722,6 @@ func (uc *AudioProcessingUsecase) processAlbumCover(album *scene_audio_db_models
 			"$set": bson.M{
 				"medium_image_url": albumCoverPath,
 				"has_cover_art":    true,
-				"updated_at":       time.Now().UTC(),
 			},
 		}
 
@@ -1643,7 +1751,6 @@ func (uc *AudioProcessingUsecase) processArtistCover(artist *scene_audio_db_mode
 			"$set": bson.M{
 				"medium_image_url": artistCoverPath,
 				"has_cover_art":    true,
-				"updated_at":       time.Now().UTC(),
 			},
 		}
 
@@ -1674,11 +1781,9 @@ func (uc *AudioProcessingUsecase) processAudioHierarchy(ctx context.Context,
 	// 直接保存无关联数据
 	if artists == nil && album == nil {
 		if mediaFile != nil {
-			// 修复：移除短声明避免覆盖原变量
-			if _, err := uc.mediaRepo.Upsert(ctx, mediaFile); err != nil {
-				// 修复：直接使用原mediaFile避免NPE
-				log.Printf("歌曲保存失败: %s | %v", mediaFile.Path, err)
-				return fmt.Errorf("歌曲元数据保存失败 | 路径:%s | %w", mediaFile.Path, err)
+			if err := uc.updateAudioMediaMetadata(ctx, mediaFile); err != nil {
+				log.Printf("单曲处理失败: %s | %v", mediaFile.Path, err)
+				return fmt.Errorf("单曲处理失败 | 名称:%s | 原因:%w", mediaFile.Path, err)
 			}
 		}
 		if mediaFileCue != nil {
@@ -1851,7 +1956,7 @@ func (uc *AudioProcessingUsecase) updateAudioArtistMetadata(ctx context.Context,
 		return fmt.Errorf("系统服务异常")
 	}
 
-	existing, err := uc.artistRepo.GetByName(ctx, artist.Name)
+	existing, err := uc.artistRepo.GetByID(ctx, artist.ID)
 	if err != nil {
 		log.Printf("名称查询错误: %v", err)
 	}
@@ -1861,6 +1966,7 @@ func (uc *AudioProcessingUsecase) updateAudioArtistMetadata(ctx context.Context,
 		artist.MediumImageURL = existing.MediumImageURL
 		artist.HasCoverArt = existing.HasCoverArt
 		artist.CreatedAt = existing.CreatedAt
+		artist.UpdatedAt = existing.UpdatedAt // 先不更新该艺术家，媒体库重构阶段判断是否更新
 	}
 	// 再次插入，将版本更新的字段覆盖到现有文档
 	if err := uc.artistRepo.Upsert(ctx, artist); err != nil {
@@ -1887,17 +1993,47 @@ func (uc *AudioProcessingUsecase) updateAudioAlbumMetadata(ctx context.Context, 
 	if err != nil {
 		log.Printf("组合查询错误: %v", err)
 	}
-	// 仅同步ID，因为album会随着更新而新增字段
+
 	if existing != nil {
-		album.ID = existing.ID
-		album.MediumImageURL = existing.MediumImageURL
-		album.HasCoverArt = existing.HasCoverArt
-		album.CreatedAt = existing.CreatedAt
+		if album.UpdatedAt != existing.UpdatedAt {
+			if err := uc.albumRepo.Upsert(ctx, album); err != nil {
+				log.Printf("专辑创建失败: %s | %v", album.Name, err)
+				return err
+			}
+		}
+	} else {
+		if err := uc.albumRepo.Upsert(ctx, album); err != nil {
+			log.Printf("专辑创建失败: %s | %v", album.Name, err)
+			return err
+		}
 	}
-	// 再次插入，将版本更新的字段覆盖到现有文档
-	if err := uc.albumRepo.Upsert(ctx, album); err != nil {
-		log.Printf("专辑创建失败: %s | %v", album.Name, err)
-		return err
+
+	return nil
+}
+
+func (uc *AudioProcessingUsecase) updateAudioMediaMetadata(ctx context.Context, media *scene_audio_db_models.MediaFileMetadata) error {
+	if uc.mediaRepo == nil {
+		log.Print("专辑仓库未初始化")
+		return fmt.Errorf("系统服务异常")
+	}
+
+	existing, err := uc.mediaRepo.GetByID(ctx, media.ID)
+	if err != nil {
+		log.Printf("组合查询错误: %v", err)
+	}
+
+	if existing != nil {
+		if media.UpdatedAt != existing.UpdatedAt {
+			if _, err := uc.mediaRepo.Upsert(ctx, media); err != nil {
+				log.Printf("单曲创建失败: %s | %v", media.Path, err)
+				return err
+			}
+		}
+	} else {
+		if _, err := uc.mediaRepo.Upsert(ctx, media); err != nil {
+			log.Printf("单曲创建失败: %s | %v", media.Path, err)
+			return err
+		}
 	}
 
 	return nil

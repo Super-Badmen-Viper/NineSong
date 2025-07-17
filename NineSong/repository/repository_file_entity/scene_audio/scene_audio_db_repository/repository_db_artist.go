@@ -8,6 +8,7 @@ import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	driver "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"strings"
@@ -81,6 +82,16 @@ func (r *artistRepository) UpdateByID(ctx context.Context, id primitive.ObjectID
 	}
 
 	return true, nil
+}
+
+func (r *artistRepository) UpdateMany(
+	ctx context.Context,
+	filter interface{},
+	update interface{},
+	opts ...*options.UpdateOptions,
+) (*driver.UpdateResult, error) {
+	coll := r.db.Collection(r.collection)
+	return coll.UpdateMany(ctx, filter, update, opts...)
 }
 
 func (r *artistRepository) DeleteByID(ctx context.Context, id primitive.ObjectID) error {
@@ -173,6 +184,36 @@ func (r *artistRepository) GetAllIDs(ctx context.Context) ([]primitive.ObjectID,
 	}
 
 	return ids, nil
+}
+
+func (r *artistRepository) GetAllCounts(ctx context.Context) ([]scene_audio_db_models.ArtistAlbumAndSongCounts, error) {
+	coll := r.db.Collection(r.collection)
+
+	// 使用 find() + 投影直接返回字段值
+	filter := bson.M{} // 空过滤条件，查询所有文档
+	projection := bson.M{
+		"_id":               1, // 保留 ID
+		"updated_at":        1,
+		"album_count":       1, // 返回专辑数
+		"guest_album_count": 1, // 返回合作专辑数
+		"song_count":        1, // 返回单曲数
+		"guest_song_count":  1, // 返回合作单曲数
+		"cue_count":         1, // 返回光盘数
+		"guest_cue_count":   1, // 返回合作光盘数
+	}
+
+	cursor, err := coll.Find(ctx, filter, options.Find().SetProjection(projection))
+	if err != nil {
+		return nil, fmt.Errorf("查询失败: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var results []scene_audio_db_models.ArtistAlbumAndSongCounts
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, fmt.Errorf("解码失败: %w", err)
+	}
+
+	return results, nil
 }
 
 func (r *artistRepository) ResetALLField(ctx context.Context) (int64, error) {

@@ -23,6 +23,7 @@ import (
 
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
+	"github.com/djherbis/times"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.senan.xyz/taglib"
 )
@@ -348,6 +349,22 @@ func (e *AudioMetadataExtractorTaglib) enrichFileMetadata(
 		}
 	}(file)
 
+	// 新增：获取文件完整时间属性（创建/修改时间）
+	fileTimes, err := times.StatFile(file) // 使用文件句柄获取时间戳[7](@ref)
+	if err != nil {
+		log.Printf("无法获取文件时间属性[%s]: %v", path, err)
+	} else {
+		// 优先使用文件系统记录的创建时间
+		if fileTimes.HasBirthTime() {
+			fileMetadata.CreatedAt = fileTimes.BirthTime().UTC()
+		} else {
+			// 回退到修改时间（某些文件系统不记录创建时间）
+			fileMetadata.CreatedAt = fileTimes.ModTime().UTC()
+		}
+		// 更新时间始终使用修改时间
+		fileMetadata.UpdatedAt = fileTimes.ModTime().UTC()
+	}
+
 	hash := sha256.New()
 	if _, err := io.Copy(hash, file); err != nil {
 		return fmt.Errorf("校验和计算失败: %w", err)
@@ -365,11 +382,6 @@ func (e *AudioMetadataExtractorTaglib) enrichFileMetadata(
 	fileMetadata.Size = info.Size()
 	fileMetadata.ModTime = info.ModTime().UTC()
 	fileMetadata.FileType = domain_file_entity.Audio
-
-	if fileMetadata.CreatedAt.IsZero() {
-		fileMetadata.CreatedAt = time.Now().UTC()
-	}
-	fileMetadata.UpdatedAt = time.Now().UTC()
 
 	return nil
 }

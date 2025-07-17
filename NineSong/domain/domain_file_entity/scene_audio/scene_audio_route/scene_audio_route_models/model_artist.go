@@ -17,6 +17,9 @@ type ArtistMetadata struct {
 	Size            int                `bson:"size"`
 	HasCoverArt     bool               `bson:"has_cover_art"`
 
+	CreatedAt time.Time `bson:"created_at"`
+	UpdatedAt time.Time `bson:"updated_at"`
+
 	Compilation       bool           `bson:"compilation"`          // 是否为合辑（多艺术家作品合集）
 	AllArtistIDs      []ArtistIDPair `bson:"all_artist_ids"`       // 所有参与艺术家的唯一标识符列表
 	AllAlbumArtistIDs []ArtistIDPair `bson:"all_album_artist_ids"` // 所有参与专辑艺术家的唯一标识符列表

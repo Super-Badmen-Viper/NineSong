@@ -49,3 +49,13 @@ type ArtistMetadata struct {
 	ExternalURL           string    `bson:"external_url"`             // 外部链接 URL
 	ExternalInfoUpdatedAt time.Time `bson:"external_info_updated_at"` // 外部信息最后更新时间
 }
+
+type ArtistAlbumAndSongCounts struct {
+	ID              primitive.ObjectID `bson:"_id"` // 文档唯一标识符
+	AlbumCount      int                `bson:"album_count"`
+	GuestAlbumCount int                `bson:"guest_album_count"`
+	SongCount       int                `bson:"song_count"`
+	GuestSongCount  int                `bson:"guest_song_count"`
+	CueCount        int                `bson:"cue_count"`
+	GuestCueCount   int                `bson:"guest_cue_count"`
+}

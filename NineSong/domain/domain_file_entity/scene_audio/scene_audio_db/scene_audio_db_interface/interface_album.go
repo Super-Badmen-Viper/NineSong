@@ -5,6 +5,8 @@ import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // AlbumRepository 专辑领域层接口
@@ -13,6 +15,7 @@ type AlbumRepository interface {
 	Upsert(ctx context.Context, album *scene_audio_db_models.AlbumMetadata) error
 	BulkUpsert(ctx context.Context, albums []*scene_audio_db_models.AlbumMetadata) (int, error)
 	UpdateByID(ctx context.Context, id primitive.ObjectID, update bson.M) (bool, error)
+	UpdateMany(ctx context.Context, filter interface{}, update interface{}, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error)
 
 	// 删除
 	DeleteByID(ctx context.Context, id primitive.ObjectID) error
@@ -25,6 +28,7 @@ type AlbumRepository interface {
 	GetByArtist(ctx context.Context, artistID string) ([]*scene_audio_db_models.AlbumMetadata, error)
 	GetAllIDs(ctx context.Context) ([]primitive.ObjectID, error)
 
+	GetAllCounts(ctx context.Context) ([]scene_audio_db_models.AlbumSongCounts, error)
 	ResetALLField(ctx context.Context) (int64, error)
 	ResetField(ctx context.Context, field string) (int64, error)
 	UpdateCounter(ctx context.Context, albumID primitive.ObjectID, field string, increment int) (int64, error)

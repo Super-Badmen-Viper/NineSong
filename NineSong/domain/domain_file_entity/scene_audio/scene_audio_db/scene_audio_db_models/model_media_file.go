@@ -134,3 +134,8 @@ type MediaFileMetadata struct {
 	Studio             string    `bson:"studio"`              // 录音室名称
 	RecordingLocation  string    `bson:"recording_location"`  // 录音地点详细描述（如城市中的录音棚名称等）
 }
+
+type MediaFileCounts struct {
+	ID        primitive.ObjectID `bson:"_id"`        // 文档唯一标识符
+	UpdatedAt time.Time          `bson:"updated_at"` // 文档最后更新时间
+}
