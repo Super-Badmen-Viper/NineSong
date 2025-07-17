@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 	"strconv"
 	"strings"
 	"time"
@@ -152,7 +153,7 @@ func (r *playlistTrackRepository) GetPlaylistTrackItems(
 func (r *playlistTrackRepository) GetPlaylistTrackItemsMultipleSorting(
 	ctx context.Context,
 	start, end string,
-	sortOrder []domain.SortOrder,
+	sortOrder []domain_util.SortOrder,
 	search, starred, albumId, artistId, year, playlistId string,
 ) ([]scene_audio_route_models.MediaFileMetadata, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -271,7 +272,7 @@ func (r *playlistTrackRepository) GetPlaylistTrackItemsMultipleSorting(
 }
 
 // 新增：构建播放列表多重排序阶段
-func buildPlaylistMultiSortStage(sortOrder []domain.SortOrder) *bson.D {
+func buildPlaylistMultiSortStage(sortOrder []domain_util.SortOrder) *bson.D {
 	if len(sortOrder) == 0 {
 		return nil
 	}
@@ -294,20 +295,21 @@ func buildPlaylistMultiSortStage(sortOrder []domain.SortOrder) *bson.D {
 // 新增：播放列表排序字段映射
 func mapPlaylistSortField(sort string) string {
 	sortMappings := map[string]string{
-		"index":        "index", // 播放列表中的位置
-		"title":        "order_title",
-		"album":        "order_album_name",
-		"artist":       "order_artist_name",
-		"album_artist": "order_album_artist_name",
-		"play_count":   "play_count",
-		"year":         "year",
-		"duration":     "duration",
-		"bit_rate":     "bit_rate",
-		"size":         "size",
-		"rating":       "rating",
-		"starred_at":   "starred_at",
-		"created_at":   "created_at",
-		"updated_at":   "updated_at",
+		"index":          "index", // 播放列表中的位置
+		"title":          "order_title",
+		"album":          "order_album_name",
+		"artist":         "order_artist_name",
+		"album_artist":   "order_album_artist_name",
+		"play_count":     "play_count",
+		"year":           "year",
+		"duration":       "duration",
+		"bit_rate":       "bit_rate",
+		"size":           "size",
+		"rating":         "rating",
+		"starred_at":     "starred_at",
+		"created_at":     "created_at",
+		"updated_at":     "updated_at",
+		"recently_added": "created_at",
 	}
 
 	if mapped, ok := sortMappings[strings.ToLower(sort)]; ok {

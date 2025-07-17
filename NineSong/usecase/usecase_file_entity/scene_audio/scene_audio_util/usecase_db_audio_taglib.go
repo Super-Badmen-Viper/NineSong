@@ -202,8 +202,6 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 		tags = make(map[string][]string)
 	}
 
-	now := time.Now().UTC()
-
 	var artistID, albumID, albumArtistID primitive.ObjectID
 	var artistTag, albumArtistTag, albumTag string
 	var artistSortTag, albumArtistSortTag, albumSortTag string
@@ -293,7 +291,7 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 		)
 
 	album = e.buildAlbum(
-		tags, now, artistID, albumID, albumArtistID,
+		tags, mediaFile, artistID, albumID, albumArtistID,
 		compilationArtist,
 		formattedArtist, allArtistIDs,
 		formattedAlbumArtist, allAlbumArtistIDs,
@@ -312,7 +310,7 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 				artistId, _ := primitive.ObjectIDFromHex(artistIDPair.ArtistID)
 				artist = append(
 					artist, e.buildArtist(
-						now, artistId, artistIDPair.ArtistName,
+						mediaFile, artistId, artistIDPair.ArtistName,
 						compilationArtist,
 						formattedArtist, allArtistIDs,
 					),
@@ -322,7 +320,7 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 	} else {
 		artist = append(
 			artist, e.buildArtist(
-				now, artistID, "",
+				mediaFile, artistID, "",
 				compilationArtist,
 				formattedArtist, allArtistIDs,
 			),
@@ -634,7 +632,7 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 
 func (e *AudioMetadataExtractorTaglib) buildAlbum(
 	tags map[string][]string,
-	now time.Time,
+	mediaFile *scene_audio_db_models.MediaFileMetadata,
 	artistID, albumID, albumArtistID primitive.ObjectID,
 	compilationArtist bool,
 	formattedArtist string, allArtistIDs []scene_audio_db_models.ArtistIDPair,
@@ -646,8 +644,8 @@ func (e *AudioMetadataExtractorTaglib) buildAlbum(
 	return &scene_audio_db_models.AlbumMetadata{
 		// 系统保留字段 (综合)
 		ID:        albumID,
-		CreatedAt: now,
-		UpdatedAt: now,
+		CreatedAt: mediaFile.CreatedAt,
+		UpdatedAt: mediaFile.UpdatedAt,
 
 		// 基础元数据 (综合)
 		Name:                  e.getTagString(tags, taglib.Album),
@@ -682,7 +680,7 @@ func (e *AudioMetadataExtractorTaglib) buildAlbum(
 }
 
 func (e *AudioMetadataExtractorTaglib) buildArtist(
-	now time.Time,
+	mediaFile *scene_audio_db_models.MediaFileMetadata,
 	artistID primitive.ObjectID,
 	artistName string,
 	compilationArtist bool,
@@ -698,8 +696,8 @@ func (e *AudioMetadataExtractorTaglib) buildArtist(
 	return &scene_audio_db_models.ArtistMetadata{
 		// 系统保留字段 (综合)
 		ID:        artistID,
-		CreatedAt: now,
-		UpdatedAt: now,
+		CreatedAt: mediaFile.CreatedAt,
+		UpdatedAt: mediaFile.UpdatedAt,
 
 		// 基础元数据 (综合)
 		Name:        artistTag,

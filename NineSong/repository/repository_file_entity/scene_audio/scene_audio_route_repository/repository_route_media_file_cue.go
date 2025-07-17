@@ -3,6 +3,7 @@ package scene_audio_route_repository
 import (
 	"context"
 	"fmt"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 	"strconv"
 	"strings"
 	"time"
@@ -116,7 +117,7 @@ func (r *mediaFileCueRepository) GetMediaFileCueItems(
 func (r *mediaFileCueRepository) GetMediaFileCueItemsMultipleSorting(
 	ctx context.Context,
 	start, end string,
-	sortOrder []domain.SortOrder,
+	sortOrder []domain_util.SortOrder,
 	search, starred, albumId, artistId, year string,
 ) ([]scene_audio_route_models.MediaFileCueMetadata, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -202,7 +203,7 @@ func (r *mediaFileCueRepository) GetMediaFileCueItemsMultipleSorting(
 }
 
 // 新增：构建CUE多重排序阶段
-func buildCueMultiSortStage(sortOrder []domain.SortOrder) *bson.D {
+func buildCueMultiSortStage(sortOrder []domain_util.SortOrder) *bson.D {
 	if len(sortOrder) == 0 {
 		return nil
 	}
@@ -242,6 +243,7 @@ func mapCueSortField(sort string) string {
 		"sample_rate":     "cue_sample_rate",
 		"track_title":     "cue_tracks.track_title",     // 嵌套字段排序
 		"track_performer": "cue_tracks.track_performer", // 嵌套字段排序
+		"recently_added":  "created_at",
 	}
 	if mapped, ok := sortMappings[strings.ToLower(sort)]; ok {
 		return mapped
@@ -250,7 +252,7 @@ func mapCueSortField(sort string) string {
 }
 
 // 新增：检查排序条件是否包含play_date
-func hasPlayDateSortMediaCue(sortOrder []domain.SortOrder) bool {
+func hasPlayDateSortMediaCue(sortOrder []domain_util.SortOrder) bool {
 	for _, so := range sortOrder {
 		if mapCueSortField(so.Sort) == "play_date" {
 			return true

@@ -3,6 +3,7 @@ package scene_audio_route_repository
 import (
 	"context"
 	"fmt"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 	"strconv"
 	"strings"
 	"time"
@@ -123,7 +124,7 @@ func (r *artistRepository) GetArtistItems(
 func (r *artistRepository) GetArtistItemsMultipleSorting(
 	ctx context.Context,
 	start, end string,
-	sortOrder []domain.SortOrder,
+	sortOrder []domain_util.SortOrder,
 	search, starred string,
 ) ([]scene_audio_route_models.ArtistMetadata, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -210,7 +211,7 @@ func (r *artistRepository) GetArtistItemsMultipleSorting(
 }
 
 // 新增：构建艺术家多重排序阶段
-func buildArtistMultiSortStage(sortOrder []domain.SortOrder) *bson.D {
+func buildArtistMultiSortStage(sortOrder []domain_util.SortOrder) *bson.D {
 	if len(sortOrder) == 0 {
 		return nil
 	}
@@ -233,16 +234,17 @@ func buildArtistMultiSortStage(sortOrder []domain.SortOrder) *bson.D {
 // 新增：艺术家排序字段映射
 func mapArtistSortField(sort string) string {
 	sortMappings := map[string]string{
-		"name":        "order_artist_name",
-		"album_count": "album_count",
-		"song_count":  "song_count",
-		"play_count":  "play_count",
-		"play_date":   "play_date",
-		"rating":      "rating",
-		"starred_at":  "starred_at",
-		"size":        "size",
-		"created_at":  "created_at",
-		"updated_at":  "updated_at",
+		"name":           "order_artist_name",
+		"album_count":    "album_count",
+		"song_count":     "song_count",
+		"play_count":     "play_count",
+		"play_date":      "play_date",
+		"rating":         "rating",
+		"starred_at":     "starred_at",
+		"size":           "size",
+		"created_at":     "created_at",
+		"updated_at":     "updated_at",
+		"recently_added": "created_at",
 	}
 	if mapped, ok := sortMappings[strings.ToLower(sort)]; ok {
 		return mapped
@@ -251,7 +253,7 @@ func mapArtistSortField(sort string) string {
 }
 
 // 新增：检查排序条件是否包含播放相关字段
-func hasPlaySortArtist(sortOrder []domain.SortOrder) bool {
+func hasPlaySortArtist(sortOrder []domain_util.SortOrder) bool {
 	for _, so := range sortOrder {
 		if mapArtistSortField(so.Sort) == "play_count" || mapArtistSortField(so.Sort) == "play_date" {
 			return true
@@ -384,16 +386,17 @@ func buildArtistBaseMatch(search, starred string) bson.D {
 
 func validateArtistSortField(sort string) string {
 	sortMappings := map[string]string{
-		"name":        "order_artist_name",
-		"album_count": "album_count",
-		"song_count":  "song_count",
-		"play_count":  "play_count",
-		"play_date":   "play_date",
-		"rating":      "rating",
-		"starred_at":  "starred_at",
-		"size":        "size",
-		"created_at":  "created_at",
-		"updated_at":  "updated_at",
+		"name":           "order_artist_name",
+		"album_count":    "album_count",
+		"song_count":     "song_count",
+		"play_count":     "play_count",
+		"play_date":      "play_date",
+		"rating":         "rating",
+		"starred_at":     "starred_at",
+		"size":           "size",
+		"created_at":     "created_at",
+		"updated_at":     "updated_at",
+		"recently_added": "created_at",
 	}
 
 	lowerSort := strings.ToLower(sort)

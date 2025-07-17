@@ -1,4 +1,4 @@
-package domain
+package domain_util
 
 import (
 	"sync"

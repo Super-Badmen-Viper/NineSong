@@ -2,10 +2,11 @@ package scene_audio
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/usecase/usecase_file_entity/scene_audio/scene_audio_util"
 	"github.com/mozillazg/go-pinyin"
 	ffmpeggo "github.com/u2takey/ffmpeg-go"
@@ -90,7 +91,7 @@ func NewAudioProcessingUsecase(
 func (uc *AudioProcessingUsecase) ProcessMusicDirectory(
 	ctx context.Context,
 	libraryFolders []*domain_file_entity.LibraryFolderMetadata,
-	taskProg *domain.TaskProgress,
+	taskProg *domain_util.TaskProgress,
 	libraryTraversal bool, // 是否遍历传入的媒体库目录
 	libraryStatistics bool, // 是否统计传入的媒体库目录
 	libraryRefactoring bool, // 是否重构传入的媒体库目录（覆盖所有元数据）
@@ -121,7 +122,22 @@ func (uc *AudioProcessingUsecase) ProcessMusicDirectory(
 	taskProg.Status = "processing"
 	taskProg.AddTotalFiles(totalFiles)
 
+	// 获取封面临时目录
 	coverTempPath, _ := uc.tempRepo.GetTempPath(ctx, "cover")
+
+	// 获取歌词临时目录
+	lyricsTempPath, _ := uc.tempRepo.GetTempPath(ctx, "lyrics")
+	// 直接使用时间戳作为目录名（无前缀）
+	timestamp := time.Now().Format("20060102150405") // 格式：YYYYMMDDHHMMSS
+	lyricsTempPathWithTimestamp := filepath.Join(lyricsTempPath, timestamp)
+	// 创建时间戳目录
+	if err := os.MkdirAll(lyricsTempPathWithTimestamp, 0755); err != nil {
+		return fmt.Errorf("创建时间戳歌词目录失败: %w", err)
+	}
+	// 自动清理旧文件夹（保留最新5个）
+	if err := uc.cleanupOldLyricsFolders(lyricsTempPath); err != nil {
+		log.Printf("旧歌词目录清理失败（不影响主流程）: %v", err)
+	}
 
 	var libraryFolderNewInfos []struct {
 		libraryFolderID        primitive.ObjectID
@@ -314,7 +330,12 @@ func (uc *AudioProcessingUsecase) ProcessMusicDirectory(
 					if libraryTraversal {
 						wgFile.Add(1)
 						folderInfo.libraryFolderFileCount++
-						go uc.processFile(ctx, res, res.AudioPath, libraryFolderPath, coverTempPath, folder.ID, &wgFile, errChan, taskProg)
+						go uc.processFile(
+							ctx, res,
+							res.AudioPath, libraryFolderPath,
+							coverTempPath, lyricsTempPathWithTimestamp,
+							folder.ID, &wgFile, errChan, taskProg,
+						)
 					}
 				} else {
 					// 关键修复：路径收集不受libraryTraversal影响
@@ -327,7 +348,12 @@ func (uc *AudioProcessingUsecase) ProcessMusicDirectory(
 					if libraryTraversal {
 						wgFile.Add(1)
 						folderInfo.libraryFolderFileCount++
-						go uc.processFile(ctx, nil, path, libraryFolderPath, coverTempPath, folder.ID, &wgFile, errChan, taskProg)
+						go uc.processFile(
+							ctx, nil,
+							path, libraryFolderPath,
+							coverTempPath, lyricsTempPathWithTimestamp,
+							folder.ID, &wgFile, errChan, taskProg,
+						)
 					}
 					return nil
 				}
@@ -939,10 +965,11 @@ func (uc *AudioProcessingUsecase) processFile(
 	path string,
 	libraryPath string,
 	coverTempPath string,
+	lyricsTempPathWithTimestamp string,
 	libraryFolderID primitive.ObjectID,
 	wg *sync.WaitGroup,
 	errChan chan<- error,
-	taskProg *domain.TaskProgress,
+	taskProg *domain_util.TaskProgress,
 ) {
 	defer func() {
 		// 修复：更新任务级别的处理计数器
@@ -1019,7 +1046,17 @@ func (uc *AudioProcessingUsecase) processFile(
 			path,
 			coverTempPath,
 		); err != nil {
-			errChan <- fmt.Errorf("文件存储失败 %s: %w", path, err)
+			errChan <- fmt.Errorf("封面存储失败 %s: %w", path, err)
+			return
+		}
+
+		if err = uc.processAudioLyrics(
+			mediaFile,
+			mediaFileCue,
+			path,
+			lyricsTempPathWithTimestamp,
+		); err != nil {
+			errChan <- fmt.Errorf("歌词存储失败 %s: %w", path, err)
 			return
 		}
 	}
@@ -1146,7 +1183,7 @@ func (uc *AudioProcessingUsecase) processAudioCover(
 			}
 		}
 
-		// 3. 如果仍未获取到封面，使用FFmpeg提取内嵌封面[1,3,6](@ref)
+		// 3. 如果仍未获取到封面，使用Ffmpeg提取内嵌封面[1,3,6](@ref)
 		if coverPath == "" {
 			coverPath = uc.extractCoverWithFFmpeg(path, mediaCoverDir)
 		}
@@ -1179,6 +1216,238 @@ func (uc *AudioProcessingUsecase) processAudioCover(
 	}
 
 	return nil
+}
+
+func (uc *AudioProcessingUsecase) processAudioLyrics(
+	media *scene_audio_db_models.MediaFileMetadata,
+	mediaCue *scene_audio_db_models.MediaFileCueMetadata,
+	path string,
+	lyricsTempPath string,
+) error {
+	// 1. 确保歌词根目录存在
+	if _, err := os.Stat(lyricsTempPath); os.IsNotExist(err) {
+		if err := os.MkdirAll(lyricsTempPath, 0755); err != nil {
+			return fmt.Errorf("歌词根目录创建失败: %w", err)
+		}
+	}
+
+	// 2. 处理常规媒体文件歌词
+	if media != nil {
+		if err := uc.processMediaLyrics(media, path, lyricsTempPath); err != nil {
+			return fmt.Errorf("媒体文件歌词处理失败: %w", err)
+		}
+	}
+
+	// 3. 处理CUE文件歌词
+	if mediaCue != nil {
+		if err := uc.processCueLyrics(mediaCue, lyricsTempPath); err != nil {
+			return fmt.Errorf("CUE文件歌词处理失败: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// 处理常规媒体文件歌词（优化后）
+func (uc *AudioProcessingUsecase) processMediaLyrics(
+	media *scene_audio_db_models.MediaFileMetadata,
+	path string,
+	lyricsTempPath string, // 直接使用此路径作为存储目录
+) error {
+	// 唯一匹配逻辑：音频目录中严格只有一个.lrc文件
+	audioDir := filepath.Dir(path)
+	var lrcFiles []string
+	if entries, err := os.ReadDir(audioDir); err == nil {
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".lrc") {
+				lrcFiles = append(lrcFiles, filepath.Join(audioDir, entry.Name()))
+			}
+		}
+	}
+
+	// 处理唯一匹配的外部歌词文件
+	if len(lrcFiles) == 1 {
+		destFileName, err := uc.generateLyricFilename(media, lyricsTempPath, "lrc")
+		if err != nil {
+			return fmt.Errorf("歌词文件名生成失败: %w", err)
+		}
+
+		if destFileName == "" { // 处理跳过情况
+			return nil
+		}
+
+		destPath := filepath.Join(lyricsTempPath, destFileName) // 直接存储到根目录
+
+		if _, err := os.Stat(destPath); err == nil { // 冲突检测
+			return nil
+		}
+
+		if err := uc.copyLyricsFile(lrcFiles[0], destPath); err != nil {
+			return fmt.Errorf("歌词复制失败: %w", err)
+		}
+	}
+
+	// 处理内嵌歌词
+	if media.Lyrics != "" {
+		destFileName, err := uc.generateLyricFilename(media, lyricsTempPath, "embedded")
+		if err != nil {
+			return fmt.Errorf("歌词文件名生成失败: %w", err)
+		}
+
+		if destFileName == "" { // 处理跳过情况
+			return nil
+		}
+
+		destPath := filepath.Join(lyricsTempPath, destFileName) // 直接存储到根目录
+
+		if err := os.WriteFile(destPath, []byte(media.Lyrics), 0644); err != nil {
+			return fmt.Errorf("歌词写入失败: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// 处理CUE文件歌词（优化后）
+func (uc *AudioProcessingUsecase) processCueLyrics(
+	mediaCue *scene_audio_db_models.MediaFileCueMetadata,
+	lyricsTempPath string, // 直接使用此路径作为存储目录
+) error {
+	// 处理外部歌词文件（复制CUE文件目录所有.lrc文件）
+	cueDir := filepath.Dir(mediaCue.CueResources.CuePath)
+	var cueLrcFiles []string
+	if entries, err := os.ReadDir(cueDir); err == nil {
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".lrc") {
+				cueLrcFiles = append(cueLrcFiles, filepath.Join(cueDir, entry.Name()))
+			}
+		}
+	}
+
+	// 复制所有找到的.lrc文件
+	for _, srcPath := range cueLrcFiles {
+		destFileName, err := uc.generateLyricFilename(mediaCue, lyricsTempPath, "lrc")
+		if err != nil {
+			log.Printf("文件名生成失败: %v", err)
+			continue
+		}
+
+		if destFileName == "" { // 处理跳过情况
+			continue
+		}
+
+		destPath := filepath.Join(lyricsTempPath, destFileName) // 直接存储到根目录
+
+		if _, err := os.Stat(destPath); err == nil { // 冲突检测
+			continue
+		}
+
+		if err := uc.copyLyricsFile(srcPath, destPath); err != nil {
+			log.Printf("CUE歌词复制失败: %s -> %s | %v", srcPath, destPath, err)
+		}
+	}
+
+	return nil
+}
+
+// 生成标准化歌词文件名（统一函数）
+func (uc *AudioProcessingUsecase) generateLyricFilename(
+	media interface{},
+	lyricsTempPath string,
+	sourceType string,
+) (string, error) {
+	// 1. 提取艺术家和标题信息
+	var artist, title string
+	switch m := media.(type) {
+	case *scene_audio_db_models.MediaFileMetadata:
+		artist = m.Artist
+		title = m.Title
+	case *scene_audio_db_models.MediaFileCueMetadata:
+		artist = m.Performer
+		title = m.Title
+	default:
+		return "", fmt.Errorf("不支持的媒体类型")
+	}
+
+	// 2. 基础文件名生成
+	if artist == "" {
+		artist = "UnknownArtist"
+	}
+	if title == "" {
+		title = "UnknownTitle"
+	}
+
+	// 替换特殊字符防止路径问题
+	artist = strings.ReplaceAll(artist, "/", "-")
+	title = strings.ReplaceAll(title, "/", "-")
+
+	baseName := fmt.Sprintf("%s - %s", artist, title)
+	fileName := baseName + ".lrc"
+
+	// 3. 处理embedded类型 - 存在冲突直接退出
+	if sourceType == "embedded" {
+		fullPath := filepath.Join(lyricsTempPath, fileName)
+		if _, err := os.Stat(fullPath); err == nil {
+			return "", nil // 文件存在，返回空文件名表示跳过
+		}
+		return fileName, nil // 文件不存在，返回基础文件名
+	}
+
+	// 4. 处理lrc类型 - 完整冲突检测逻辑
+	needRandom := artist == "UnknownArtist" || title == "UnknownTitle"
+	randReader := rand.Reader
+	const maxAttempts = 10
+
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		// 需要随机数时生成后缀
+		if needRandom || attempt > 0 {
+			randSuffix := make([]byte, 4)
+			if _, err := randReader.Read(randSuffix); err != nil {
+				return "", fmt.Errorf("随机数生成失败: %w", err)
+			}
+			fileName = fmt.Sprintf("%s-%X.lrc", baseName, randSuffix)
+		}
+
+		// 检查文件是否存在
+		fullPath := filepath.Join(lyricsTempPath, fileName)
+		if _, err := os.Stat(fullPath); err != nil {
+			if os.IsNotExist(err) {
+				return fileName, nil // 文件不存在，返回可用文件名
+			}
+			return "", fmt.Errorf("文件检查失败: %w", err)
+		}
+	}
+
+	// 5. 超过最大尝试次数时使用时间戳
+	return fmt.Sprintf("%s-%d.lrc", baseName, time.Now().UnixNano()), nil
+}
+
+// 安全复制歌词文件（基于io.Copy）
+func (uc *AudioProcessingUsecase) copyLyricsFile(src, dest string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer func(srcFile *os.File) {
+		err := srcFile.Close()
+		if err != nil {
+			log.Printf("文件关闭失败: %s | %v", src, err)
+		}
+	}(srcFile)
+
+	destFile, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer func(destFile *os.File) {
+		err := destFile.Close()
+		if err != nil {
+			log.Printf("文件关闭失败: %s | %v", src, err)
+		}
+	}(destFile)
+
+	_, err = io.Copy(destFile, srcFile)
+	return err
 }
 
 // 在音频文件同目录查找封面文件[2](@ref)
@@ -1231,6 +1500,45 @@ func (uc *AudioProcessingUsecase) copyCoverFile(src, dest string) error {
 
 	if _, err := io.Copy(destFile, srcFile); err != nil {
 		return err
+	}
+	return nil
+}
+
+// 清理旧歌词目录（保留最新的5个）
+func (uc *AudioProcessingUsecase) cleanupOldLyricsFolders(lyricsTempPath string) error {
+	// 读取目录下所有项目
+	entries, err := os.ReadDir(lyricsTempPath)
+	if err != nil {
+		return fmt.Errorf("读取歌词目录失败: %w", err)
+	}
+
+	// 过滤并排序时间戳目录
+	var folders []os.DirEntry
+	for _, entry := range entries {
+		if entry.IsDir() && domain_util.IsTimestampFolder(entry.Name()) {
+			folders = append(folders, entry)
+		}
+	}
+
+	// 检查是否需要清理（超过10个才清理）
+	if len(folders) <= 10 {
+		return nil
+	}
+
+	// 按时间戳排序（从旧到新）
+	sort.Slice(folders, func(i, j int) bool {
+		return folders[i].Name() < folders[j].Name()
+	})
+
+	// 保留最新的5个，其余删除
+	deleteCount := len(folders) - 5
+	for i := 0; i < deleteCount; i++ {
+		folderPath := filepath.Join(lyricsTempPath, folders[i].Name())
+		if err := os.RemoveAll(folderPath); err != nil {
+			log.Printf("删除旧目录失败 %s: %v", folderPath, err)
+		} else {
+			log.Printf("已清理旧歌词目录: %s", folderPath)
+		}
 	}
 	return nil
 }
@@ -1552,6 +1860,7 @@ func (uc *AudioProcessingUsecase) updateAudioArtistMetadata(ctx context.Context,
 		artist.ID = existing.ID
 		artist.MediumImageURL = existing.MediumImageURL
 		artist.HasCoverArt = existing.HasCoverArt
+		artist.CreatedAt = existing.CreatedAt
 	}
 	// 再次插入，将版本更新的字段覆盖到现有文档
 	if err := uc.artistRepo.Upsert(ctx, artist); err != nil {
@@ -1581,6 +1890,9 @@ func (uc *AudioProcessingUsecase) updateAudioAlbumMetadata(ctx context.Context, 
 	// 仅同步ID，因为album会随着更新而新增字段
 	if existing != nil {
 		album.ID = existing.ID
+		album.MediumImageURL = existing.MediumImageURL
+		album.HasCoverArt = existing.HasCoverArt
+		album.CreatedAt = existing.CreatedAt
 	}
 	// 再次插入，将版本更新的字段覆盖到现有文档
 	if err := uc.albumRepo.Upsert(ctx, album); err != nil {

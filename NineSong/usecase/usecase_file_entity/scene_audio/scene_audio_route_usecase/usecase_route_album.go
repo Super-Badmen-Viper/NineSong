@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 	"strconv"
 	"strings"
 	"time"
@@ -97,7 +97,7 @@ func (uc *AlbumUsecase) GetAlbumItems(
 func (uc *AlbumUsecase) GetAlbumItemsMultipleSorting(
 	ctx context.Context,
 	start, end string,
-	sortOrder []domain.SortOrder,
+	sortOrder []domain_util.SortOrder,
 	search, starred, artistId, minYear, maxYear string,
 ) ([]scene_audio_route_models.AlbumMetadata, error) {
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)

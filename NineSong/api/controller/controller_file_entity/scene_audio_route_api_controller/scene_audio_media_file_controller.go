@@ -2,7 +2,7 @@ package scene_audio_route_api_controller
 
 import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/controller"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 	"net/http"
 	"strings"
 
@@ -104,14 +104,14 @@ func (c *MediaFileController) GetMediaFilesMultipleSorting(ctx *gin.Context) {
 	}
 
 	// 解析排序参数
-	sortOrders := make([]domain.SortOrder, 0, len(params.Sort))
+	sortOrders := make([]domain_util.SortOrder, 0, len(params.Sort))
 	for _, s := range params.Sort {
 		parts := strings.Split(s, ":")
 		if len(parts) != 2 {
 			controller.ErrorResponse(ctx, http.StatusBadRequest, "INVALID_SORT_FORMAT", "sort parameter must be in field:order format")
 			return
 		}
-		sortOrders = append(sortOrders, domain.SortOrder{
+		sortOrders = append(sortOrders, domain_util.SortOrder{
 			Sort:  parts[0],
 			Order: parts[1],
 		})

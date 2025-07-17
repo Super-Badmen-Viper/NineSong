@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 	"strconv"
 	"strings"
 	"time"
@@ -85,7 +85,7 @@ func (uc *mediaFileCueUsecase) GetMediaFileCueItems(
 func (uc *mediaFileCueUsecase) GetMediaFileCueItemsMultipleSorting(
 	ctx context.Context,
 	start, end string,
-	sortOrder []domain.SortOrder,
+	sortOrder []domain_util.SortOrder,
 	search, starred, albumId, artistId, year string,
 ) ([]scene_audio_route_models.MediaFileCueMetadata, error) {
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)

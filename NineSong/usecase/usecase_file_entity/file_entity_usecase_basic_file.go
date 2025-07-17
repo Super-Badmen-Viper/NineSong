@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/usecase/usecase_file_entity/scene_audio"
 	"log"
 	"os"
@@ -95,12 +95,12 @@ type FileUsecase struct {
 	targetMutex      sync.RWMutex
 	workerPool       chan struct{}
 	scanTimeout      time.Duration
-	activeTasks      map[string]*domain.TaskProgress // 任务ID -> 进度跟踪器
-	activeTasksMu    sync.RWMutex                    // 保护 activeTasks
-	scanManager      *ScanManager                    // 新增扫描状态管理器
-	scanningPaths    map[string]bool                 // 新增：记录正在扫描的路径
-	scanningPathsMu  sync.RWMutex                    // 保护scanningPaths的互斥锁
-	activeScanCount  int                             // 新增：当前活跃的扫描任务数量
+	activeTasks      map[string]*domain_util.TaskProgress // 任务ID -> 进度跟踪器
+	activeTasksMu    sync.RWMutex                         // 保护 activeTasks
+	scanManager      *ScanManager                         // 新增扫描状态管理器
+	scanningPaths    map[string]bool                      // 新增：记录正在扫描的路径
+	scanningPathsMu  sync.RWMutex                         // 保护scanningPaths的互斥锁
+	activeScanCount  int                                  // 新增：当前活跃的扫描任务数量
 	scanProgress     float32
 	scanMutex        sync.RWMutex
 	lastScanStart    time.Time
@@ -152,8 +152,8 @@ func NewFileUsecase(
 		workerPool:             make(chan struct{}, workerCount),
 		scanTimeout:            time.Duration(timeoutMinutes) * time.Minute,
 		scanningPaths:          make(map[string]bool),
-		scanManager:            NewScanManager(),                      // 初始化扫描管理器
-		activeTasks:            make(map[string]*domain.TaskProgress), // 新增初始化
+		scanManager:            NewScanManager(),                           // 初始化扫描管理器
+		activeTasks:            make(map[string]*domain_util.TaskProgress), // 新增初始化
 		audioProcessingUsecase: audioProcessingUsecase,
 	}
 }
@@ -331,7 +331,7 @@ func (uc *FileUsecase) ProcessDirectory(
 	}()
 
 	// 修复：在正确位置初始化任务进度跟踪器
-	taskProg := &domain.TaskProgress{
+	taskProg := &domain_util.TaskProgress{
 		ID:     taskID,
 		Status: "preparing", // 初始状态
 	}

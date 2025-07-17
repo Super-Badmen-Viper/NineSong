@@ -2,7 +2,7 @@ package scene_audio_route_interface
 
 import (
 	"context"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
 )
@@ -17,7 +17,7 @@ type ArtistRepository interface {
 	GetArtistItemsMultipleSorting(
 		ctx context.Context,
 		start, end string,
-		sortOrder []domain.SortOrder,
+		sortOrder []domain_util.SortOrder,
 		search, starred string,
 	) ([]scene_audio_route_models.ArtistMetadata, error)
 

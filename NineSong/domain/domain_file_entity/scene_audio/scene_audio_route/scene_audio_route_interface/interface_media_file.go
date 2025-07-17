@@ -2,8 +2,8 @@ package scene_audio_route_interface
 
 import (
 	"context"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 )
 
 type MediaFileRepository interface {
@@ -18,7 +18,7 @@ type MediaFileRepository interface {
 	GetMediaFileItemsMultipleSorting(
 		ctx context.Context,
 		start, end string,
-		sortOrder []domain.SortOrder,
+		sortOrder []domain_util.SortOrder,
 		search, starred,
 		albumId, artistId,
 		year string,

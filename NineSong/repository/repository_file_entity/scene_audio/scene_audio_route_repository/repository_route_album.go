@@ -6,6 +6,7 @@ import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"strconv"
@@ -119,7 +120,7 @@ func (r *albumRepository) GetAlbumItems(
 func (r *albumRepository) GetAlbumItemsMultipleSorting(
 	ctx context.Context,
 	start, end string,
-	sortOrder []domain.SortOrder,
+	sortOrder []domain_util.SortOrder,
 	search, starred, artistId, minYear, maxYear string,
 ) ([]scene_audio_route_models.AlbumMetadata, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -208,7 +209,7 @@ func (r *albumRepository) GetAlbumItemsMultipleSorting(
 }
 
 // 新增：构建专辑多重排序阶段
-func buildAlbumMultiSortStage(sortOrder []domain.SortOrder) *bson.D {
+func buildAlbumMultiSortStage(sortOrder []domain_util.SortOrder) *bson.D {
 	if len(sortOrder) == 0 {
 		return nil
 	}
@@ -231,21 +232,22 @@ func buildAlbumMultiSortStage(sortOrder []domain.SortOrder) *bson.D {
 // 新增：专辑排序字段映射
 func mapAlbumSortField(sort string) string {
 	sortMappings := map[string]string{
-		"name":         "order_album_name",
-		"artist":       "artist",
-		"album_artist": "album_artist",
-		"min_year":     "min_year",
-		"max_year":     "max_year",
-		"rating":       "rating",
-		"starred_at":   "starred_at",
-		"genre":        "genre",
-		"song_count":   "song_count",
-		"duration":     "duration",
-		"size":         "size",
-		"play_count":   "play_count",
-		"play_date":    "play_date",
-		"created_at":   "created_at",
-		"updated_at":   "updated_at",
+		"name":           "order_album_name",
+		"artist":         "artist",
+		"album_artist":   "album_artist",
+		"min_year":       "min_year",
+		"max_year":       "max_year",
+		"rating":         "rating",
+		"starred_at":     "starred_at",
+		"genre":          "genre",
+		"song_count":     "song_count",
+		"duration":       "duration",
+		"size":           "size",
+		"play_count":     "play_count",
+		"play_date":      "play_date",
+		"created_at":     "created_at",
+		"updated_at":     "updated_at",
+		"recently_added": "created_at",
 	}
 	if mapped, ok := sortMappings[strings.ToLower(sort)]; ok {
 		return mapped
@@ -254,7 +256,7 @@ func mapAlbumSortField(sort string) string {
 }
 
 // 新增：检查排序条件是否包含播放相关字段
-func hasPlaySortAlbum(sortOrder []domain.SortOrder) bool {
+func hasPlaySortAlbum(sortOrder []domain_util.SortOrder) bool {
 	for _, so := range sortOrder {
 		if mapAlbumSortField(so.Sort) == "play_count" || mapAlbumSortField(so.Sort) == "play_date" {
 			return true
@@ -424,21 +426,22 @@ func buildAlbumBaseMatch(search, starred, artistId, minYear, maxYear string) bso
 
 func validateAlbumSortField(sort string) string {
 	sortMappings := map[string]string{
-		"name":         "order_album_name",
-		"artist":       "artist",
-		"album_artist": "album_artist",
-		"min_year":     "min_year",
-		"max_year":     "max_year",
-		"rating":       "rating",
-		"starred_at":   "starred_at",
-		"genre":        "genre",
-		"song_count":   "song_count",
-		"duration":     "duration",
-		"size":         "size",
-		"play_count":   "play_count",
-		"play_date":    "play_date",
-		"created_at":   "created_at",
-		"updated_at":   "updated_at",
+		"name":           "order_album_name",
+		"artist":         "artist",
+		"album_artist":   "album_artist",
+		"min_year":       "min_year",
+		"max_year":       "max_year",
+		"rating":         "rating",
+		"starred_at":     "starred_at",
+		"genre":          "genre",
+		"song_count":     "song_count",
+		"duration":       "duration",
+		"size":           "size",
+		"play_count":     "play_count",
+		"play_date":      "play_date",
+		"created_at":     "created_at",
+		"updated_at":     "updated_at",
+		"recently_added": "created_at",
 	}
 
 	lowerSort := strings.ToLower(sort)

@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"strconv"
 	"strings"
@@ -95,7 +95,7 @@ func (uc *playlistTrackUsecase) GetPlaylistTrackItems(
 func (uc *playlistTrackUsecase) GetPlaylistTrackItemsMultipleSorting(
 	ctx context.Context,
 	start, end string,
-	sortOrder []domain.SortOrder,
+	sortOrder []domain_util.SortOrder,
 	search, starred, albumId, artistId, year, playlistId string,
 ) ([]scene_audio_route_models.MediaFileMetadata, error) {
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)

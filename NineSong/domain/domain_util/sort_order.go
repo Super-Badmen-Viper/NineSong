@@ -1,4 +1,4 @@
-package domain
+package domain_util
 
 type SortOrder struct {
 	Sort  string `bson:"sort" json:"sort"`   // 排序字段

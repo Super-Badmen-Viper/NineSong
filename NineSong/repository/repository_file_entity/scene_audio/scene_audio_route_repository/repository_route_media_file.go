@@ -6,6 +6,7 @@ import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -153,7 +154,7 @@ func (r *mediaFileRepository) GetMediaFileItemsIds(
 func (r *mediaFileRepository) GetMediaFileItemsMultipleSorting(
 	ctx context.Context,
 	start, end string,
-	sortOrder []domain.SortOrder,
+	sortOrder []domain_util.SortOrder,
 	search, starred, albumId, artistId, year string,
 ) ([]scene_audio_route_models.MediaFileMetadata, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -239,7 +240,7 @@ func (r *mediaFileRepository) GetMediaFileItemsMultipleSorting(
 }
 
 // 新增：构建多重排序阶段
-func buildMultiSortStage(sortOrder []domain.SortOrder) *bson.D {
+func buildMultiSortStage(sortOrder []domain_util.SortOrder) *bson.D {
 	if len(sortOrder) == 0 {
 		return nil
 	}
@@ -260,7 +261,7 @@ func buildMultiSortStage(sortOrder []domain.SortOrder) *bson.D {
 }
 
 // 新增：检查排序条件是否包含play_date
-func hasPlayDateSort(sortOrder []domain.SortOrder) bool {
+func hasPlayDateSort(sortOrder []domain_util.SortOrder) bool {
 	for _, so := range sortOrder {
 		if mapSortField(so.Sort) == "play_date" {
 			return true
@@ -272,21 +273,22 @@ func hasPlayDateSort(sortOrder []domain.SortOrder) bool {
 // 新增：排序字段映射（无albumId逻辑）
 func mapSortField(sort string) string {
 	sortMappings := map[string]string{
-		"title":        "order_title",
-		"album":        "order_album_name",
-		"artist":       "order_artist_name",
-		"album_artist": "order_album_artist_name",
-		"year":         "year",
-		"rating":       "rating",
-		"starred_at":   "starred_at",
-		"genre":        "genre",
-		"play_count":   "play_count",
-		"play_date":    "play_date",
-		"duration":     "duration",
-		"bit_rate":     "bit_rate",
-		"size":         "size",
-		"created_at":   "created_at",
-		"updated_at":   "updated_at",
+		"title":          "order_title",
+		"album":          "order_album_name",
+		"artist":         "order_artist_name",
+		"album_artist":   "order_album_artist_name",
+		"year":           "year",
+		"rating":         "rating",
+		"starred_at":     "starred_at",
+		"genre":          "genre",
+		"play_count":     "play_count",
+		"play_date":      "play_date",
+		"duration":       "duration",
+		"bit_rate":       "bit_rate",
+		"size":           "size",
+		"created_at":     "created_at",
+		"updated_at":     "updated_at",
+		"recently_added": "created_at",
 	}
 	if mapped, ok := sortMappings[strings.ToLower(sort)]; ok {
 		return mapped
@@ -378,21 +380,22 @@ func (r *mediaFileRepository) GetMediaFileFilterItemsCount(
 // 排序字段映射
 func validateSortField(sort, albumId string) string {
 	sortMappings := map[string]string{
-		"title":        "order_title",
-		"album":        "order_album_name",
-		"artist":       "order_artist_name",
-		"album_artist": "order_album_artist_name",
-		"year":         "year",
-		"rating":       "rating",
-		"starred_at":   "starred_at",
-		"genre":        "genre",
-		"play_count":   "play_count",
-		"play_date":    "play_date",
-		"duration":     "duration",
-		"bit_rate":     "bit_rate",
-		"size":         "size",
-		"created_at":   "created_at",
-		"updated_at":   "updated_at",
+		"title":          "order_title",
+		"album":          "order_album_name",
+		"artist":         "order_artist_name",
+		"album_artist":   "order_album_artist_name",
+		"year":           "year",
+		"rating":         "rating",
+		"starred_at":     "starred_at",
+		"genre":          "genre",
+		"play_count":     "play_count",
+		"play_date":      "play_date",
+		"duration":       "duration",
+		"bit_rate":       "bit_rate",
+		"size":           "size",
+		"created_at":     "created_at",
+		"updated_at":     "updated_at",
+		"recently_added": "created_at",
 	}
 
 	if mapped, ok := sortMappings[strings.ToLower(sort)]; ok {
@@ -478,6 +481,7 @@ func buildMatchStage(search, starred, albumId, artistId, year string) bson.D {
 			bson.D{{Key: "title", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
 			bson.D{{Key: "artist", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
 			bson.D{{Key: "album", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
+			bson.D{{Key: "lyrics", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
 			////// 新增拼音字段的精确匹配
 			//bson.D{{Key: "title_pinyin", Value: bson.D{{Key: "$in", Value: bson.A{search}}}}},
 			//bson.D{{Key: "album_pinyin", Value: bson.D{{Key: "$in", Value: bson.A{search}}}}},

@@ -72,7 +72,11 @@ func (ctrl *FileController) ScanDirectory(c *gin.Context) {
 	bgCtx := context.Background()
 	go func() {
 		if err := ctrl.usecase.ProcessDirectory(bgCtx, dirPaths, req.FolderType, req.ScanModel); err != nil {
-			log.Printf("扫描失败 %s: %v", req.FolderPath, err)
+			log.Printf(`扫描失败
+				路径: %s
+				错误类型: %T
+				详细信息: %v`, req.FolderPath, err, err,
+			)
 		}
 	}()
 
