@@ -203,8 +203,8 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 		tags = make(map[string][]string)
 	}
 
-	var artistID, albumID, albumArtistID primitive.ObjectID
-	var artistTag, albumArtistTag, albumTag string
+	var mediaID, albumID, artistID, albumArtistID primitive.ObjectID
+	var artistTag, albumArtistTag, albumTag, titleTag string
 	var artistSortTag, albumArtistSortTag, albumSortTag string
 
 	var mediaFile *scene_audio_db_models.MediaFileMetadata
@@ -247,6 +247,7 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 		artistTag = e.getTagString(tags, taglib.Artist)
 		albumArtistTag = e.getTagString(tags, taglib.AlbumArtist)
 		albumTag = e.getTagString(tags, taglib.Album)
+		titleTag = e.getTagString(tags, taglib.Title)
 
 		artistSortTag = e.getTagString(tags, taglib.ArtistSort)
 		albumArtistSortTag = e.getTagString(tags, taglib.AlbumArtistSort)
@@ -275,6 +276,7 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 		albumTag = "Unknown Album"
 	}
 
+	mediaID = generateDeterministicID(artistTag + albumTag + titleTag)
 	albumID = generateDeterministicID(artistTag + albumTag)
 	artistID = generateDeterministicID(artistTag)
 	albumArtistID = generateDeterministicID(albumArtistTag)
@@ -286,6 +288,7 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 		albumPinyin, albumArtistPinyin =
 		e.buildMediaFile(
 			tags, properties, fileMetadata,
+			mediaID,
 			artistID, albumID, albumArtistID,
 			suffix,
 			albumTag, artistTag, albumArtistTag,
@@ -427,6 +430,8 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFileCue(
 	}
 	artistID := generateDeterministicID(artistTag)
 
+	mediaCueID := generateDeterministicID(artistTag + albumTag + fileMetadata.FileName)
+
 	compilationArtist := e.hasMultipleArtists(artistTag)
 	formattedArtist := artistTag
 	var allArtistIDs []scene_audio_db_models.ArtistIDPair
@@ -456,7 +461,7 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFileCue(
 
 	mediaFileCue = &scene_audio_db_models.MediaFileCueMetadata{
 		// 系统保留字段 (综合)
-		ID:          fileMetadata.ID,
+		ID:          mediaCueID,
 		CreatedAt:   fileMetadata.CreatedAt,
 		UpdatedAt:   fileMetadata.UpdatedAt,
 		FullText:    fullText,
@@ -513,6 +518,7 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 	tags map[string][]string,
 	properties taglib.Properties,
 	fileMetadata *domain_file_entity.FileMetadata,
+	mediaID primitive.ObjectID,
 	artistID, albumID, albumArtistID primitive.ObjectID,
 	suffix string,
 	albumTag, artistTag, albumArtistTag string,
@@ -573,7 +579,7 @@ func (e *AudioMetadataExtractorTaglib) buildMediaFile(
 
 	return &scene_audio_db_models.MediaFileMetadata{
 			// 系统保留字段 (综合)
-			ID:          fileMetadata.ID,
+			ID:          mediaID,
 			CreatedAt:   fileMetadata.CreatedAt,
 			UpdatedAt:   fileMetadata.UpdatedAt,
 			FullText:    fullText,

@@ -126,17 +126,18 @@ const (
 )
 
 type FileMetadata struct {
-	ID          primitive.ObjectID `bson:"_id,omitempty"`
-	FolderID    primitive.ObjectID `bson:"folder_id"`
-	FileName    string             `bson:"file_name" validate:"required,filename"`
-	LibraryPath string             `bson:"library_path" validate:"required,filepath"`
-	FilePath    string             `bson:"file_path" validate:"filepath"`
-	FileType    FileTypeNo         `bson:"file_type" validate:"min=1,max=8"`
-	Size        int64              `bson:"size" validate:"min=0"`
-	ModTime     time.Time          `bson:"mod_time" validate:"required"`
-	Checksum    string             `bson:"checksum" validate:"sha256"`
-	CreatedAt   time.Time          `bson:"created_at" validate:"required"`
-	UpdatedAt   time.Time          `bson:"updated_at" validate:"required,gtfield=CreatedAt"`
+	ID               primitive.ObjectID `bson:"_id,omitempty"`
+	FolderID         primitive.ObjectID `bson:"folder_id"`
+	FileName         string             `bson:"file_name" validate:"required,filename"`
+	FileNameNoSuffix string             `bson:"file_name_no_suffix" validate:"required,filename_no_suffix"`
+	LibraryPath      string             `bson:"library_path" validate:"required,filepath"`
+	FilePath         string             `bson:"file_path" validate:"filepath"`
+	FileType         FileTypeNo         `bson:"file_type" validate:"min=1,max=8"`
+	Size             int64              `bson:"size" validate:"min=0"`
+	ModTime          time.Time          `bson:"mod_time" validate:"required"`
+	Checksum         string             `bson:"checksum" validate:"sha256"`
+	CreatedAt        time.Time          `bson:"created_at" validate:"required"`
+	UpdatedAt        time.Time          `bson:"updated_at" validate:"required,gtfield=CreatedAt"`
 }
 
 type FileRepository interface {

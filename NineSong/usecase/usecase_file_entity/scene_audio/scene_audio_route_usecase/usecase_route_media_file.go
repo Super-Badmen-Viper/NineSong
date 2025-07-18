@@ -28,7 +28,8 @@ func NewMediaFileUsecase(repo scene_audio_route_interface.MediaFileRepository, t
 
 func (uc *mediaFileUsecase) GetMediaFileItems(
 	ctx context.Context,
-	start, end, sort, order, search, starred, albumId, artistId, year string,
+	start, end, sort, order, search, starred, albumId, artistId, year,
+	suffix, minBitrate, maxBitrate, folderPath string,
 ) ([]scene_audio_route_models.MediaFileMetadata, error) {
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
 	defer cancel()
@@ -79,7 +80,12 @@ func (uc *mediaFileUsecase) GetMediaFileItems(
 		}
 	}
 
-	return uc.mediaFileRepo.GetMediaFileItems(ctx, start, end, sort, order, search, starred, albumId, artistId, year)
+	return uc.mediaFileRepo.GetMediaFileItems(
+		ctx, start, end, sort, order,
+		search, starred,
+		albumId, artistId, year,
+		suffix, minBitrate, maxBitrate, folderPath,
+	)
 }
 
 func (uc *mediaFileUsecase) GetMediaFileItemsIds(
@@ -95,7 +101,8 @@ func (uc *mediaFileUsecase) GetMediaFileItemsMultipleSorting(
 	ctx context.Context,
 	start, end string,
 	sortOrder []domain_util.SortOrder,
-	search, starred, albumId, artistId, year string,
+	search, starred, albumId, artistId, year,
+	suffix, minBitrate, maxBitrate, folderPath string,
 ) ([]scene_audio_route_models.MediaFileMetadata, error) {
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
 	defer cancel()
@@ -165,7 +172,11 @@ func (uc *mediaFileUsecase) GetMediaFileItemsMultipleSorting(
 	}
 
 	return uc.mediaFileRepo.GetMediaFileItemsMultipleSorting(
-		ctx, start, end, sortOrder, search, starred, albumId, artistId, year)
+		ctx, start, end,
+		sortOrder, search, starred,
+		albumId, artistId, year,
+		suffix, minBitrate, maxBitrate, folderPath,
+	)
 }
 
 func (uc *mediaFileUsecase) GetMediaFileFilterItemsCount(

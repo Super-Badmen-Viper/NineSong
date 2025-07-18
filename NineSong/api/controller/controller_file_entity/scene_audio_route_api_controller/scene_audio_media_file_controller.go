@@ -19,26 +19,25 @@ func NewMediaFileController(uc scene_audio_route_interface.MediaFileRepository) 
 }
 
 func (c *MediaFileController) GetMediaFiles(ctx *gin.Context) {
-	params := struct {
-		Start    string `form:"start" binding:"required"`
-		End      string `form:"end" binding:"required"`
-		Sort     string `form:"sort"`
-		Order    string `form:"order"`
-		Search   string `form:"search"`
-		Starred  string `form:"starred"`
-		AlbumID  string `form:"album_id"`
-		ArtistID string `form:"artist_id"`
-		Year     string `form:"year"`
-	}{
-		Start:    ctx.Query("start"),
-		End:      ctx.Query("end"),
-		Sort:     ctx.DefaultQuery("sort", "title"),
-		Order:    ctx.DefaultQuery("order", "asc"),
-		Search:   ctx.Query("search"),
-		Starred:  ctx.Query("starred"),
-		AlbumID:  ctx.Query("album_id"),
-		ArtistID: ctx.Query("artist_id"),
-		Year:     ctx.Query("year"),
+	var params struct {
+		Start      string `form:"start" binding:"required"`
+		End        string `form:"end" binding:"required"`
+		Sort       string `form:"sort"`
+		Order      string `form:"order"`
+		Search     string `form:"search"`
+		Starred    string `form:"starred"`
+		AlbumID    string `form:"album_id"`
+		ArtistID   string `form:"artist_id"`
+		Year       string `form:"year"`
+		Suffix     string `form:"suffix"`
+		MinBitRate string `form:"min_bitrate"`
+		MaxBitRate string `form:"max_bitrate"`
+		FolderPath string `form:"folder_path"`
+	}
+
+	if err := ctx.ShouldBindQuery(&params); err != nil {
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "PARAMS_ERROR", parseBindingError(err))
+		return
 	}
 
 	mediaFiles, err := c.MediaFileUsecase.GetMediaFileItems(
@@ -52,6 +51,10 @@ func (c *MediaFileController) GetMediaFiles(ctx *gin.Context) {
 		params.AlbumID,
 		params.ArtistID,
 		params.Year,
+		params.Suffix,
+		params.MinBitRate,
+		params.MaxBitRate,
+		params.FolderPath,
 	)
 
 	if err != nil {
@@ -83,24 +86,24 @@ func (c *MediaFileController) GetMediaFileIds(ctx *gin.Context) {
 }
 
 func (c *MediaFileController) GetMediaFilesMultipleSorting(ctx *gin.Context) {
-	params := struct {
-		Start    string   `form:"start" binding:"required"`
-		End      string   `form:"end" binding:"required"`
-		Search   string   `form:"search"`
-		Starred  string   `form:"starred"`
-		AlbumID  string   `form:"album_id"`
-		ArtistID string   `form:"artist_id"`
-		Year     string   `form:"year"`
-		Sort     []string `form:"sort"` // 格式: "field:order"
-	}{
-		Start:    ctx.Query("start"),
-		End:      ctx.Query("end"),
-		Search:   ctx.Query("search"),
-		Starred:  ctx.Query("starred"),
-		AlbumID:  ctx.Query("album_id"),
-		ArtistID: ctx.Query("artist_id"),
-		Year:     ctx.Query("year"),
-		Sort:     ctx.QueryArray("sort"),
+	var params struct {
+		Start      string   `form:"start" binding:"required"`
+		End        string   `form:"end" binding:"required"`
+		Search     string   `form:"search"`
+		Starred    string   `form:"starred"`
+		AlbumID    string   `form:"album_id"`
+		ArtistID   string   `form:"artist_id"`
+		Year       string   `form:"year"`
+		Suffix     string   `form:"suffix"`
+		MinBitRate string   `form:"min_bitrate"`
+		MaxBitRate string   `form:"max_bitrate"`
+		FolderPath string   `form:"folder_path"`
+		Sort       []string `form:"sort"` // 格式: "field:order"
+	}
+
+	if err := ctx.ShouldBindQuery(&params); err != nil {
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "PARAMS_ERROR", parseBindingError(err))
+		return
 	}
 
 	// 解析排序参数
@@ -127,6 +130,10 @@ func (c *MediaFileController) GetMediaFilesMultipleSorting(ctx *gin.Context) {
 		params.AlbumID,
 		params.ArtistID,
 		params.Year,
+		params.Suffix,
+		params.MinBitRate,
+		params.MaxBitRate,
+		params.FolderPath,
 	)
 
 	if err != nil {

@@ -894,8 +894,6 @@ func (uc *AudioProcessingUsecase) ProcessMusicDirectory(
 		}
 	}
 
-	// 在区域3结束后（重构阶段完成）
-	uc.scanMutex.Lock()
 	// 执行词云处理
 	err = uc.processMusicWordCloud(ctx)
 	if err != nil {
@@ -916,8 +914,6 @@ func (uc *AudioProcessingUsecase) ProcessMusicDirectory(
 	); err != nil {
 		log.Printf("更新变更记录失败: %v", err)
 	}
-
-	uc.scanMutex.Unlock()
 
 	return finalErr
 }
@@ -1787,15 +1783,16 @@ func (uc *AudioProcessingUsecase) processAudioHierarchy(ctx context.Context,
 			}
 		}
 		if mediaFileCue != nil {
-			// 修复：移除短声明+添加安全访问
-			if _, err := uc.mediaCueRepo.Upsert(ctx, mediaFileCue); err != nil {
-				cuePath := "unknown path"
-				if len(mediaFileCue.CueResources.CuePath) > 0 {
-					cuePath = mediaFileCue.CueResources.CuePath
-				}
-				log.Printf("CUE文件保存失败: %s | %v", cuePath, err)
-				// 修复：CUE错误应返回但不中断核心流程
+			if err := uc.updateAudioMediaCueMetadata(ctx, mediaFileCue); err != nil {
+				return fmt.Errorf("单曲处理失败 | 名称:%s | 原因:%w", mediaFileCue.Path, err)
 			}
+			//if _, err := uc.mediaCueRepo.Upsert(ctx, mediaFileCue); err != nil {
+			//	cuePath := "unknown path"
+			//	if len(mediaFileCue.CueResources.CuePath) > 0 {
+			//		cuePath = mediaFileCue.CueResources.CuePath
+			//	}
+			//	log.Printf("CUE文件保存失败: %s | %v", cuePath, err)
+			//}
 		}
 		return nil
 	}
@@ -1850,14 +1847,9 @@ func (uc *AudioProcessingUsecase) processAudioHierarchy(ctx context.Context,
 			mediaFile.ArtistPinyin = pinyin.LazyConvert(mediaFile.Artist, nil)
 			mediaFile.ArtistPinyinFull = strings.Join(mediaFile.ArtistPinyin, "")
 		}
-		// 修复：移除短声明避免NPE
-		if _, err := uc.mediaRepo.Upsert(ctx, mediaFile); err != nil {
-			errorInfo := fmt.Sprintf("路径:%s", mediaFile.Path)
-			if album != nil {
-				errorInfo += fmt.Sprintf(" 专辑:%s", album.Name)
-			}
-			log.Printf("最终保存失败: %s | %v", errorInfo, err)
-			return fmt.Errorf("歌曲写入失败 %s | %w", errorInfo, err)
+		if err := uc.updateAudioMediaMetadata(ctx, mediaFile); err != nil {
+			log.Printf("单曲处理失败: %s | %v", mediaFile.Path, err)
+			return fmt.Errorf("单曲处理失败 | 名称:%s | 原因:%w", mediaFile.Path, err)
 		}
 	}
 
@@ -1870,20 +1862,22 @@ func (uc *AudioProcessingUsecase) processAudioHierarchy(ctx context.Context,
 			mediaFileCue.PerformerPinyin = pinyin.LazyConvert(mediaFileCue.Performer, nil)
 			mediaFileCue.PerformerPinyinFull = strings.Join(mediaFileCue.PerformerPinyin, "")
 		}
-		if _, err := uc.mediaCueRepo.Upsert(ctx, mediaFileCue); err != nil {
-			cuePath := "unknown cue path"
-			if len(mediaFileCue.CueResources.CuePath) > 0 {
-				cuePath = mediaFileCue.CueResources.CuePath
-			}
-
-			errorInfo := cuePath
-			if album != nil {
-				errorInfo += fmt.Sprintf(" 专辑:%s", album.Name)
-			}
-
-			log.Printf("CUE最终保存失败: %s | %v", errorInfo, err)
-			// 修复：CUE错误应返回但不中断核心流程
+		if err := uc.updateAudioMediaCueMetadata(ctx, mediaFileCue); err != nil {
+			return fmt.Errorf("单曲处理失败 | 名称:%s | 原因:%w", mediaFileCue.Path, err)
 		}
+		//if _, err := uc.mediaCueRepo.Upsert(ctx, mediaFileCue); err != nil {
+		//	cuePath := "unknown cue path"
+		//	if len(mediaFileCue.CueResources.CuePath) > 0 {
+		//		cuePath = mediaFileCue.CueResources.CuePath
+		//	}
+		//
+		//	errorInfo := cuePath
+		//	if album != nil {
+		//		errorInfo += fmt.Sprintf(" 专辑:%s", album.Name)
+		//	}
+		//
+		//	log.Printf("CUE最终保存失败: %s | %v", errorInfo, err)
+		//}
 	}
 
 	// 异步统计更新
@@ -2032,6 +2026,34 @@ func (uc *AudioProcessingUsecase) updateAudioMediaMetadata(ctx context.Context, 
 	} else {
 		if _, err := uc.mediaRepo.Upsert(ctx, media); err != nil {
 			log.Printf("单曲创建失败: %s | %v", media.Path, err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (uc *AudioProcessingUsecase) updateAudioMediaCueMetadata(ctx context.Context, mediaCue *scene_audio_db_models.MediaFileCueMetadata) error {
+	if uc.mediaCueRepo == nil {
+		log.Print("专辑仓库未初始化")
+		return fmt.Errorf("系统服务异常")
+	}
+
+	existing, err := uc.mediaCueRepo.GetByID(ctx, mediaCue.ID)
+	if err != nil {
+		log.Printf("组合查询错误: %v", err)
+	}
+
+	if existing != nil {
+		if mediaCue.UpdatedAt != existing.UpdatedAt {
+			if _, err := uc.mediaCueRepo.Upsert(ctx, mediaCue); err != nil {
+				log.Printf("单曲创建失败: %s | %v", mediaCue.Path, err)
+				return err
+			}
+		}
+	} else {
+		if _, err := uc.mediaCueRepo.Upsert(ctx, mediaCue); err != nil {
+			log.Printf("单曲创建失败: %s | %v", mediaCue.Path, err)
 			return err
 		}
 	}

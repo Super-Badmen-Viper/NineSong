@@ -12,7 +12,8 @@ type MediaFileRepository interface {
 		start, end, sort, order,
 		search, starred,
 		albumId, artistId,
-		year string,
+		year,
+		suffix, minBitrate, maxBitrate, folderPath string,
 	) ([]scene_audio_route_models.MediaFileMetadata, error)
 
 	GetMediaFileItemsMultipleSorting(
@@ -21,7 +22,8 @@ type MediaFileRepository interface {
 		sortOrder []domain_util.SortOrder,
 		search, starred,
 		albumId, artistId,
-		year string,
+		year,
+		suffix, minBitrate, maxBitrate, folderPath string,
 	) ([]scene_audio_route_models.MediaFileMetadata, error)
 
 	GetMediaFileFilterItemsCount(

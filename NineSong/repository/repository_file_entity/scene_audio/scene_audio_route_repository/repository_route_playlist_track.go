@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -34,6 +35,7 @@ func NewPlaylistTrackRepository(db mongo.Database, collection string) scene_audi
 func (r *playlistTrackRepository) GetPlaylistTrackItems(
 	ctx context.Context,
 	start, end, sort, order, search, starred, albumId, artistId, year, playlistId string,
+	suffix, minBitrate, maxBitrate, folderPath string,
 ) ([]scene_audio_route_models.MediaFileMetadata, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -116,7 +118,8 @@ func (r *playlistTrackRepository) GetPlaylistTrackItems(
 	}
 
 	// 构建过滤条件
-	if match := buildMediaMatch(search, starred, albumId, artistId, year); len(match) > 0 {
+	if match := buildMediaMatch(search, starred, albumId, artistId, year,
+		suffix, minBitrate, maxBitrate, folderPath); len(match) > 0 {
 		pipeline = append(pipeline, bson.D{{Key: "$match", Value: match}})
 	}
 
@@ -149,12 +152,12 @@ func (r *playlistTrackRepository) GetPlaylistTrackItems(
 	return results, nil
 }
 
-// GetPlaylistTrackItemsMultipleSorting 新增：支持多重排序的播放列表曲目查询
 func (r *playlistTrackRepository) GetPlaylistTrackItemsMultipleSorting(
 	ctx context.Context,
 	start, end string,
 	sortOrder []domain_util.SortOrder,
 	search, starred, albumId, artistId, year, playlistId string,
+	suffix, minBitrate, maxBitrate, folderPath string,
 ) ([]scene_audio_route_models.MediaFileMetadata, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -237,7 +240,8 @@ func (r *playlistTrackRepository) GetPlaylistTrackItemsMultipleSorting(
 	}
 
 	// 构建过滤条件
-	if match := buildMediaMatch(search, starred, albumId, artistId, year); len(match) > 0 {
+	if match := buildMediaMatch(search, starred, albumId, artistId, year,
+		suffix, minBitrate, maxBitrate, folderPath); len(match) > 0 {
 		pipeline = append(pipeline, bson.D{{Key: "$match", Value: match}})
 	}
 
@@ -417,10 +421,10 @@ func mustObjectID(hex string) primitive.ObjectID {
 }
 
 func buildMediaBaseMatch(search, albumId, artistId, year string) bson.D {
-	return buildMediaMatch(search, "", albumId, artistId, year)
+	return buildMediaMatch(search, "", albumId, artistId, year, "", "", "", "")
 }
 
-func buildMediaMatch(search, starred, albumId, artistId, year string) bson.D {
+func buildMediaMatch(search, starred, albumId, artistId, year, suffix, minBitrate, maxBitrate, folderPath string) bson.D {
 	filter := bson.D{}
 
 	// 专辑ID过滤
@@ -457,6 +461,44 @@ func buildMediaMatch(search, starred, albumId, artistId, year string) bson.D {
 		if isStarred, err := strconv.ParseBool(starred); err == nil {
 			filter = append(filter, bson.E{Key: "starred", Value: isStarred})
 		}
+	}
+
+	// 修复后缀过滤条件
+	if suffix != "" {
+		filter = append(filter, bson.E{Key: "suffix", Value: suffix})
+	}
+
+	// 修复文件夹路径过滤条件
+	if folderPath != "" {
+		safePath := regexp.QuoteMeta(folderPath)
+		filter = append(filter, bson.E{
+			Key: "library_path",
+			Value: bson.D{
+				{Key: "$regex", Value: "^" + safePath},
+				{Key: "$options", Value: "i"},
+			},
+		})
+	}
+
+	// 修复比特率范围过滤条件
+	minVal, maxVal := 0, 0
+	bitrateCondition := bson.D{}
+	var err error
+	if minBitrate != "" {
+		if minVal, err = strconv.Atoi(minBitrate); err == nil && minVal > 0 {
+			bitrateCondition = append(bitrateCondition, bson.E{Key: "$gte", Value: minVal})
+		}
+	}
+	if maxBitrate != "" {
+		if maxVal, err = strconv.Atoi(maxBitrate); err == nil && maxVal > 0 {
+			// 允许单独设置最大值，不依赖最小值
+			if minVal <= 0 || minVal < maxVal {
+				bitrateCondition = append(bitrateCondition, bson.E{Key: "$lte", Value: maxVal})
+			}
+		}
+	}
+	if len(bitrateCondition) > 0 {
+		filter = append(filter, bson.E{Key: "bit_rate", Value: bitrateCondition})
 	}
 
 	return filter

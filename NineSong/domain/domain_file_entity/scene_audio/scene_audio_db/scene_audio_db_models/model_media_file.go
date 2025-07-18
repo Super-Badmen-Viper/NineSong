@@ -19,6 +19,11 @@ type MediaFileMetadata struct {
 	FileName    string             `bson:"file_name"`    // 文件名（不包含路径）
 	LibraryPath string             `bson:"library_path"` // 音频文件所在的音乐库路径
 
+	// 基础元数据: 音质
+	ToneQuality string `bson:"tone_quality"`
+	// 音质版本
+	QualityGroup MediaFileQualityGroup `bson:"quality_group"`
+
 	// 基础元数据 (github.com/dhowden/tag、go.senan.xyz/taglib)
 	Title                 string   `bson:"title"`                    // 标准曲目标题
 	Album                 string   `bson:"album"`                    // 所属专辑名称
@@ -72,12 +77,6 @@ type MediaFileMetadata struct {
 	ThumbnailURL   string `bson:"thumbnail_url"`    // 缩略图的 URL 地址（尺寸 200x200px）
 	MediumImageURL string `bson:"medium_image_url"` // 专辑封面中等分辨率图的 URL 地址
 	HighImageURL   string `bson:"high_image_url"`   // 高清封面图的 URL 地址（尺寸不低于 1200x1200px）
-
-	// 基础元数据: 音质
-	QualityVersion          string    `bson:"quality_version"`            // 音质版本描述（如 320kbps、FLAC 等）
-	QualityVersionID        string    `bson:"quality_version_id"`         // 音质版本的唯一标识符
-	QualityVersionCreatedAt time.Time `bson:"quality_version_created_at"` // 音质版本的创建时间（UTC 时间）
-	QualityVersionUpdateAt  time.Time `bson:"quality_version_update_at"`  // 音质版本的最后更新时间（UTC 时间）
 
 	// 扩展存储 (综合)
 	CustomTags map[string]string `bson:"custom_tags"` // 自定义标签键值对
@@ -133,6 +132,17 @@ type MediaFileMetadata struct {
 	Engineer           string    `bson:"engineer"`            // 工程师名称（如录音工程师、混音工程师等）
 	Studio             string    `bson:"studio"`              // 录音室名称
 	RecordingLocation  string    `bson:"recording_location"`  // 录音地点详细描述（如城市中的录音棚名称等）
+}
+
+type MediaFileQualityGroup struct {
+	CreatedAt   time.Time `bson:"created_at"`   // 文档创建时间
+	UpdatedAt   time.Time `bson:"updated_at"`   // 文档最后更新时间
+	FullText    string    `bson:"full_text"`    // 音频文件全文文本内容，用于搜索
+	Path        string    `bson:"path"`         // 音频文件的存储路径
+	Suffix      string    `bson:"suffix"`       // 文件格式后缀（如 mp3、flac 等）
+	Size        int       `bson:"size"`         // 文件大小（字节）
+	FileName    string    `bson:"file_name"`    // 文件名（不包含路径）
+	LibraryPath string    `bson:"library_path"` // 音频文件所在的音乐库路径
 }
 
 type MediaFileCounts struct {

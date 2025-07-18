@@ -28,6 +28,10 @@ func (c *PlaylistTrackController) GetPlaylistTracks(ctx *gin.Context) {
 		AlbumId    string `form:"albumId"`
 		ArtistId   string `form:"artistId"`
 		Year       string `form:"year"`
+		Suffix     string `form:"suffix"`
+		MinBitRate string `form:"min_bitrate"`
+		MaxBitRate string `form:"max_bitrate"`
+		FolderPath string `form:"folder_path"`
 		PlaylistId string `form:"playlistId" binding:"required"`
 	}
 
@@ -48,6 +52,10 @@ func (c *PlaylistTrackController) GetPlaylistTracks(ctx *gin.Context) {
 		params.ArtistId,
 		params.Year,
 		params.PlaylistId,
+		params.Suffix,
+		params.MinBitRate,
+		params.MaxBitRate,
+		params.FolderPath,
 	)
 
 	if err != nil {
@@ -67,6 +75,10 @@ func (c *PlaylistTrackController) GetPlaylistTracksMultipleSorting(ctx *gin.Cont
 		AlbumId    string   `form:"albumId"`
 		ArtistId   string   `form:"artistId"`
 		Year       string   `form:"year"`
+		Suffix     string   `form:"suffix"`
+		MinBitRate string   `form:"min_bitrate"`
+		MaxBitRate string   `form:"max_bitrate"`
+		FolderPath string   `form:"folder_path"`
 		PlaylistId string   `form:"playlistId" binding:"required"`
 		Sort       []string `form:"sort"` // 格式: "field:order"
 	}
@@ -101,6 +113,10 @@ func (c *PlaylistTrackController) GetPlaylistTracksMultipleSorting(ctx *gin.Cont
 		params.ArtistId,
 		params.Year,
 		params.PlaylistId,
+		params.Suffix,
+		params.MinBitRate,
+		params.MaxBitRate,
+		params.FolderPath,
 	)
 
 	if err != nil {

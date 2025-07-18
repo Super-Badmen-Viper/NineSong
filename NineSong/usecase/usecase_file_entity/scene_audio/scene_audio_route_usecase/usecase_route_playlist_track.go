@@ -28,6 +28,7 @@ func NewPlaylistTrackUsecase(repo scene_audio_route_interface.PlaylistTrackRepos
 func (uc *playlistTrackUsecase) GetPlaylistTrackItems(
 	ctx context.Context,
 	start, end, sort, order, search, starred, albumId, artistId, year, playlistId string,
+	suffix, minBitrate, maxBitrate, folderPath string,
 ) ([]scene_audio_route_models.MediaFileMetadata, error) {
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
 	defer cancel()
@@ -89,7 +90,12 @@ func (uc *playlistTrackUsecase) GetPlaylistTrackItems(
 		order = "asc"
 	}
 
-	return uc.repo.GetPlaylistTrackItems(ctx, start, end, sort, order, search, starred, albumId, artistId, year, playlistId)
+	return uc.repo.GetPlaylistTrackItems(
+		ctx, start, end, sort, order,
+		search, starred, albumId, artistId,
+		year, playlistId,
+		suffix, minBitrate, maxBitrate, folderPath,
+	)
 }
 
 func (uc *playlistTrackUsecase) GetPlaylistTrackItemsMultipleSorting(
@@ -97,6 +103,7 @@ func (uc *playlistTrackUsecase) GetPlaylistTrackItemsMultipleSorting(
 	start, end string,
 	sortOrder []domain_util.SortOrder,
 	search, starred, albumId, artistId, year, playlistId string,
+	suffix, minBitrate, maxBitrate, folderPath string,
 ) ([]scene_audio_route_models.MediaFileMetadata, error) {
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
 	defer cancel()
@@ -157,6 +164,7 @@ func (uc *playlistTrackUsecase) GetPlaylistTrackItemsMultipleSorting(
 
 	return uc.repo.GetPlaylistTrackItemsMultipleSorting(
 		ctx, start, end, sortOrder, search, starred, albumId, artistId, year, playlistId,
+		suffix, minBitrate, maxBitrate, folderPath,
 	)
 }
 

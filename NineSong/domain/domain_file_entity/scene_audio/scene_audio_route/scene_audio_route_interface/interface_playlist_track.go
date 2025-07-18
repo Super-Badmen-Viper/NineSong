@@ -15,6 +15,7 @@ type PlaylistTrackRepository interface {
 		albumId, artistId,
 		year,
 		playlistId string,
+		suffix, minBitrate, maxBitrate, folderPath string,
 	) ([]scene_audio_route_models.MediaFileMetadata, error)
 
 	GetPlaylistTrackItemsMultipleSorting(
@@ -25,6 +26,7 @@ type PlaylistTrackRepository interface {
 		albumId, artistId,
 		year,
 		playlistId string,
+		suffix, minBitrate, maxBitrate, folderPath string,
 	) ([]scene_audio_route_models.MediaFileMetadata, error)
 
 	GetPlaylistTrackFilterItemsCount(
