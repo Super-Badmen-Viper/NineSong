@@ -26,6 +26,5 @@ type MediaFileCueRepository interface {
 
 	GetMediaFileCueFilterItemsCount(
 		ctx context.Context,
-		search, starred, albumId, artistId, year string,
 	) (*scene_audio_route_models.MediaFileCueFilterCounts, error)
 }

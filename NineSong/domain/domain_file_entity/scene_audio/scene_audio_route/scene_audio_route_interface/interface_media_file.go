@@ -28,7 +28,6 @@ type MediaFileRepository interface {
 
 	GetMediaFileFilterItemsCount(
 		ctx context.Context,
-		search, starred, albumId, artistId, year string,
 	) (*scene_audio_route_models.MediaFileFilterCounts, error)
 
 	GetMediaFileItemsIds(

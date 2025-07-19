@@ -303,7 +303,6 @@ func mapSortField(sort string) string {
 
 func (r *mediaFileRepository) GetMediaFileFilterItemsCount(
 	ctx context.Context,
-	search, starred, albumId, artistId, year string,
 ) (*scene_audio_route_models.MediaFileFilterCounts, error) {
 	coll := r.db.Collection(r.collection)
 
@@ -326,9 +325,6 @@ func (r *mediaFileRepository) GetMediaFileFilterItemsCount(
 				}},
 				{Key: "as", Value: "annotations"},
 			}},
-		},
-		{
-			{Key: "$match", Value: buildBaseMatch(search, albumId, artistId, year)},
 		},
 		{
 			{Key: "$facet", Value: bson.D{

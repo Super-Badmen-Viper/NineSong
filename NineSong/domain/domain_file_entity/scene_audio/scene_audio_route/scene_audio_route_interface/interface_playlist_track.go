@@ -31,7 +31,6 @@ type PlaylistTrackRepository interface {
 
 	GetPlaylistTrackFilterItemsCount(
 		ctx context.Context,
-		search, albumId, artistId, year string,
 	) (*scene_audio_route_models.MediaFileFilterCounts, error)
 
 	AddPlaylistTrackItems(

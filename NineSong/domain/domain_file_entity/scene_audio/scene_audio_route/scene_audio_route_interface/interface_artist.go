@@ -23,6 +23,5 @@ type ArtistRepository interface {
 
 	GetArtistFilterItemsCount(
 		ctx context.Context,
-		search, starred string,
 	) (*scene_audio_route_models.ArtistFilterCounts, error)
 }

@@ -186,52 +186,9 @@ func (uc *AlbumUsecase) GetAlbumItemsMultipleSorting(
 
 func (uc *AlbumUsecase) GetAlbumFilterItemsCount(
 	ctx context.Context,
-	search, starred, artistId, minYear, maxYear string,
 ) (*scene_audio_route_models.AlbumFilterCounts, error) {
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
 	defer cancel()
 
-	// 专项参数验证
-	validations := []func() error{
-		func() error {
-			if starred != "" {
-				if _, err := strconv.ParseBool(starred); err != nil {
-					return errors.New("invalid starred parameter")
-				}
-			}
-			return nil
-		},
-		func() error {
-			if artistId != "" {
-				if _, err := primitive.ObjectIDFromHex(artistId); err != nil {
-					return errors.New("invalid artist id format")
-				}
-			}
-			return nil
-		},
-		func() error {
-			if minYear != "" {
-				if _, err := strconv.Atoi(minYear); err != nil {
-					return errors.New("invalid min_year format")
-				}
-			}
-			return nil
-		},
-		func() error {
-			if maxYear != "" {
-				if _, err := strconv.Atoi(maxYear); err != nil {
-					return errors.New("invalid max_year format")
-				}
-			}
-			return nil
-		},
-	}
-
-	for _, validate := range validations {
-		if err := validate(); err != nil {
-			return nil, err
-		}
-	}
-
-	return uc.repo.GetAlbumFilterItemsCount(ctx, search, starred, artistId, minYear, maxYear)
+	return uc.repo.GetAlbumFilterItemsCount(ctx)
 }

@@ -163,10 +163,9 @@ func (uc *mediaFileCueUsecase) GetMediaFileCueItemsMultipleSorting(
 
 func (uc *mediaFileCueUsecase) GetMediaFileCueFilterItemsCount(
 	ctx context.Context,
-	search, starred, albumId, artistId, year string,
 ) (*scene_audio_route_models.MediaFileCueFilterCounts, error) {
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
 	defer cancel()
 
-	return uc.mediaFileCueRepo.GetMediaFileCueFilterItemsCount(ctx, search, starred, albumId, artistId, year)
+	return uc.mediaFileCueRepo.GetMediaFileCueFilterItemsCount(ctx)
 }

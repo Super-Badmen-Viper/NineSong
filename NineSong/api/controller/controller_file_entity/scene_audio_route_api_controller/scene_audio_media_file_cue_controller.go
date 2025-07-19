@@ -118,28 +118,7 @@ func (c *MediaFileCueController) GetMediaFileCuesMultipleSorting(ctx *gin.Contex
 }
 
 func (c *MediaFileCueController) GetMediaCueFilterCounts(ctx *gin.Context) {
-	params := struct {
-		Search   string `form:"search"`
-		Starred  string `form:"starred"`
-		AlbumID  string `form:"album_id"`
-		ArtistID string `form:"artist_id"`
-		Year     string `form:"year"`
-	}{
-		Search:   ctx.Query("search"),
-		Starred:  ctx.Query("starred"),
-		AlbumID:  ctx.Query("album_id"),
-		ArtistID: ctx.Query("artist_id"),
-		Year:     ctx.Query("year"),
-	}
-
-	counts, err := c.MediaFileUsecase.GetMediaFileCueFilterItemsCount(
-		ctx.Request.Context(),
-		params.Search,
-		params.Starred,
-		params.AlbumID,
-		params.ArtistID,
-		params.Year,
-	)
+	counts, err := c.MediaFileUsecase.GetMediaFileCueFilterItemsCount(ctx.Request.Context())
 
 	if err != nil {
 		controller.ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())

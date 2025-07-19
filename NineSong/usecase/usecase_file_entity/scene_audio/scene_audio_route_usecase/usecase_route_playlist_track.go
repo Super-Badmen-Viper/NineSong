@@ -170,31 +170,11 @@ func (uc *playlistTrackUsecase) GetPlaylistTrackItemsMultipleSorting(
 
 func (uc *playlistTrackUsecase) GetPlaylistTrackFilterItemsCount(
 	ctx context.Context,
-	search, albumId, artistId, year string,
 ) (*scene_audio_route_models.MediaFileFilterCounts, error) {
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
 	defer cancel()
 
-	// 参数验证
-	if albumId != "" {
-		if err := validateObjectID("albumId", albumId); err != nil {
-			return nil, err
-		}
-	}
-
-	if artistId != "" {
-		if err := validateObjectID("artistId", artistId); err != nil {
-			return nil, err
-		}
-	}
-
-	if year != "" {
-		if _, err := strconv.Atoi(year); err != nil {
-			return nil, errors.New("invalid year format")
-		}
-	}
-
-	return uc.repo.GetPlaylistTrackFilterItemsCount(ctx, search, albumId, artistId, year)
+	return uc.repo.GetPlaylistTrackFilterItemsCount(ctx)
 }
 
 func (uc *playlistTrackUsecase) AddPlaylistTrackItems(

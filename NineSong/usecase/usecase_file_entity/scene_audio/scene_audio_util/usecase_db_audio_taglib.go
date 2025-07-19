@@ -204,7 +204,8 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 	}
 
 	var mediaID, albumID, artistID, albumArtistID primitive.ObjectID
-	var artistTag, albumArtistTag, albumTag, titleTag string
+	//var titleTag string
+	var artistTag, albumArtistTag, albumTag string
 	var artistSortTag, albumArtistSortTag, albumSortTag string
 
 	var mediaFile *scene_audio_db_models.MediaFileMetadata
@@ -247,7 +248,7 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 		artistTag = e.getTagString(tags, taglib.Artist)
 		albumArtistTag = e.getTagString(tags, taglib.AlbumArtist)
 		albumTag = e.getTagString(tags, taglib.Album)
-		titleTag = e.getTagString(tags, taglib.Title)
+		//titleTag = e.getTagString(tags, taglib.Title)
 
 		artistSortTag = e.getTagString(tags, taglib.ArtistSort)
 		albumArtistSortTag = e.getTagString(tags, taglib.AlbumArtistSort)
@@ -276,7 +277,9 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 		albumTag = "Unknown Album"
 	}
 
-	mediaID = generateDeterministicID(artistTag + albumTag + titleTag)
+	// mediaID = generateDeterministicID(artistTag + albumTag + titleTag)
+	mediaID = fileMetadata.ID
+	//
 	albumID = generateDeterministicID(artistTag + albumTag)
 	artistID = generateDeterministicID(artistTag)
 	albumArtistID = generateDeterministicID(albumArtistTag)

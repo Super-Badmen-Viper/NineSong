@@ -99,19 +99,7 @@ func (c *ArtistController) GetArtistsMultipleSorting(ctx *gin.Context) {
 }
 
 func (c *ArtistController) GetArtistFilterCounts(ctx *gin.Context) {
-	params := struct {
-		Search  string `form:"search"`
-		Starred string `form:"starred"`
-	}{
-		Search:  ctx.Query("search"),
-		Starred: ctx.Query("starred"),
-	}
-
-	counts, err := c.ArtistUsecase.GetArtistFilterItemsCount(
-		ctx.Request.Context(),
-		params.Search,
-		params.Starred,
-	)
+	counts, err := c.ArtistUsecase.GetArtistFilterItemsCount(ctx.Request.Context())
 
 	if err != nil {
 		controller.ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())

@@ -267,7 +267,6 @@ func hasPlaySortAlbum(sortOrder []domain_util.SortOrder) bool {
 
 func (r *albumRepository) GetAlbumFilterItemsCount(
 	ctx context.Context,
-	search, starred, artistId, minYear, maxYear string,
 ) (*scene_audio_route_models.AlbumFilterCounts, error) {
 	coll := r.db.Collection(r.collection)
 
@@ -290,9 +289,6 @@ func (r *albumRepository) GetAlbumFilterItemsCount(
 				}},
 				{Key: "as", Value: "annotations"},
 			}},
-		},
-		{
-			{Key: "$match", Value: buildAlbumBaseMatch(search, starred, artistId, minYear, maxYear)},
 		},
 		{
 			{Key: "$facet", Value: bson.D{

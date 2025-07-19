@@ -128,25 +128,7 @@ func (c *PlaylistTrackController) GetPlaylistTracksMultipleSorting(ctx *gin.Cont
 }
 
 func (c *PlaylistTrackController) GetPlaylistFilterCounts(ctx *gin.Context) {
-	var params struct {
-		Search   string `form:"search"`
-		AlbumId  string `form:"albumId"`
-		ArtistId string `form:"artistId"`
-		Year     string `form:"year"`
-	}
-
-	if err := ctx.ShouldBindQuery(&params); err != nil {
-		controller.ErrorResponse(ctx, http.StatusBadRequest, "PARAMS_ERROR", parseBindingError(err))
-		return
-	}
-
-	counts, err := c.PlaylistTrackUsecase.GetPlaylistTrackFilterItemsCount(
-		ctx.Request.Context(),
-		params.Search,
-		params.AlbumId,
-		params.ArtistId,
-		params.Year,
-	)
+	counts, err := c.PlaylistTrackUsecase.GetPlaylistTrackFilterItemsCount(ctx.Request.Context())
 
 	if err != nil {
 		controller.ErrorResponse(ctx, http.StatusInternalServerError, "DATABASE_ERROR", err.Error())

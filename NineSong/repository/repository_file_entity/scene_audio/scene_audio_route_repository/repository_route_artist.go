@@ -264,7 +264,6 @@ func hasPlaySortArtist(sortOrder []domain_util.SortOrder) bool {
 
 func (r *artistRepository) GetArtistFilterItemsCount(
 	ctx context.Context,
-	search, starred string,
 ) (*scene_audio_route_models.ArtistFilterCounts, error) {
 	coll := r.db.Collection(r.collection)
 
@@ -287,9 +286,6 @@ func (r *artistRepository) GetArtistFilterItemsCount(
 				}},
 				{Key: "as", Value: "annotations"},
 			}},
-		},
-		{
-			{Key: "$match", Value: buildArtistBaseMatch(search, starred)},
 		},
 		{
 			{Key: "$facet", Value: bson.D{

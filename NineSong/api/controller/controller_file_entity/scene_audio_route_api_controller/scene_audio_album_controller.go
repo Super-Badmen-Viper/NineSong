@@ -122,28 +122,7 @@ func (c *AlbumController) GetAlbumItemsMultipleSorting(ctx *gin.Context) {
 }
 
 func (c *AlbumController) GetAlbumFilterCounts(ctx *gin.Context) {
-	params := struct {
-		Search   string `form:"search"`
-		Starred  string `form:"starred"`
-		ArtistID string `form:"artist_id"`
-		MinYear  string `form:"min_year"`
-		MaxYear  string `form:"max_year"`
-	}{
-		Search:   ctx.Query("search"),
-		Starred:  ctx.Query("starred"),
-		ArtistID: ctx.Query("artist_id"),
-		MinYear:  ctx.Query("min_year"),
-		MaxYear:  ctx.Query("max_year"),
-	}
-
-	counts, err := c.AlbumUsecase.GetAlbumFilterItemsCount(
-		ctx.Request.Context(),
-		params.Search,
-		params.Starred,
-		params.ArtistID,
-		params.MinYear,
-		params.MaxYear,
-	)
+	counts, err := c.AlbumUsecase.GetAlbumFilterItemsCount(ctx.Request.Context())
 
 	if err != nil {
 		controller.ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())

@@ -226,24 +226,26 @@ func buildCueMultiSortStage(sortOrder []domain_util.SortOrder) *bson.D {
 // 新增：CUE排序字段映射
 func mapCueSortField(sort string) string {
 	sortMappings := map[string]string{
-		"title":           "title",
-		"performer":       "performer",
-		"year":            "rem.date",
-		"rating":          "rating",
-		"starred_at":      "starred_at",
-		"genre":           "rem.genre",
-		"play_count":      "play_count",
-		"play_date":       "play_date",
-		"size":            "size",
-		"created_at":      "created_at",
-		"updated_at":      "updated_at",
-		"cue_track_count": "cue_track_count",
-		"bit_rate":        "cue_bit_rate",
-		"duration":        "cue_duration",
-		"sample_rate":     "cue_sample_rate",
-		"track_title":     "cue_tracks.track_title",     // 嵌套字段排序
-		"track_performer": "cue_tracks.track_performer", // 嵌套字段排序
-		"recently_added":  "created_at",
+		"title":            "title",
+		"performer":        "performer",
+		"year":             "rem.date",
+		"rating":           "rating",
+		"starred_at":       "starred_at",
+		"genre":            "rem.genre",
+		"play_count":       "play_count",
+		"play_date":        "play_date",
+		"size":             "size",
+		"created_at":       "created_at",
+		"updated_at":       "updated_at",
+		"cue_track_count":  "cue_track_count",
+		"bit_rate":         "cue_bit_rate",
+		"duration":         "cue_duration",
+		"sample_rate":      "cue_sample_rate",
+		"track_title":      "cue_tracks.track_title",
+		"track_performer":  "cue_tracks.track_performer",
+		"title_pinyin":     "title_pinyin_full",
+		"performer_pinyin": "performer_pinyin_full",
+		"recently_added":   "created_at",
 	}
 	if mapped, ok := sortMappings[strings.ToLower(sort)]; ok {
 		return mapped
@@ -263,7 +265,6 @@ func hasPlayDateSortMediaCue(sortOrder []domain_util.SortOrder) bool {
 
 func (r *mediaFileCueRepository) GetMediaFileCueFilterItemsCount(
 	ctx context.Context,
-	search, starred, albumId, artistId, year string,
 ) (*scene_audio_route_models.MediaFileCueFilterCounts, error) {
 	coll := r.db.Collection(r.collection)
 
@@ -297,11 +298,11 @@ func (r *mediaFileCueRepository) GetMediaFileCueFilterItemsCount(
 			{Key: "$addFields", Value: bson.D{
 				{Key: "play_count", Value: "$annotations.play_count"},
 				{Key: "play_complete_count", Value: "$annotations.play_complete_count"},
+				{Key: "play_date", Value: "$annotations.play_date"},
+				{Key: "rating", Value: "$annotations.rating"},
 				{Key: "starred", Value: "$annotations.starred"},
+				{Key: "starred_at", Value: "$annotations.starred_at"},
 			}},
-		},
-		{
-			{Key: "$match", Value: r.buildBaseMatch(search, albumId, artistId, year)},
 		},
 		{
 			{Key: "$facet", Value: bson.D{
@@ -373,6 +374,9 @@ func (r *mediaFileCueRepository) validateSortField(sort string) string {
 		"created_at":      "created_at",
 		"updated_at":      "updated_at",
 		"cue_track_count": "cue_track_count",
+		"bit_rate":        "cue_bit_rate",
+		"duration":        "cue_duration",
+		"sample_rate":     "cue_sample_rate",
 	}
 
 	if mapped, ok := sortMappings[strings.ToLower(sort)]; ok {

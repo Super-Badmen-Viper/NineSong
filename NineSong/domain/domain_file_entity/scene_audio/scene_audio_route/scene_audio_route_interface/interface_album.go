@@ -27,7 +27,5 @@ type AlbumRepository interface {
 
 	GetAlbumFilterItemsCount(
 		ctx context.Context,
-		search, starred, artistId,
-		minYear, maxYear string,
 	) (*scene_audio_route_models.AlbumFilterCounts, error)
 }

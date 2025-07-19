@@ -324,7 +324,6 @@ func mapPlaylistSortField(sort string) string {
 
 func (r *playlistTrackRepository) GetPlaylistTrackFilterItemsCount(
 	ctx context.Context,
-	search, albumId, artistId, year string,
 ) (*scene_audio_route_models.MediaFileFilterCounts, error) {
 	coll := r.db.Collection(r.collection)
 
@@ -361,9 +360,6 @@ func (r *playlistTrackRepository) GetPlaylistTrackFilterItemsCount(
 				}},
 				{Key: "as", Value: "annotations"},
 			}},
-		},
-		{
-			{Key: "$match", Value: buildMediaBaseMatch(search, albumId, artistId, year)},
 		},
 		{
 			{Key: "$facet", Value: bson.D{

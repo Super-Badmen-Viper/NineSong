@@ -1,4 +1,4 @@
-# NineSong Server
+# NineSong Personal Digital Center
 NineSong aims to provide cloud native and AI extended solutions for data sharing in various ToB and ToC businesses,
 for managing various file metadata (local files, cloud storage files) and the business attributes derived from these metadata, 
 and applied to various application scenarios, 
