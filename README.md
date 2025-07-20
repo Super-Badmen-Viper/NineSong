@@ -17,46 +17,43 @@ For NineSong, it only needs to respond to users around the world who need it and
 You need to put the. env and docker-compose.yaml files in the same folder. You can customize the parameter configuration of. env and docker-compose.yaml, such as mapping the media library folder to the Volumes of the NineSong container.  
 [download](https://github.com/Super-Badmen-Viper/NineSong/releases/): https://github.com/Super-Badmen-Viper/NineSong/releases
 Note that currently only the beta version is open for testing, and a truly complete experience will need to wait for the release of the 1.0.0 official version. If you want to try using it and help NineSong test bugs, you can install and deploy the 0.5.0 beta version, which provides sufficient basic functions for you to use. Even with the 0.5.0 beta version, its music experience surpasses all current Github music servers, let alone the 1.0.0 official version.  
-The features currently available in the 0.5.0 Beta version:  
- - Regular music library management
- - Exquisite playback style
- - Conventional streaming of music resources
- - Music, album, artist, homepage
- - Desktop layout (mobile layout needs to be adapted later, and mobile layout still needs to be used. Please use landscape on your phone)
 
-## DownLoad For 1.0.0 Version (Music Scene): Released in early July 2025
+## DownLoad For 1.0.0 Version (Music Scene): Released At the end of July 2025
 Compared to other music servers (such as Navidrome, Jellyfin, Emby, Plex, Subsonic, Gonic), it offers the following enhanced features:
-- More comprehensive music library management:
-- - Rich single-level sorting options, supporting multi-level mixed sorting and multi-level mixed filtering;
-- - deeper processing of composite tags to make the relevance between musics more comprehensive;
-- - search jump optimization
-- - - support for Chinese pinyin fuzzy search;
-- - - support searching based on lyrics;
-- - - support for quick initial letter jumping;
-- - - recommended similar search results;
-- - support for dual-page browsing mode (unlimited virtual list, paged list);
-- - support uploading, downloading, and synchronizing music files between the server and client;
-- More comprehensive music playback experience:
-- - various elegant playback styles[cover Square、cover Rotate、cover Beaut、cover Base、cover AlbumList];
-- - exclusive playback modes for various music files[normal model、cue-music model];
-- CUE exclusive playback (CUE: wav、ape、flac) and CUE file management:
-- - Exclusive management page for music disc image (mirror) auxiliary files. 
-- - CUE playback styles suitable for music disc image features
-- - Visualized virtual track playback of CUE
+- [ ] More comprehensive music library management:
+- - [x] Rich single-level sorting options, supporting multi-level mixed sorting and multi-level mixed filtering;
+- - [x] deeper processing of composite tags to make the relevance between musics more comprehensive;
+- - [x] search jump optimization
+- - - [x] support for Chinese pinyin fuzzy search;
+- - - [x] support searching based on lyrics;
+- - - [x] support for quick initial letter jumping;
+- - - [x] recommended similar search results;
+- - [ ] support for dual-page browsing mode (unlimited virtual list, paged list);
+- - [ ] support uploading, downloading, and synchronizing music files between the server and client;
+- [ ] More comprehensive music playback experience:
+- - [x] various elegant playback styles[cover Square、cover Rotate、cover Beaut、cover Base、cover AlbumList];
+- - [x] exclusive playback modes for various music files[normal model、cue-music model];
+- [ ] CUE exclusive playback (CUE: wav、ape、flac) and CUE file management:
+- - [x] Exclusive management page for music disc image (mirror) auxiliary files. 
+- - [ ] CUE playback styles suitable for music disc image features
+- - [ ] Visualized virtual track playback of CUE
 - More complete TAG import and management:
-- - support for importing complete TAGs from more types of music files (including m4a、cue(wav、ape、flac));
-- - support for user-visualized TAG management, allowing remote uploads, auto-associating, manual merging of artist-album-single TAGs;
-- - support for richer TAG fields: artist profile pictures, artist photos (multiple selection), album covers, song quality versions (multiple selection), and lyrics versions (single selection);
-- Integrated free public welfare music TAG API, allowing users to obtain online TAGs for songs and choose whether to synchronize TAG data.
-- Support for multi-channel audio effects; support for Advanced/Standard/Simple EQ; (October)
-- Personalized music recommendations based on user usage data.
-- - Phase 1 (June): Add tag cloud and recommend music based on user interests.
-- - Phase 2 (August): Use lightweight recommendation algorithms based on usage data.
-- - Phase 3 (October): Build a music knowledge graph by analyzing music metadata to achieve smarter recommendations.
-- - Phase 4 (December): Combine the knowledge graph with LLM (DeepSeek) for advanced music recommendations.
+- - [x] support for importing complete TAGs from more types of music files (including m4a、cue(wav、ape、flac));
+- - [ ] support for user-visualized TAG management, allowing remote uploads, auto-associating, manual merging of artist-album-single TAGs;
+- - [ ] support for richer TAG fields: artist profile pictures, artist photos (multiple selection), album covers, song quality versions (multiple selection), and lyrics versions (single selection);
+- [x] Integrated free public welfare music TAG API, allowing users to obtain online TAGs for songs and choose whether to synchronize TAG data.
+- [ ] Support for multi-channel audio effects; support for Advanced/Standard/Simple EQ; (October)
+- [ ] Personalized music recommendations based on user usage data.
+- - [x] Phase 1 (June): Add tag cloud and recommend music based on user interests.
+- - [ ] Phase 2 (August): Use lightweight recommendation algorithms based on usage data.
+- - [ ] Phase 3 (October): Build a music knowledge graph by analyzing music metadata to achieve smarter recommendations.
+- - [ ] Phase 4 (December): Combine the knowledge graph with LLM (DeepSeek) for advanced music recommendations.
 
-## How to Deploy Docker [releases](https://github.com/Super-Badmen-Viper/NineSong/releases/):
+## How to Deploy Docker:
+You first need to download the compressed file from the [releases](https://github.com/Super-Badmen-Viper/NineSong/releases/)  
+
 You need to put the. env and docker-compose.yaml files [in the same folder](https://github.com/Super-Badmen-Viper/NineSong/releases/). You can customize the parameter configuration of. env and docker-compose.yaml, such as mapping the media library folder to the Volumes of the NineSong container.  
+
 Note that if you update the mirrored version of NineSong, temporary resources in the media library (such as album covers) will also be deleted. You need to rescan the media library in the settings to regenerate temporary resources
 ```sh
 run: docker compose up -d
