@@ -20,7 +20,7 @@ services:
       - backend
 
   backend:
-    image: xiangch007/ninesong:0.6.6-beta
+    image: xiangch007/ninesong:latest
     container_name: ${WEB_CONTAINER_NAME}
     restart: unless-stopped
     env_file: .env
