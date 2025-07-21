@@ -12,6 +12,7 @@ import (
 	ffmpeggo "github.com/u2takey/ffmpeg-go"
 	driver "go.mongodb.org/mongo-driver/mongo"
 	"io"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
@@ -135,9 +136,7 @@ func (uc *AudioProcessingUsecase) ProcessMusicDirectory(
 		return fmt.Errorf("创建时间戳歌词目录失败: %w", err)
 	}
 	// 自动清理旧文件夹（保留最新5个）
-	if err := uc.cleanupOldLyricsFolders(lyricsTempPath); err != nil {
-		log.Printf("旧歌词目录清理失败（不影响主流程）: %v", err)
-	}
+	go uc.cleanupOldLyricsFoldersAsync(lyricsTempPath)
 
 	var libraryFolderNewInfos []struct {
 		libraryFolderID        primitive.ObjectID
@@ -1309,11 +1308,15 @@ func (uc *AudioProcessingUsecase) processAudioCover(
 			uc.processAlbumCover(album, coverPath, coverBasePath, ctx)
 		}
 
-		for _, artist := range artists {
-			if artist != nil && coverPath != "" {
-				if artist.MediumImageURL == "" && !artist.HasCoverArt {
-					if !media.Compilation {
-						uc.processArtistCover(artist, coverPath, coverBasePath, ctx)
+		// 5. 处理艺术家封面（如果存在）
+		if coverPath != "" && !media.Compilation {
+			artistCoverBaseDir := filepath.Join(coverBasePath, "artist")
+			if err := os.MkdirAll(artistCoverBaseDir, 0755); err != nil {
+				log.Printf("[WARN] 艺术家封面基础目录创建失败: %v", err)
+			} else {
+				for _, artist := range artists {
+					if artist != nil {
+						uc.processArtistCover(artist, coverPath, artistCoverBaseDir, ctx)
 					}
 				}
 			}
@@ -1610,14 +1613,29 @@ func (uc *AudioProcessingUsecase) copyCoverFile(src, dest string) error {
 }
 
 // 清理旧歌词目录（保留最新的5个）
+func (uc *AudioProcessingUsecase) cleanupOldLyricsFoldersAsync(lyricsTempPath string) {
+	// 1. 异步恢复机制防止panic崩溃[4](@ref)
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[异步清理] 发生未预期错误: %v", r)
+		}
+	}()
+
+	// 2. 执行实际清理逻辑
+	if err := uc.cleanupOldLyricsFolders(lyricsTempPath); err != nil {
+		log.Printf("[异步清理] 旧歌词目录清理失败: %v", err)
+	}
+}
+
+// 优化后的清理逻辑（保持原有功能）
 func (uc *AudioProcessingUsecase) cleanupOldLyricsFolders(lyricsTempPath string) error {
-	// 读取目录下所有项目
+	// 1. 读取目录下所有项目
 	entries, err := os.ReadDir(lyricsTempPath)
 	if err != nil {
 		return fmt.Errorf("读取歌词目录失败: %w", err)
 	}
 
-	// 过滤并排序时间戳目录
+	// 2. 过滤时间戳目录
 	var folders []os.DirEntry
 	for _, entry := range entries {
 		if entry.IsDir() && domain_util.IsTimestampFolder(entry.Name()) {
@@ -1625,24 +1643,25 @@ func (uc *AudioProcessingUsecase) cleanupOldLyricsFolders(lyricsTempPath string)
 		}
 	}
 
-	// 检查是否需要清理（超过10个才清理）
+	// 3. 检查是否需要清理（超过10个才清理）
 	if len(folders) <= 10 {
+		log.Printf("[异步清理] 无需清理（当前目录数: %d）", len(folders))
 		return nil
 	}
 
-	// 按时间戳排序（从旧到新）
+	// 4. 按时间戳排序（从旧到新）[1](@ref)
 	sort.Slice(folders, func(i, j int) bool {
 		return folders[i].Name() < folders[j].Name()
 	})
 
-	// 保留最新的5个，其余删除
+	// 5. 保留最新的5个，其余删除
 	deleteCount := len(folders) - 5
 	for i := 0; i < deleteCount; i++ {
 		folderPath := filepath.Join(lyricsTempPath, folders[i].Name())
 		if err := os.RemoveAll(folderPath); err != nil {
-			log.Printf("删除旧目录失败 %s: %v", folderPath, err)
+			log.Printf("[异步清理] 删除失败 %s: %v", folderPath, err)
 		} else {
-			log.Printf("已清理旧歌词目录: %s", folderPath)
+			log.Printf("[异步清理] 已删除旧目录: %s", folderPath)
 		}
 	}
 	return nil
@@ -1698,8 +1717,10 @@ func (uc *AudioProcessingUsecase) extractCoverWithFFmpeg(audioPath, mediaCoverDi
 }
 
 // 处理专辑封面[1](@ref)
-func (uc *AudioProcessingUsecase) processAlbumCover(album *scene_audio_db_models.AlbumMetadata,
-	coverPath, coverBasePath string, ctx context.Context) {
+func (uc *AudioProcessingUsecase) processAlbumCover(
+	album *scene_audio_db_models.AlbumMetadata,
+	coverPath, coverBasePath string, ctx context.Context,
+) {
 
 	if album.MediumImageURL == "" {
 		albumCoverDir := filepath.Join(coverBasePath, "album", album.ID.Hex())
@@ -1727,22 +1748,29 @@ func (uc *AudioProcessingUsecase) processAlbumCover(album *scene_audio_db_models
 	}
 }
 
-func (uc *AudioProcessingUsecase) processArtistCover(artist *scene_audio_db_models.ArtistMetadata,
-	coverPath, coverBasePath string, ctx context.Context) {
+// 处理艺术家封面[1](@ref)
+func (uc *AudioProcessingUsecase) processArtistCover(
+	artist *scene_audio_db_models.ArtistMetadata,
+	coverPath, artistBaseDir string,
+	ctx context.Context,
+) {
+	artistCoverDir := filepath.Join(artistBaseDir, artist.ID.Hex())
+	artistCoverPath := filepath.Join(artistCoverDir, "cover.jpg")
 
-	if artist.MediumImageURL == "" {
-		artistCoverDir := filepath.Join(coverBasePath, "artist", artist.ID.Hex())
+	if _, err := os.Stat(artistCoverDir); errors.Is(err, fs.ErrNotExist) {
+		// 1. 创建艺术家专属目录 (关键修复)
 		if err := os.MkdirAll(artistCoverDir, 0755); err != nil {
-			log.Printf("[WARN] 专辑封面目录创建失败: %v", err)
+			log.Printf("[ERROR] 艺术家封面目录创建失败 | 艺术家:%s | 错误:%v", artist.ID.Hex(), err)
 			return
 		}
 
-		artistCoverPath := filepath.Join(artistCoverDir, "cover.jpg")
+		// 2. 复制封面文件
 		if err := uc.copyCoverFile(coverPath, artistCoverPath); err != nil {
-			log.Printf("[WARN] 专辑封面复制失败: %v", err)
+			log.Printf("[ERROR] 艺术家封面复制失败 | 艺术家:%s | 错误:%v", artist.ID.Hex(), err)
 			return
 		}
 
+		// 3. 更新艺术家元数据
 		artistUpdate := bson.M{
 			"$set": bson.M{
 				"medium_image_url": artistCoverPath,
@@ -1751,9 +1779,11 @@ func (uc *AudioProcessingUsecase) processArtistCover(artist *scene_audio_db_mode
 		}
 
 		if _, err := uc.artistRepo.UpdateByID(ctx, artist.ID, artistUpdate); err != nil {
-			log.Printf("[WARN] 专辑元数据更新失败: %v", err)
+			log.Printf("[ERROR] 艺术家元数据更新失败 | 艺术家:%s | 错误:%v", artist.ID.Hex(), err)
 		}
 	}
+
+	return
 }
 
 func (uc *AudioProcessingUsecase) processAudioHierarchy(ctx context.Context,

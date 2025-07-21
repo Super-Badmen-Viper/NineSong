@@ -1805,7 +1805,7 @@
 										"method": "GET",
 										"header": [],
 										"url": {
-											"raw": "{{baseUrl}}/medias?order=desc&sort=artist&start=90&end=120",
+											"raw": "{{baseUrl}}/medias?start=0&end=120&order=desc&sort=artist",
 											"host": [
 												"{{baseUrl}}"
 											],
@@ -1814,22 +1814,24 @@
 											],
 											"query": [
 												{
-													"key": "sort",
-													"value": "play_date",
-													"disabled": true
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "120"
 												},
 												{
 													"key": "order",
 													"value": "desc"
 												},
 												{
-													"key": "starred",
-													"value": "false",
-													"disabled": true
+													"key": "sort",
+													"value": "artist"
 												},
 												{
-													"key": "year",
-													"value": "2015",
+													"key": "starred",
+													"value": "false",
 													"disabled": true
 												},
 												{
@@ -1848,16 +1850,29 @@
 													"disabled": true
 												},
 												{
-													"key": "sort",
-													"value": "artist"
+													"key": "year",
+													"value": "2015",
+													"disabled": true
 												},
 												{
-													"key": "start",
-													"value": "90"
+													"key": "suffix",
+													"value": "flac",
+													"disabled": true
 												},
 												{
-													"key": "end",
-													"value": "120"
+													"key": "min_bitrate",
+													"value": "600",
+													"disabled": true
+												},
+												{
+													"key": "max_bitrate",
+													"value": "1000",
+													"disabled": true
+												},
+												{
+													"key": "folder_path",
+													"value": "E:\\0_Music",
+													"disabled": true
 												}
 											]
 										},
@@ -1938,6 +1953,41 @@
 									"response": []
 								},
 								{
+									"name": "Medias Ids",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/medias/ids?ids=6871fe78ff3e09a259acb0e8,6871fec7ff3e09a259ad5376",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"medias",
+												"ids"
+											],
+											"query": [
+												{
+													"key": "ids",
+													"value": "6871fe78ff3e09a259acb0e8,6871fec7ff3e09a259ad5376"
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
 									"name": "Medias Count",
 									"request": {
 										"auth": {
@@ -1960,13 +2010,6 @@
 											"path": [
 												"medias",
 												"filter_counts"
-											],
-											"query": [
-												{
-													"key": "starred",
-													"value": "true",
-													"disabled": true
-												}
 											]
 										},
 										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
@@ -2115,6 +2158,35 @@
 													"value": "8e8465680c603c710351902e",
 													"disabled": true
 												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Media_Cues Count",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/cues/filter_counts",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"cues",
+												"filter_counts"
 											]
 										},
 										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
@@ -2283,12 +2355,12 @@
 											"urlencoded": [
 												{
 													"key": "item_id",
-													"value": "8e8465680c603c710351902e",
+													"value": "6871feacff3e09a259ad0f2f",
 													"type": "text"
 												},
 												{
 													"key": "item_type",
-													"value": "artist",
+													"value": "media",
 													"type": "text"
 												}
 											]
@@ -3399,8 +3471,161 @@
 							]
 						},
 						{
-							"name": "Recommend",
-							"item": []
+							"name": "Word Cloud",
+							"item": [
+								{
+									"name": "Get WordCloud",
+									"protocolProfileBehavior": {
+										"disableBodyPruning": true
+									},
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"body": {
+											"mode": "urlencoded",
+											"urlencoded": []
+										},
+										"url": {
+											"raw": "{{baseUrl}}/word_cloud",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"word_cloud"
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Get Genre",
+									"protocolProfileBehavior": {
+										"disableBodyPruning": true
+									},
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"body": {
+											"mode": "urlencoded",
+											"urlencoded": []
+										},
+										"url": {
+											"raw": "{{baseUrl}}/word_cloud/genre",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"word_cloud",
+												"genre"
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Get High Frequency",
+									"protocolProfileBehavior": {
+										"disableBodyPruning": true
+									},
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"body": {
+											"mode": "urlencoded",
+											"urlencoded": []
+										},
+										"url": {
+											"raw": "{{baseUrl}}/word_cloud/high?limit=100",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"word_cloud",
+												"high"
+											],
+											"query": [
+												{
+													"key": "limit",
+													"value": "100"
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Get Recommended",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "urlencoded",
+											"urlencoded": [
+												{
+													"key": "keywords",
+													"value": "live,爱",
+													"type": "text"
+												}
+											]
+										},
+										"url": {
+											"raw": "{{baseUrl}}/word_cloud/recommend",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"word_cloud",
+												"recommend"
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								}
+							]
 						},
 						{
 							"name": "Tags",
