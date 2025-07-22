@@ -13,7 +13,7 @@ type RetrievalRepository interface {
 
 	GetCoverArtID(ctx context.Context, fileType string, targetID string) (string, error)
 
-	GetLyricsLrcMetaData(ctx context.Context, mediaFileId string) (string, error)
+	GetLyricsLrcMetaData(ctx context.Context, mediaFileId, artist, title, fileType string) (string, error)
 
 	GetLyricsLrcFile(ctx context.Context, mediaFileId string) (string, error)
 }

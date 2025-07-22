@@ -63,21 +63,21 @@ func (uc *retrievalUsecase) GetCoverArtID(ctx context.Context, fileType string, 
 	return uc.repo.GetCoverArtID(ctx, fileType, targetID)
 }
 
-func (uc *retrievalUsecase) GetLyricsLrcMetaData(ctx context.Context, mediaFileId string) (string, error) {
+func (uc *retrievalUsecase) GetLyricsLrcMetaData(ctx context.Context, mediaFileId, artist, title, fileType string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
 	defer cancel()
 
-	// 参数格式验证
-	if _, err := primitive.ObjectIDFromHex(mediaFileId); err != nil {
-		return "", errors.New("invalid media file id format")
+	if len(mediaFileId) > 0 {
+		if _, err := primitive.ObjectIDFromHex(mediaFileId); err != nil {
+			return "", errors.New("invalid media file id format")
+		}
+
+		if len(mediaFileId) != 24 {
+			return "", errors.New("media file id must be 24 hex characters")
+		}
 	}
 
-	// 添加业务规则验证（示例）
-	if len(mediaFileId) != 24 {
-		return "", errors.New("media file id must be 24 hex characters")
-	}
-
-	return uc.repo.GetLyricsLrcMetaData(ctx, mediaFileId)
+	return uc.repo.GetLyricsLrcMetaData(ctx, mediaFileId, artist, title, fileType)
 }
 
 func (uc *retrievalUsecase) GetLyricsLrcFile(ctx context.Context, mediaFileId string) (string, error) {

@@ -2,9 +2,7 @@ package domain_util
 
 import (
 	"log"
-	"regexp"
 	"strings"
-	"unicode/utf8"
 )
 
 func LoadCombinedStopWords() map[string]bool {
@@ -57,50 +55,6 @@ func parseToStopwords(dest map[string]bool, content string) {
 			}
 		}
 	}
-}
-
-// 下面的函数保持不变...
-func shouldSkipWord(word string, stopWords map[string]bool) bool {
-	// 1. 长度过滤
-	if utf8.RuneCountInString(word) < 2 {
-		return true
-	}
-	// 2. 停用词匹配
-	if stopWords[word] {
-		return true
-	}
-	// 3. 特殊字符检测（新增实现）
-	if ContainsInvalidChars(word) {
-		return true
-	}
-	// 4. 英文变体处理
-	baseForm := getBaseForm(word)
-	return stopWords[baseForm]
-}
-
-// 辅助函数：获取词干原型
-func getBaseForm(word string) string {
-	// 简单处理英文简写
-	if strings.HasSuffix(word, "'s") || strings.HasSuffix(word, "'t") {
-		return word[:len(word)-2]
-	}
-	return word
-}
-
-func isEnglishWord(s string) bool {
-	for _, r := range s {
-		if r < 128 {
-			return true
-		}
-	}
-	return false
-}
-
-// ContainsInvalidChars 新增：字符级过滤函数（基于亚马逊SKU禁用字符规范）
-func ContainsInvalidChars(word string) bool {
-	// 匹配所有控制字符（\n, \r, \t等）和特殊Unicode字符
-	invalidRegex := regexp.MustCompile(`[\x00-\x1F\x7F\x{200B}-\x{200F}\x{2028}\x{2029}\x{FEFF}]`)
-	return invalidRegex.MatchString(word)
 }
 
 // 原始停用词文件内容（直接嵌入代码）

@@ -46,6 +46,7 @@ type AudioProcessingUsecase struct {
 	tempRepo         scene_audio_db_interface.TempRepository
 	mediaCueRepo     scene_audio_db_interface.MediaFileCueRepository
 	wordCloudRepo    scene_audio_db_interface.WordCloudDBRepository
+	lyricsFileRepo   scene_audio_db_interface.LyricsFileRepository
 	scanMutex        sync.RWMutex
 	scanProgress     float32
 	scanStageWeights struct {
@@ -67,6 +68,7 @@ func NewAudioProcessingUsecase(
 	tempRepo scene_audio_db_interface.TempRepository,
 	mediaCueRepo scene_audio_db_interface.MediaFileCueRepository,
 	wordCloudRepo scene_audio_db_interface.WordCloudDBRepository,
+	lyricsFileRepo scene_audio_db_interface.LyricsFileRepository,
 ) *AudioProcessingUsecase {
 	workerCount := runtime.NumCPU() * 2
 	if workerCount < 4 {
@@ -74,18 +76,19 @@ func NewAudioProcessingUsecase(
 	}
 
 	return &AudioProcessingUsecase{
-		db:            db,
-		fileRepo:      fileRepo,
-		folderRepo:    folderRepo,
-		detector:      detector,
-		workerPool:    make(chan struct{}, workerCount),
-		scanTimeout:   time.Duration(timeoutMinutes) * time.Minute,
-		artistRepo:    artistRepo,
-		albumRepo:     albumRepo,
-		mediaRepo:     mediaRepo,
-		tempRepo:      tempRepo,
-		mediaCueRepo:  mediaCueRepo,
-		wordCloudRepo: wordCloudRepo,
+		db:             db,
+		fileRepo:       fileRepo,
+		folderRepo:     folderRepo,
+		detector:       detector,
+		workerPool:     make(chan struct{}, workerCount),
+		scanTimeout:    time.Duration(timeoutMinutes) * time.Minute,
+		artistRepo:     artistRepo,
+		albumRepo:      albumRepo,
+		mediaRepo:      mediaRepo,
+		tempRepo:       tempRepo,
+		mediaCueRepo:   mediaCueRepo,
+		wordCloudRepo:  wordCloudRepo,
+		lyricsFileRepo: lyricsFileRepo,
 	}
 }
 
@@ -137,6 +140,10 @@ func (uc *AudioProcessingUsecase) ProcessMusicDirectory(
 	}
 	// 自动清理旧文件夹（保留最新5个）
 	go uc.cleanupOldLyricsFoldersAsync(lyricsTempPath)
+	//
+	if _, err := uc.lyricsFileRepo.CleanAll(ctx); err != nil {
+		log.Printf("清空歌词文件数据库失败: %v", err)
+	}
 
 	var libraryFolderNewInfos []struct {
 		libraryFolderID        primitive.ObjectID
@@ -1155,6 +1162,7 @@ func (uc *AudioProcessingUsecase) processFile(
 		}
 
 		if err = uc.processAudioLyrics(
+			ctx,
 			mediaFile,
 			mediaFileCue,
 			path,
@@ -1327,6 +1335,7 @@ func (uc *AudioProcessingUsecase) processAudioCover(
 }
 
 func (uc *AudioProcessingUsecase) processAudioLyrics(
+	ctx context.Context,
 	media *scene_audio_db_models.MediaFileMetadata,
 	mediaCue *scene_audio_db_models.MediaFileCueMetadata,
 	path string,
@@ -1341,14 +1350,14 @@ func (uc *AudioProcessingUsecase) processAudioLyrics(
 
 	// 2. 处理常规媒体文件歌词
 	if media != nil {
-		if err := uc.processMediaLyrics(media, path, lyricsTempPath); err != nil {
+		if err := uc.processMediaLyrics(ctx, media, path, lyricsTempPath); err != nil {
 			return fmt.Errorf("媒体文件歌词处理失败: %w", err)
 		}
 	}
 
 	// 3. 处理CUE文件歌词
 	if mediaCue != nil {
-		if err := uc.processCueLyrics(mediaCue, lyricsTempPath); err != nil {
+		if err := uc.processCueLyrics(ctx, mediaCue, lyricsTempPath); err != nil {
 			return fmt.Errorf("CUE文件歌词处理失败: %w", err)
 		}
 	}
@@ -1358,57 +1367,67 @@ func (uc *AudioProcessingUsecase) processAudioLyrics(
 
 // 处理常规媒体文件歌词（优化后）
 func (uc *AudioProcessingUsecase) processMediaLyrics(
+	ctx context.Context,
 	media *scene_audio_db_models.MediaFileMetadata,
 	path string,
-	lyricsTempPath string, // 直接使用此路径作为存储目录
+	lyricsTempPath string,
 ) error {
-	// 唯一匹配逻辑：音频目录中严格只有一个.lrc文件
+	// 1. 精准定位同名歌词文件（核心优化）
 	audioDir := filepath.Dir(path)
-	var lrcFiles []string
-	if entries, err := os.ReadDir(audioDir); err == nil {
-		for _, entry := range entries {
-			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".lrc") {
-				lrcFiles = append(lrcFiles, filepath.Join(audioDir, entry.Name()))
-			}
-		}
-	}
+	audioName := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+	lrcPath := filepath.Join(audioDir, audioName+".lrc") // 直接构建路径避免全局扫描[4,7](@ref)
 
-	// 处理唯一匹配的外部歌词文件
-	if len(lrcFiles) == 1 {
+	// 2. 处理外部歌词文件（精准匹配）
+	if _, err := os.Stat(lrcPath); err == nil {
 		destFileName, err := uc.generateLyricFilename(media, lyricsTempPath, "lrc")
 		if err != nil {
 			return fmt.Errorf("歌词文件名生成失败: %w", err)
 		}
+		if destFileName == "" {
+			return nil // 跳过情况
+		}
 
-		if destFileName == "" { // 处理跳过情况
+		destPath := filepath.Join(lyricsTempPath, destFileName)
+
+		// 冲突检测（避免覆盖）
+		if _, err := os.Stat(destPath); err == nil {
 			return nil
 		}
 
-		destPath := filepath.Join(lyricsTempPath, destFileName) // 直接存储到根目录
-
-		if _, err := os.Stat(destPath); err == nil { // 冲突检测
-			return nil
+		// 保存元数据到数据库
+		artist, title := sanitizeMetadata(media.Artist, media.Title)
+		if _, err := uc.lyricsFileRepo.UpdateLyricsFilePath(ctx, artist, title, "lrc", destPath); err != nil {
+			log.Printf("歌词路径保存失败: %v", err)
 		}
 
-		if err := uc.copyLyricsFile(lrcFiles[0], destPath); err != nil {
+		// 安全复制文件（加锁防止并发冲突）[5](@ref)
+		uc.scanMutex.Lock()
+		defer uc.scanMutex.Unlock()
+		if err := uc.copyLyricsFile(lrcPath, destPath); err != nil {
 			return fmt.Errorf("歌词复制失败: %w", err)
 		}
 	}
 
-	// 处理内嵌歌词
+	// 3. 处理内嵌歌词（独立流程）
 	if media.Lyrics != "" {
 		destFileName, err := uc.generateLyricFilename(media, lyricsTempPath, "embedded")
 		if err != nil {
 			return fmt.Errorf("歌词文件名生成失败: %w", err)
 		}
-
-		if destFileName == "" { // 处理跳过情况
+		if destFileName == "" {
 			return nil
 		}
 
-		destPath := filepath.Join(lyricsTempPath, destFileName) // 直接存储到根目录
+		destPath := filepath.Join(lyricsTempPath, destFileName)
 
-		if err := os.WriteFile(destPath, []byte(media.Lyrics), 0644); err != nil {
+		// 保存元数据到数据库
+		artist, title := sanitizeMetadata(media.Artist, media.Title)
+		if _, err := uc.lyricsFileRepo.UpdateLyricsFilePath(ctx, artist, title, "embedded", destPath); err != nil {
+			log.Printf("歌词路径保存失败: %v", err)
+		}
+
+		// 原子写入（避免部分写入）
+		if err := atomicWriteFile(destPath, []byte(media.Lyrics), 0644); err != nil {
 			return fmt.Errorf("歌词写入失败: %w", err)
 		}
 	}
@@ -1416,10 +1435,34 @@ func (uc *AudioProcessingUsecase) processMediaLyrics(
 	return nil
 }
 
+// 辅助函数：原子写入文件（防止写入中断导致损坏）
+func atomicWriteFile(path string, data []byte, perm os.FileMode) error {
+	tempPath := path + ".tmp"
+	if err := os.WriteFile(tempPath, data, perm); err != nil {
+		return err
+	}
+	return os.Rename(tempPath, path) // 原子操作
+}
+
+// 辅助函数：清洗元数据特殊字符
+func sanitizeMetadata(artist, title string) (string, string) {
+	if artist == "" {
+		artist = "UnknownArtist"
+	}
+	if title == "" {
+		title = "UnknownTitle"
+	}
+
+	// 替换路径敏感字符[6](@ref)
+	replacer := strings.NewReplacer("/", "_", "\\", "_", ":", "_", "*", "_")
+	return replacer.Replace(artist), replacer.Replace(title)
+}
+
 // 处理CUE文件歌词（优化后）
 func (uc *AudioProcessingUsecase) processCueLyrics(
+	ctx context.Context,
 	mediaCue *scene_audio_db_models.MediaFileCueMetadata,
-	lyricsTempPath string, // 直接使用此路径作为存储目录
+	lyricsTempPath string,
 ) error {
 	// 处理外部歌词文件（复制CUE文件目录所有.lrc文件）
 	cueDir := filepath.Dir(mediaCue.CueResources.CuePath)
@@ -1444,10 +1487,25 @@ func (uc *AudioProcessingUsecase) processCueLyrics(
 			continue
 		}
 
-		destPath := filepath.Join(lyricsTempPath, destFileName) // 直接存储到根目录
+		destPath := filepath.Join(lyricsTempPath, destFileName)
 
 		if _, err := os.Stat(destPath); err == nil { // 冲突检测
 			continue
+		}
+
+		// 保存歌词信息到数据库
+		artist := mediaCue.Performer
+		title := mediaCue.Title
+		if artist == "" {
+			artist = "UnknownArtist"
+		}
+		if title == "" {
+			title = "UnknownTitle"
+		}
+
+		// 使用仓库保存歌词路径
+		if _, err := uc.lyricsFileRepo.UpdateLyricsFilePath(ctx, artist, title, "lrc", destPath); err != nil {
+			log.Printf("歌词路径保存失败: %v", err)
 		}
 
 		if err := uc.copyLyricsFile(srcPath, destPath); err != nil {

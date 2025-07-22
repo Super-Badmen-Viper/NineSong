@@ -35,10 +35,13 @@ func NewInitializer(env *Env, db mongo.Database) *Initializer {
 			"system_init",
 			domain.CollectionUser,
 			domain.CollectionTask,
+
 			domain.CollectionSystemInfo,
 			domain.CollectionSystemConfiguration,
+
 			domain.CollectionFileEntityFileInfo,
 			domain.CollectionFileEntityFolderInfo,
+
 			domain.CollectionFileEntityAudioAppConfigs,
 			domain.CollectionFileEntityAudioAppLibraryConfigs,
 			domain.CollectionFileEntityAudioAppAudioConfigs,
@@ -46,17 +49,23 @@ func NewInitializer(env *Env, db mongo.Database) *Initializer {
 			domain.CollectionFileEntityAudioAppPlaylistIDConfigs,
 			domain.CollectionFileEntityAudioAppServerConfigs,
 			domain.CollectionFileEntityAudioAppMediaFileLibrary,
+
 			domain.CollectionFileEntityAudioSceneMediaFile,
+			domain.CollectionFileEntityAudioSceneMediaFileWordCloud,
 			domain.CollectionFileEntityAudioSceneMediaFileCue,
 			domain.CollectionFileEntityAudioSceneMediaLyricsMetadata,
+			domain.CollectionFileEntityAudioSceneLyricsFile,
+
 			domain.CollectionFileEntityAudioSceneMediaMvMetadata,
 			domain.CollectionFileEntityAudioSceneMediaTrackMetadata,
 			domain.CollectionFileEntityAudioSceneMediaKaraokeMetadata,
+
 			domain.CollectionFileEntityAudioSceneAlbum,
 			domain.CollectionFileEntityAudioSceneArtist,
 			domain.CollectionFileEntityAudioSceneAnnotation,
 			domain.CollectionFileEntityAudioScenePlaylist,
 			domain.CollectionFileEntityAudioScenePlaylistTrack,
+
 			domain.CollectionFileEntityAudioSceneTempMetadata,
 		},
 	}
@@ -135,10 +144,6 @@ func (si *Initializer) executeInitialization(ctx context.Context) error {
 	}
 
 	if err := si.initAppConfigs(ctx); err != nil {
-		return err
-	}
-
-	if err := si.initAppLibraryConfigs(ctx); err != nil {
 		return err
 	}
 
@@ -464,24 +469,6 @@ func (si *Initializer) initAppConfigs(ctx context.Context) error {
 		{ConfigKey: "player_mpvExtraParameters", ConfigValue: ""},
 		{ConfigKey: "player_audio_channel", ConfigValue: ""},
 		{ConfigKey: "player_device_select", ConfigValue: "default"},
-	}
-
-	for _, cfg := range initConfigs {
-		_, err := coll.InsertOne(ctx, cfg)
-		if err != nil {
-			return fmt.Errorf("应用配置初始化失败: %w \n", err)
-		}
-	}
-	return nil
-}
-
-func (si *Initializer) initAppLibraryConfigs(ctx context.Context) error {
-	coll := si.db.Collection(domain.CollectionFileEntityAudioAppLibraryConfigs)
-
-	initConfigs := []*domain_app_config.AppLibraryConfig{
-		{ConfigKey: "0_Music", ConfigValue: "E:\\0_Music"},
-		{ConfigKey: "Music", ConfigValue: "C:\\Users\\17741\\Music"},
-		{ConfigKey: "iTunes", ConfigValue: "C:\\Users\\17741\\Music\\iTunes"},
 	}
 
 	for _, cfg := range initConfigs {

@@ -175,18 +175,23 @@ func (c *RetrievalController) CoverArtPathHandler(ctx *gin.Context) {
 
 func (c *RetrievalController) LyricsHandlerMetadata(ctx *gin.Context) {
 	var req struct {
-		MediaFileID string `form:"media_file_id" binding:"required,hexadecimal,len=24"`
+		MediaFileID string `form:"media_file_id"`
+		Artist      string `form:"artist"`
+		Title       string `form:"title"`
+		FileType    string `form:"file_type"`
 	}
 
 	if err := ctx.ShouldBind(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"code":    "INVALID_PARAMETERS",
-			"message": "参数格式错误: media_file_id必须为24位十六进制字符串",
+			"message": "参数格式错误",
 		})
 		return
 	}
 
-	lyricsContent, err := c.RetrievalUsecase.GetLyricsLrcMetaData(ctx.Request.Context(), req.MediaFileID)
+	lyricsContent, err := c.RetrievalUsecase.GetLyricsLrcMetaData(
+		ctx.Request.Context(), req.MediaFileID, req.Artist, req.Title, req.FileType,
+	)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{
 			"code":    "LYRICS_NOT_FOUND",
@@ -210,7 +215,7 @@ func (c *RetrievalController) LyricsHandlerFile(ctx *gin.Context) {
 		return
 	}
 
-	filePath, err := c.RetrievalUsecase.GetLyricsLrcMetaData(ctx.Request.Context(), req.MediaFileID)
+	filePath, err := c.RetrievalUsecase.GetLyricsLrcMetaData(ctx.Request.Context(), req.MediaFileID, "", "", "")
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{
 			"code":    "RESOURCE_NOT_FOUND",

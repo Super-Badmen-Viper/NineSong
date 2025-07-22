@@ -11,8 +11,10 @@ import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	driver "go.mongodb.org/mongo-driver/mongo"
 	"os"
 	"path/filepath"
+	"regexp"
 )
 
 type retrievalRepository struct {
@@ -170,25 +172,66 @@ func (r *retrievalRepository) checkCoverFile(basePath string, fileName string) (
 	return typePath, nil
 }
 
-func (r *retrievalRepository) GetLyricsLrcMetaData(ctx context.Context, mediaFileId string) (string, error) {
-	objID, err := primitive.ObjectIDFromHex(mediaFileId)
-	if err != nil {
-		return "", errors.New("invalid media file id format")
+func (r *retrievalRepository) GetLyricsLrcMetaData(ctx context.Context, mediaFileId, artist, title, fileType string) (string, error) {
+	if len(mediaFileId) > 0 {
+		objID, err := primitive.ObjectIDFromHex(mediaFileId)
+		if err != nil {
+			return "", errors.New("invalid media file id format")
+		}
+
+		collection := r.db.Collection(domain.CollectionFileEntityAudioSceneMediaFile)
+		var result scene_audio_route_models.RetrievalLyricsMetadata
+
+		filter := bson.M{"_id": objID}
+
+		// 执行查询
+		err = collection.FindOne(ctx, filter).Decode(&result)
+		if err != nil {
+			return "", fmt.Errorf("database query failed: %w", err)
+		}
+
+		// 返回歌词内容
+		return result.Lyrics, nil
+	} else {
+		collection := r.db.Collection(domain.CollectionFileEntityAudioSceneLyricsFile)
+		var result scene_audio_db_models.LyricsFileMetadata
+
+		// 构建多字段模糊查询条件
+		filter := bson.M{}
+		if artist != "" {
+			filter["artist"] = primitive.Regex{
+				Pattern: regexp.QuoteMeta(artist),
+				Options: "i",
+			}
+		}
+		if title != "" {
+			filter["title"] = primitive.Regex{
+				Pattern: regexp.QuoteMeta(title),
+				Options: "i",
+			}
+		}
+		if fileType != "" {
+			filter["fileType"] = primitive.Regex{
+				Pattern: "^" + regexp.QuoteMeta(fileType) + "$",
+				Options: "i",
+			}
+		}
+
+		// 执行查询
+		if err := collection.FindOne(ctx, filter).Decode(&result); err != nil {
+			if errors.Is(err, driver.ErrNoDocuments) {
+				return "", errors.New("no matching lyrics found")
+			}
+			return "", fmt.Errorf("lyrics query failed: %w", err)
+		}
+
+		// 读取歌词文件内容
+		content, err := os.ReadFile(result.Path)
+		if err != nil {
+			return "", fmt.Errorf("failed to read lyrics file at %s: %w", result.Path, err)
+		}
+		return string(content), nil
 	}
-
-	collection := r.db.Collection(domain.CollectionFileEntityAudioSceneMediaFile)
-	var result scene_audio_route_models.RetrievalLyricsMetadata
-
-	filter := bson.M{"_id": objID}
-
-	// 执行查询
-	err = collection.FindOne(ctx, filter).Decode(&result)
-	if err != nil {
-		return "", fmt.Errorf("database query failed: %w", err)
-	}
-
-	// 返回歌词内容
-	return result.Lyrics, nil
 }
 
 func (r *retrievalRepository) GetLyricsLrcFile(ctx context.Context, mediaFileId string) (string, error) {

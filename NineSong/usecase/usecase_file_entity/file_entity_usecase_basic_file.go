@@ -124,6 +124,7 @@ func NewFileUsecase(
 	tempRepo scene_audio_db_interface.TempRepository,
 	mediaCueRepo scene_audio_db_interface.MediaFileCueRepository,
 	wordCloudRepo scene_audio_db_interface.WordCloudDBRepository,
+	lyricsFileRepo scene_audio_db_interface.LyricsFileRepository,
 ) *FileUsecase {
 	workerCount := runtime.NumCPU() * 2
 	if workerCount < 4 {
@@ -142,6 +143,7 @@ func NewFileUsecase(
 		tempRepo,
 		mediaCueRepo,
 		wordCloudRepo,
+		lyricsFileRepo,
 	)
 
 	return &FileUsecase{

@@ -56,6 +56,10 @@ const (
 	CollectionFileEntityAudioSceneMediaLyricsMetadata = "file_entity_audio_scene_media_lyrics"
 )
 const (
+	CollectionFileEntityAudioSceneLyricsFile = "file_entity_audio_scene_lyrics_file"
+)
+
+const (
 	CollectionFileEntityAudioSceneMediaMvMetadata = "file_entity_audio_scene_media_mv"
 )
 const (
@@ -64,6 +68,7 @@ const (
 const (
 	CollectionFileEntityAudioSceneMediaKaraokeMetadata = "file_entity_audio_scene_media_karaoke"
 )
+
 const (
 	CollectionFileEntityAudioSceneAlbum = "file_entity_audio_scene_album"
 )
@@ -79,6 +84,7 @@ const (
 const (
 	CollectionFileEntityAudioScenePlaylistTrack = "file_entity_audio_scene_playlist_track"
 )
+
 const (
 	CollectionFileEntityAudioSceneTempMetadata = "file_entity_audio_scene_temp_metadata"
 )
