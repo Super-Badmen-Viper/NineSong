@@ -9,6 +9,7 @@ import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
+	"github.com/siongui/gojianfan"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	driver "go.mongodb.org/mongo-driver/mongo"
@@ -204,24 +205,83 @@ func (r *retrievalRepository) GetLyricsLrcMetaData(ctx context.Context, mediaFil
 			return s
 		}
 
+		// 创建支持简繁体同时匹配的正则模式
+		createFTSRegexPattern := func(input string) string {
+			cleaned := removeSpecialChars(input)
+			if cleaned == "" {
+				return ""
+			}
+
+			// 生成四种编码形式（覆盖所有简繁体组合）
+			t2s := gojianfan.T2S(cleaned)       // 繁体转简体
+			s2t := gojianfan.S2T(cleaned)       // 简体转繁体
+			doubleConvert := gojianfan.S2T(t2s) // 双重转换
+
+			// 构建组合正则表达式
+			return regexp.QuoteMeta(cleaned) + "|" +
+				regexp.QuoteMeta(t2s) + "|" +
+				regexp.QuoteMeta(s2t) + "|" +
+				regexp.QuoteMeta(doubleConvert)
+		}
+
 		filter := bson.M{}
 
-		if artist != "" {
-			cleanedArtist := removeSpecialChars(artist)
-			if cleanedArtist != "" { // 过滤后非空才加入条件
-				filter["artist"] = primitive.Regex{
-					Pattern: regexp.QuoteMeta(cleanedArtist), // 正则转义确保安全[1,6](@ref)
+		if artist == title && title != "" {
+			pattern := createFTSRegexPattern(title)
+			if pattern != "" {
+				filter["title"] = primitive.Regex{
+					Pattern: pattern,
 					Options: "i",
 				}
 			}
-		}
+		} else {
+			if artist != "" {
+				hasSeparator := false
+				for _, char := range specialChars {
+					if strings.Contains(artist, char) {
+						hasSeparator = true
+						break
+					}
+				}
 
-		if title != "" {
-			cleanedTitle := removeSpecialChars(title)
-			if cleanedTitle != "" {
-				filter["title"] = primitive.Regex{
-					Pattern: regexp.QuoteMeta(cleanedTitle),
-					Options: "i",
+				if hasSeparator {
+					separatorPattern := regexp.QuoteMeta(strings.Join(specialChars, "|"))
+					re := regexp.MustCompile("[" + separatorPattern + "]+")
+					artists := re.Split(artist, -1)
+
+					orPatterns := make([]string, 0)
+					for _, a := range artists {
+						if trimmed := strings.TrimSpace(a); trimmed != "" {
+							if pattern := createFTSRegexPattern(trimmed); pattern != "" {
+								orPatterns = append(orPatterns, pattern)
+							}
+						}
+					}
+
+					if len(orPatterns) > 0 {
+						filter["artist"] = primitive.Regex{
+							Pattern: "(" + strings.Join(orPatterns, "|") + ")",
+							Options: "i",
+						}
+					}
+				} else {
+					pattern := createFTSRegexPattern(artist)
+					if pattern != "" {
+						filter["artist"] = primitive.Regex{
+							Pattern: pattern,
+							Options: "i",
+						}
+					}
+				}
+			}
+
+			if title != "" {
+				pattern := createFTSRegexPattern(title)
+				if pattern != "" {
+					filter["title"] = primitive.Regex{
+						Pattern: pattern,
+						Options: "i",
+					}
 				}
 			}
 		}
@@ -230,7 +290,7 @@ func (r *retrievalRepository) GetLyricsLrcMetaData(ctx context.Context, mediaFil
 			cleanedFileType := removeSpecialChars(fileType)
 			if cleanedFileType != "" {
 				filter["fileType"] = primitive.Regex{
-					Pattern: "^" + regexp.QuoteMeta(cleanedFileType) + "$", // 首尾锚点确保精确匹配
+					Pattern: "^" + regexp.QuoteMeta(cleanedFileType) + "$",
 					Options: "i",
 				}
 			}

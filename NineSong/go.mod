@@ -23,6 +23,8 @@ require (
 	golang.org/x/text v0.26.0
 )
 
+require github.com/siongui/gojianfan v0.0.0-20210926212422-2f175ac615de // indirect
+
 require (
 	github.com/aws/aws-sdk-go v1.55.7 // indirect
 	github.com/bytedance/sonic v1.13.3 // indirect
