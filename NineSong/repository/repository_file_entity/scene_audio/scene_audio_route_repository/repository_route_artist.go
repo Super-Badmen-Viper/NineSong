@@ -346,18 +346,17 @@ func buildArtistMatch(search, starred string) bson.D {
 	filter := bson.D{}
 
 	if search != "" {
+		// 生成简繁体四重匹配模式[1,6](@ref)
+		pattern := buildFTSRegexPattern(search)
+
 		filter = append(filter, bson.E{
 			Key: "$or",
 			Value: bson.A{
 				// 原始名称字段的模糊搜索（正则匹配）
 				bson.D{{Key: "name", Value: bson.D{
-					{Key: "$regex", Value: search},
+					{Key: "$regex", Value: pattern},
 					{Key: "$options", Value: "i"},
 				}}},
-				//// 新增拼音字段的精确匹配
-				//bson.D{{Key: "name_pinyin", Value: bson.D{
-				//	{Key: "$in", Value: bson.A{search}},
-				//}}},
 				// 拼音字段的模糊搜索（正则匹配）
 				bson.D{{Key: "name_pinyin_full", Value: bson.D{
 					{Key: "$regex", Value: search},
@@ -374,10 +373,6 @@ func buildArtistMatch(search, starred string) bson.D {
 	}
 
 	return filter
-}
-
-func buildArtistBaseMatch(search, starred string) bson.D {
-	return buildArtistMatch(search, starred)
 }
 
 func validateArtistSortField(sort string) string {

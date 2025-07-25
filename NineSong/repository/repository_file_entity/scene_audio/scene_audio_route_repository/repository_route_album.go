@@ -387,17 +387,16 @@ func buildAlbumMatch(search, starred, artistId, minYear, maxYear string) bson.D 
 
 	// 搜索条件（新增拼音字段支持）
 	if search != "" {
+		// 生成简繁体四重匹配模式[1,6](@ref)
+		pattern := buildFTSRegexPattern(search)
+
 		filter = append(filter, bson.E{
 			Key: "$or",
 			Value: []bson.D{
 				// 原始字段模糊匹配
-				{{Key: "name", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
-				{{Key: "artist", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
-				{{Key: "album_artist", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
-				//// 拼音字段精确匹配
-				//{{Key: "name_pinyin", Value: bson.D{{Key: "$in", Value: bson.A{search}}}}},
-				//{{Key: "artist_pinyin", Value: bson.D{{Key: "$in", Value: bson.A{search}}}}},
-				//{{Key: "album_artist_pinyin", Value: bson.D{{Key: "$in", Value: bson.A{search}}}}},
+				{{Key: "name", Value: bson.D{{Key: "$regex", Value: pattern}, {Key: "$options", Value: "i"}}}},
+				{{Key: "artist", Value: bson.D{{Key: "$regex", Value: pattern}, {Key: "$options", Value: "i"}}}},
+				{{Key: "album_artist", Value: bson.D{{Key: "$regex", Value: pattern}, {Key: "$options", Value: "i"}}}},
 				// 拼音字段模糊匹配
 				{{Key: "name_pinyin_full", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
 				{{Key: "artist_pinyin_full", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
@@ -414,10 +413,6 @@ func buildAlbumMatch(search, starred, artistId, minYear, maxYear string) bson.D 
 	}
 
 	return filter
-}
-
-func buildAlbumBaseMatch(search, starred, artistId, minYear, maxYear string) bson.D {
-	return buildAlbumMatch(search, starred, artistId, minYear, maxYear)
 }
 
 func validateAlbumSortField(sort string) string {

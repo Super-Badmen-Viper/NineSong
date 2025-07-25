@@ -414,20 +414,18 @@ func (r *mediaFileCueRepository) buildMatchStage(search, starred, albumId, artis
 
 	// 全文搜索（新增拼音字段支持）
 	if search != "" {
+		// 生成简繁体四重匹配模式[1,6](@ref)
+		pattern := buildFTSRegexPattern(search)
+
 		filter = append(filter, bson.E{
 			Key: "$or",
 			Value: []bson.D{
 				// 原始字段模糊匹配
-				{{Key: "performer", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
-				{{Key: "title", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
-				{{Key: "rem.genre", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
-				{{Key: "cue_tracks.track_title", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
-				{{Key: "full_text", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
-				//// 新增拼音字段精确匹配
-				//{{Key: "title_pinyin", Value: bson.D{{Key: "$in", Value: bson.A{search}}}}},                      // 主标题拼音
-				//{{Key: "performer_pinyin", Value: bson.D{{Key: "$in", Value: bson.A{search}}}}},                  // 主表演者拼音
-				//{{Key: "cue_tracks.track_title_pinyin", Value: bson.D{{Key: "$in", Value: bson.A{search}}}}},     // 曲目标题拼音
-				//{{Key: "cue_tracks.track_performer_pinyin", Value: bson.D{{Key: "$in", Value: bson.A{search}}}}}, // 曲目表演者拼音
+				{{Key: "performer", Value: bson.D{{Key: "$regex", Value: pattern}, {Key: "$options", Value: "i"}}}},
+				{{Key: "title", Value: bson.D{{Key: "$regex", Value: pattern}, {Key: "$options", Value: "i"}}}},
+				{{Key: "rem.genre", Value: bson.D{{Key: "$regex", Value: pattern}, {Key: "$options", Value: "i"}}}},
+				{{Key: "cue_tracks.track_title", Value: bson.D{{Key: "$regex", Value: pattern}, {Key: "$options", Value: "i"}}}},
+				{{Key: "full_text", Value: bson.D{{Key: "$regex", Value: pattern}, {Key: "$options", Value: "i"}}}},
 				// 拼音字段的模糊搜索（正则匹配）
 				{{Key: "title_pinyin_full", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
 				{{Key: "performer_pinyin_full", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
@@ -445,10 +443,6 @@ func (r *mediaFileCueRepository) buildMatchStage(search, starred, albumId, artis
 	}
 
 	return filter
-}
-
-func (r *mediaFileCueRepository) buildBaseMatch(search, albumId, artistId, year string) bson.D {
-	return r.buildMatchStage(search, "", albumId, artistId, year)
 }
 
 // 添加唯一字段作为次要排序条件

@@ -25,18 +25,19 @@ Compared to other music servers (such as Navidrome, Jellyfin, Emby, Plex, Subson
 - - [x] deeper processing of composite tags to make the relevance between musics more comprehensive;
 - - [x] search jump optimization
 - - - [x] support for Chinese pinyin fuzzy search;
-- - - [x] support searching based on lyrics;
+- - - [x] support fuzzy search with dual matching of Chinese simplified and traditional characters
+- - - [x] Support fuzzy search based on lyrics (dual matching of Chinese simplified and traditional characters);
 - - - [x] support for quick initial letter jumping;
 - - - [x] recommended similar search results;
 - - [ ] support for dual-page browsing mode (unlimited virtual list, paged list);
 - - [ ] support uploading, downloading, and synchronizing music files between the server and client;
-- [ ] More comprehensive music playback experience:
+- [x] More comprehensive music playback experience:
 - - [x] various elegant playback styles[cover Square、cover Rotate、cover Beaut、cover Base、cover AlbumList];
 - - [x] exclusive playback modes for various music files[normal model、cue-music model];
-- [ ] CUE exclusive playback (CUE: wav、ape、flac) and CUE file management:
+- [x] CUE exclusive playback (CUE: wav、ape、flac) and CUE file management:
 - - [x] Exclusive management page for music disc image (mirror) auxiliary files. 
-- - [ ] CUE playback styles suitable for music disc image features
-- - [ ] Visualized virtual track playback of CUE
+- - [x] CUE playback styles suitable for music disc image features
+- - [x] Visualized virtual track playback of CUE
 - More complete TAG import and management:
 - - [x] support for importing complete TAGs from more types of music files (including m4a、cue(wav、ape、flac));
 - - [ ] support for user-visualized TAG management, allowing remote uploads, auto-associating, manual merging of artist-album-single TAGs;

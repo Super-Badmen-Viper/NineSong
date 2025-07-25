@@ -8,6 +8,7 @@ import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
+	"github.com/siongui/gojianfan"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"regexp"
@@ -477,18 +478,16 @@ func buildMatchStage(search, starred, albumId, artistId, year, suffix, minBitrat
 		}
 	}
 	if search != "" {
+		// 生成简繁体四重匹配模式[1,6](@ref)
+		pattern := buildFTSRegexPattern(search)
+
 		searchFilter := bson.A{
-			// 原始名称字段的模糊搜索（正则匹配）
-			bson.D{{Key: "title", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
-			bson.D{{Key: "artist", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
-			bson.D{{Key: "album", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
-			bson.D{{Key: "lyrics", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
-			////// 新增拼音字段的精确匹配
-			//bson.D{{Key: "title_pinyin", Value: bson.D{{Key: "$in", Value: bson.A{search}}}}},
-			//bson.D{{Key: "album_pinyin", Value: bson.D{{Key: "$in", Value: bson.A{search}}}}},
-			//bson.D{{Key: "artist_pinyin", Value: bson.D{{Key: "$in", Value: bson.A{search}}}}},
-			//bson.D{{Key: "album_artist_pinyin", Value: bson.D{{Key: "$in", Value: bson.A{search}}}}},
-			// 拼音字段的模糊搜索（正则匹配）
+			// 原始名称字段的简繁体模糊搜索[6,8](@ref)
+			bson.D{{Key: "title", Value: bson.D{{Key: "$regex", Value: pattern}, {Key: "$options", Value: "i"}}}},
+			bson.D{{Key: "artist", Value: bson.D{{Key: "$regex", Value: pattern}, {Key: "$options", Value: "i"}}}},
+			bson.D{{Key: "album", Value: bson.D{{Key: "$regex", Value: pattern}, {Key: "$options", Value: "i"}}}},
+			bson.D{{Key: "lyrics", Value: bson.D{{Key: "$regex", Value: pattern}, {Key: "$options", Value: "i"}}}},
+			// 拼音字段的简繁体模糊搜索
 			bson.D{{Key: "title_pinyin_full", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
 			bson.D{{Key: "album_pinyin_full", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
 			bson.D{{Key: "artist_pinyin_full", Value: bson.D{{Key: "$regex", Value: search}, {Key: "$options", Value: "i"}}}},
@@ -543,6 +542,19 @@ func buildMatchStage(search, starred, albumId, artistId, year, suffix, minBitrat
 	return filter
 }
 
-func buildBaseMatch(search, albumId, artistId, year string) bson.D {
-	return buildMatchStage(search, "", albumId, artistId, year, "", "", "", "")
+// 生成简繁体四重匹配的正则模式
+func buildFTSRegexPattern(input string) string {
+	// 生成四种编码形式（覆盖所有简繁体组合）
+	t2s := gojianfan.T2S(input)         // 繁体转简体
+	s2t := gojianfan.S2T(input)         // 简体转繁体
+	doubleConvert := gojianfan.S2T(t2s) // 双重转换
+
+	// 对每个模式进行正则转义并组合
+	patterns := []string{
+		regexp.QuoteMeta(input),
+		regexp.QuoteMeta(t2s),
+		regexp.QuoteMeta(s2t),
+		regexp.QuoteMeta(doubleConvert),
+	}
+	return strings.Join(patterns, "|")
 }
