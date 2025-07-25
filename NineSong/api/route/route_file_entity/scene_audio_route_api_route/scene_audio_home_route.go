@@ -24,5 +24,6 @@ func NewHomeRouter(
 		router.GET("/artists/random", ctrl.GetRandomArtistList)
 		router.GET("/albums/random", ctrl.GetRandomAlbumList)
 		router.GET("/medias/random", ctrl.GetRandomMediaFileList)
+		router.GET("/cues/random", ctrl.GetRandomMediaCueList)
 	}
 }

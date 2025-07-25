@@ -116,3 +116,35 @@ func (r *homeRepository) GetRandomMediaFileList(
 
 	return results, nil
 }
+
+func (r *homeRepository) GetRandomMediaCueList(
+	ctx context.Context,
+	start, end string,
+) ([]scene_audio_route_models.MediaFileCueMetadata, error) {
+	collection := r.db.Collection(domain.CollectionFileEntityAudioSceneMediaFileCue)
+
+	skip, _ := strconv.Atoi(start)
+	limit, _ := strconv.Atoi(end)
+	if limit <= 0 || limit > 1000 {
+		limit = 50
+	}
+
+	pipeline := []bson.M{
+		{"$sample": bson.M{"size": limit + skip}},
+		{"$skip": skip},
+		{"$limit": limit},
+	}
+
+	cursor, err := collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("random query failed: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var results []scene_audio_route_models.MediaFileCueMetadata
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, fmt.Errorf("decode error: %w", err)
+	}
+
+	return results, nil
+}

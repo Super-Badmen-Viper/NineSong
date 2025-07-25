@@ -79,3 +79,17 @@ func (uc *homeUsecase) GetRandomMediaFileList(
 
 	return uc.repo.GetRandomMediaFileList(ctx, start, end)
 }
+
+func (uc *homeUsecase) GetRandomMediaCueList(
+	ctx context.Context,
+	start, end string,
+) ([]scene_audio_route_models.MediaFileCueMetadata, error) {
+	if err := uc.validatePagination(start, end); err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
+	defer cancel()
+
+	return uc.repo.GetRandomMediaCueList(ctx, start, end)
+}

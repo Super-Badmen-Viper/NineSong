@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 type retrievalRepository struct {
@@ -184,40 +185,57 @@ func (r *retrievalRepository) GetLyricsLrcMetaData(ctx context.Context, mediaFil
 
 		filter := bson.M{"_id": objID}
 
-		// 执行查询
 		err = collection.FindOne(ctx, filter).Decode(&result)
 		if err != nil {
 			return "", fmt.Errorf("database query failed: %w", err)
 		}
 
-		// 返回歌词内容
 		return result.Lyrics, nil
 	} else {
 		collection := r.db.Collection(domain.CollectionFileEntityAudioSceneLyricsFile)
 		var result scene_audio_db_models.LyricsFileMetadata
 
-		// 构建多字段模糊查询条件
+		specialChars := []string{"|", "｜", "/", "//", ",", "，", "&", ";", "; ", "、"}
+
+		removeSpecialChars := func(s string) string {
+			for _, char := range specialChars {
+				s = strings.ReplaceAll(s, char, "")
+			}
+			return s
+		}
+
 		filter := bson.M{}
+
 		if artist != "" {
-			filter["artist"] = primitive.Regex{
-				Pattern: regexp.QuoteMeta(artist),
-				Options: "i",
-			}
-		}
-		if title != "" {
-			filter["title"] = primitive.Regex{
-				Pattern: regexp.QuoteMeta(title),
-				Options: "i",
-			}
-		}
-		if fileType != "" {
-			filter["fileType"] = primitive.Regex{
-				Pattern: "^" + regexp.QuoteMeta(fileType) + "$",
-				Options: "i",
+			cleanedArtist := removeSpecialChars(artist)
+			if cleanedArtist != "" { // 过滤后非空才加入条件
+				filter["artist"] = primitive.Regex{
+					Pattern: regexp.QuoteMeta(cleanedArtist), // 正则转义确保安全[1,6](@ref)
+					Options: "i",
+				}
 			}
 		}
 
-		// 执行查询
+		if title != "" {
+			cleanedTitle := removeSpecialChars(title)
+			if cleanedTitle != "" {
+				filter["title"] = primitive.Regex{
+					Pattern: regexp.QuoteMeta(cleanedTitle),
+					Options: "i",
+				}
+			}
+		}
+
+		if fileType != "" {
+			cleanedFileType := removeSpecialChars(fileType)
+			if cleanedFileType != "" {
+				filter["fileType"] = primitive.Regex{
+					Pattern: "^" + regexp.QuoteMeta(cleanedFileType) + "$", // 首尾锚点确保精确匹配
+					Options: "i",
+				}
+			}
+		}
+
 		if err := collection.FindOne(ctx, filter).Decode(&result); err != nil {
 			if errors.Is(err, driver.ErrNoDocuments) {
 				return "", errors.New("no matching lyrics found")
@@ -225,7 +243,6 @@ func (r *retrievalRepository) GetLyricsLrcMetaData(ctx context.Context, mediaFil
 			return "", fmt.Errorf("lyrics query failed: %w", err)
 		}
 
-		// 读取歌词文件内容
 		content, err := os.ReadFile(result.Path)
 		if err != nil {
 			return "", fmt.Errorf("failed to read lyrics file at %s: %w", result.Path, err)

@@ -56,3 +56,15 @@ func (c *HomeController) GetRandomMediaFileList(ctx *gin.Context) {
 
 	controller.SuccessResponse(ctx, "mediaFiles", mediaFiles, len(mediaFiles))
 }
+
+func (c *HomeController) GetRandomMediaCueList(ctx *gin.Context) {
+	start, end := c.parsePagination(ctx)
+
+	cueFiles, err := c.usecase.GetRandomMediaCueList(ctx, start, end)
+	if err != nil {
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
+		return
+	}
+
+	controller.SuccessResponse(ctx, "cueFiles", cueFiles, len(cueFiles))
+}

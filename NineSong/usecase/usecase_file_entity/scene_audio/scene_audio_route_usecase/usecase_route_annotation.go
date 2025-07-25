@@ -22,9 +22,9 @@ func NewAnnotationUsecase(repo scene_audio_route_interface.AnnotationRepository,
 }
 
 func (uc *annotationUsecase) validateItemType(itemType string) error {
-	validTypes := map[string]bool{"artist": true, "album": true, "media": true}
+	validTypes := map[string]bool{"artist": true, "album": true, "media": true, "media_cue": true}
 	if !validTypes[itemType] {
-		return errors.New("invalid item_type, must be artist/album/media")
+		return errors.New("invalid item_type, must be artist/album/media/media_cue")
 	}
 	return nil
 }

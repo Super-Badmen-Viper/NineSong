@@ -108,13 +108,13 @@ func (c *AnnotationController) UpdateCompleteScrobble(ctx *gin.Context) {
 
 type UpdateTagSourceRequest struct {
 	ItemID   string                               `json:"item_id" form:"item_id" binding:"required"`
-	ItemType string                               `json:"item_type" form:"item_type" binding:"required,oneof=artist album media"`
+	ItemType string                               `json:"item_type" form:"item_type" binding:"required,oneof=artist album media media_cue"`
 	Tags     []scene_audio_route_models.TagSource `json:"tags" binding:"required"`
 }
 
 type UpdateWeightedTagRequest struct {
 	ItemID   string                                 `json:"item_id" form:"item_id" binding:"required"`
-	ItemType string                                 `json:"item_type" form:"item_type" binding:"required,oneof=artist album media"`
+	ItemType string                                 `json:"item_type" form:"item_type" binding:"required,oneof=artist album media media_cue"`
 	Tags     []scene_audio_route_models.WeightedTag `json:"tags" binding:"required"`
 }
 

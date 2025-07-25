@@ -22,4 +22,9 @@ type HomeRepository interface {
 		end string,
 		start string,
 	) ([]scene_audio_route_models.MediaFileMetadata, error)
+	GetRandomMediaCueList(
+		ctx context.Context,
+		end string,
+		start string,
+	) ([]scene_audio_route_models.MediaFileCueMetadata, error)
 }
