@@ -35,7 +35,7 @@ func NewPlaylistTrackRepository(db mongo.Database, collection string) scene_audi
 func (r *playlistTrackRepository) GetPlaylistTrackItems(
 	ctx context.Context,
 	start, end, sort, order, search, starred, albumId, artistId, year, playlistId string,
-	suffix, minBitrate, maxBitrate, folderPath string,
+	suffix, minBitrate, maxBitrate, folderPath, folderPathSubFilter string,
 ) ([]scene_audio_route_models.MediaFileMetadata, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -119,7 +119,7 @@ func (r *playlistTrackRepository) GetPlaylistTrackItems(
 
 	// 构建过滤条件
 	if match := buildMediaMatch(search, starred, albumId, artistId, year,
-		suffix, minBitrate, maxBitrate, folderPath); len(match) > 0 {
+		suffix, minBitrate, maxBitrate, folderPath, folderPathSubFilter); len(match) > 0 {
 		pipeline = append(pipeline, bson.D{{Key: "$match", Value: match}})
 	}
 
@@ -157,7 +157,7 @@ func (r *playlistTrackRepository) GetPlaylistTrackItemsMultipleSorting(
 	start, end string,
 	sortOrder []domain_util.SortOrder,
 	search, starred, albumId, artistId, year, playlistId string,
-	suffix, minBitrate, maxBitrate, folderPath string,
+	suffix, minBitrate, maxBitrate, folderPath, folderPathSubFilter string,
 ) ([]scene_audio_route_models.MediaFileMetadata, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -241,7 +241,7 @@ func (r *playlistTrackRepository) GetPlaylistTrackItemsMultipleSorting(
 
 	// 构建过滤条件
 	if match := buildMediaMatch(search, starred, albumId, artistId, year,
-		suffix, minBitrate, maxBitrate, folderPath); len(match) > 0 {
+		suffix, minBitrate, maxBitrate, folderPath, folderPathSubFilter); len(match) > 0 {
 		pipeline = append(pipeline, bson.D{{Key: "$match", Value: match}})
 	}
 
@@ -416,11 +416,7 @@ func mustObjectID(hex string) primitive.ObjectID {
 	return objID
 }
 
-func buildMediaBaseMatch(search, albumId, artistId, year string) bson.D {
-	return buildMediaMatch(search, "", albumId, artistId, year, "", "", "", "")
-}
-
-func buildMediaMatch(search, starred, albumId, artistId, year, suffix, minBitrate, maxBitrate, folderPath string) bson.D {
+func buildMediaMatch(search, starred, albumId, artistId, year, suffix, minBitrate, maxBitrate, folderPath, folderPathSubFilter string) bson.D {
 	filter := bson.D{}
 
 	// 专辑ID过滤
@@ -466,14 +462,21 @@ func buildMediaMatch(search, starred, albumId, artistId, year, suffix, minBitrat
 
 	// 修复文件夹路径过滤条件
 	if folderPath != "" {
-		safePath := regexp.QuoteMeta(folderPath)
+		// 预编译正则表达式 [6,7](@ref)
+		pathRegex := regexp.MustCompile("^" + regexp.QuoteMeta(folderPath))
 		filter = append(filter, bson.E{
-			Key: "library_path",
-			Value: bson.D{
-				{Key: "$regex", Value: "^" + safePath},
-				{Key: "$options", Value: "i"},
-			},
+			Key:   "library_path",
+			Value: bson.D{{Key: "$regex", Value: pathRegex.String()}, {Key: "$options", Value: "i"}},
 		})
+		// 子路径模糊匹配优化
+		if folderPathSubFilter != "" {
+			// 使用非贪婪匹配减少回溯 [5,7](@ref)
+			subRegex := regexp.MustCompile(".*?" + regexp.QuoteMeta(folderPathSubFilter))
+			filter = append(filter, bson.E{
+				Key:   "path",
+				Value: bson.D{{Key: "$regex", Value: subRegex.String()}, {Key: "$options", Value: "i"}},
+			})
+		}
 	}
 
 	// 修复比特率范围过滤条件

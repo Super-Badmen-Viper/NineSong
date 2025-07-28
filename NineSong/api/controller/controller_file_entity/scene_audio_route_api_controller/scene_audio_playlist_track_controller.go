@@ -19,20 +19,21 @@ func NewPlaylistTrackController(uc scene_audio_route_interface.PlaylistTrackRepo
 
 func (c *PlaylistTrackController) GetPlaylistTracks(ctx *gin.Context) {
 	var params struct {
-		Start      string `form:"start" binding:"required"`
-		End        string `form:"end" binding:"required"`
-		Sort       string `form:"sort" binding:"required"`
-		Order      string `form:"order" binding:"required"`
-		Search     string `form:"search"`
-		Starred    string `form:"starred"`
-		AlbumId    string `form:"albumId"`
-		ArtistId   string `form:"artistId"`
-		Year       string `form:"year"`
-		Suffix     string `form:"suffix"`
-		MinBitRate string `form:"min_bitrate"`
-		MaxBitRate string `form:"max_bitrate"`
-		FolderPath string `form:"folder_path"`
-		PlaylistId string `form:"playlistId" binding:"required"`
+		Start               string `form:"start" binding:"required"`
+		End                 string `form:"end" binding:"required"`
+		Sort                string `form:"sort" binding:"required"`
+		Order               string `form:"order" binding:"required"`
+		Search              string `form:"search"`
+		Starred             string `form:"starred"`
+		AlbumId             string `form:"albumId"`
+		ArtistId            string `form:"artistId"`
+		Year                string `form:"year"`
+		Suffix              string `form:"suffix"`
+		MinBitRate          string `form:"min_bitrate"`
+		MaxBitRate          string `form:"max_bitrate"`
+		FolderPath          string `form:"folder_path"`
+		FolderPathSubFilter string `form:"folder_path_sub_filter"`
+		PlaylistId          string `form:"playlistId" binding:"required"`
 	}
 
 	if err := ctx.ShouldBindQuery(&params); err != nil {
@@ -56,6 +57,7 @@ func (c *PlaylistTrackController) GetPlaylistTracks(ctx *gin.Context) {
 		params.MinBitRate,
 		params.MaxBitRate,
 		params.FolderPath,
+		params.FolderPathSubFilter,
 	)
 
 	if err != nil {
@@ -68,19 +70,20 @@ func (c *PlaylistTrackController) GetPlaylistTracks(ctx *gin.Context) {
 
 func (c *PlaylistTrackController) GetPlaylistTracksMultipleSorting(ctx *gin.Context) {
 	var params struct {
-		Start      string   `form:"start" binding:"required"`
-		End        string   `form:"end" binding:"required"`
-		Search     string   `form:"search"`
-		Starred    string   `form:"starred"`
-		AlbumId    string   `form:"albumId"`
-		ArtistId   string   `form:"artistId"`
-		Year       string   `form:"year"`
-		Suffix     string   `form:"suffix"`
-		MinBitRate string   `form:"min_bitrate"`
-		MaxBitRate string   `form:"max_bitrate"`
-		FolderPath string   `form:"folder_path"`
-		PlaylistId string   `form:"playlistId" binding:"required"`
-		Sort       []string `form:"sort"` // 格式: "field:order"
+		Start               string   `form:"start" binding:"required"`
+		End                 string   `form:"end" binding:"required"`
+		Search              string   `form:"search"`
+		Starred             string   `form:"starred"`
+		AlbumId             string   `form:"albumId"`
+		ArtistId            string   `form:"artistId"`
+		Year                string   `form:"year"`
+		Suffix              string   `form:"suffix"`
+		MinBitRate          string   `form:"min_bitrate"`
+		MaxBitRate          string   `form:"max_bitrate"`
+		FolderPath          string   `form:"folder_path"`
+		FolderPathSubFilter string   `form:"folder_path_sub_filter"`
+		PlaylistId          string   `form:"playlistId" binding:"required"`
+		Sort                []string `form:"sort"` // 格式: "field:order"
 	}
 
 	if err := ctx.ShouldBindQuery(&params); err != nil {
@@ -117,6 +120,7 @@ func (c *PlaylistTrackController) GetPlaylistTracksMultipleSorting(ctx *gin.Cont
 		params.MinBitRate,
 		params.MaxBitRate,
 		params.FolderPath,
+		params.FolderPathSubFilter,
 	)
 
 	if err != nil {

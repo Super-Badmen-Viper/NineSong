@@ -20,19 +20,20 @@ func NewMediaFileController(uc scene_audio_route_interface.MediaFileRepository) 
 
 func (c *MediaFileController) GetMediaFiles(ctx *gin.Context) {
 	var params struct {
-		Start      string `form:"start" binding:"required"`
-		End        string `form:"end" binding:"required"`
-		Sort       string `form:"sort"`
-		Order      string `form:"order"`
-		Search     string `form:"search"`
-		Starred    string `form:"starred"`
-		AlbumID    string `form:"album_id"`
-		ArtistID   string `form:"artist_id"`
-		Year       string `form:"year"`
-		Suffix     string `form:"suffix"`
-		MinBitRate string `form:"min_bitrate"`
-		MaxBitRate string `form:"max_bitrate"`
-		FolderPath string `form:"folder_path"`
+		Start               string `form:"start" binding:"required"`
+		End                 string `form:"end" binding:"required"`
+		Sort                string `form:"sort"`
+		Order               string `form:"order"`
+		Search              string `form:"search"`
+		Starred             string `form:"starred"`
+		AlbumID             string `form:"album_id"`
+		ArtistID            string `form:"artist_id"`
+		Year                string `form:"year"`
+		Suffix              string `form:"suffix"`
+		MinBitRate          string `form:"min_bitrate"`
+		MaxBitRate          string `form:"max_bitrate"`
+		FolderPath          string `form:"folder_path"`
+		FolderPathSubFilter string `form:"folder_path_sub_filter"`
 	}
 
 	if err := ctx.ShouldBindQuery(&params); err != nil {
@@ -55,6 +56,7 @@ func (c *MediaFileController) GetMediaFiles(ctx *gin.Context) {
 		params.MinBitRate,
 		params.MaxBitRate,
 		params.FolderPath,
+		params.FolderPathSubFilter,
 	)
 
 	if err != nil {
@@ -87,18 +89,19 @@ func (c *MediaFileController) GetMediaFileIds(ctx *gin.Context) {
 
 func (c *MediaFileController) GetMediaFilesMultipleSorting(ctx *gin.Context) {
 	var params struct {
-		Start      string   `form:"start" binding:"required"`
-		End        string   `form:"end" binding:"required"`
-		Search     string   `form:"search"`
-		Starred    string   `form:"starred"`
-		AlbumID    string   `form:"album_id"`
-		ArtistID   string   `form:"artist_id"`
-		Year       string   `form:"year"`
-		Suffix     string   `form:"suffix"`
-		MinBitRate string   `form:"min_bitrate"`
-		MaxBitRate string   `form:"max_bitrate"`
-		FolderPath string   `form:"folder_path"`
-		Sort       []string `form:"sort"` // 格式: "field:order"
+		Start               string   `form:"start" binding:"required"`
+		End                 string   `form:"end" binding:"required"`
+		Search              string   `form:"search"`
+		Starred             string   `form:"starred"`
+		AlbumID             string   `form:"album_id"`
+		ArtistID            string   `form:"artist_id"`
+		Year                string   `form:"year"`
+		Suffix              string   `form:"suffix"`
+		MinBitRate          string   `form:"min_bitrate"`
+		MaxBitRate          string   `form:"max_bitrate"`
+		FolderPath          string   `form:"folder_path"`
+		FolderPathSubFilter string   `form:"folder_path_sub_filter"`
+		Sort                []string `form:"sort"` // 格式: "field:order"
 	}
 
 	if err := ctx.ShouldBindQuery(&params); err != nil {
@@ -134,6 +137,7 @@ func (c *MediaFileController) GetMediaFilesMultipleSorting(ctx *gin.Context) {
 		params.MinBitRate,
 		params.MaxBitRate,
 		params.FolderPath,
+		params.FolderPathSubFilter,
 	)
 
 	if err != nil {

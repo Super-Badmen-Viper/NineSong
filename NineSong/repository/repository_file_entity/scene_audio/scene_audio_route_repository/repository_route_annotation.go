@@ -51,10 +51,9 @@ func (r *annotationRepository) UpdateStarred(
 			"updated_at": time.Now().UTC(),
 		},
 		"$setOnInsert": bson.M{
-			"created_at":          time.Now().UTC(),
-			"play_count":          0,
-			"rating":              0,
-			"play_complete_count": 0,
+			"created_at": time.Now().UTC(),
+			"play_count": 0,
+			"rating":     0,
 		},
 	}
 
@@ -173,10 +172,9 @@ func (r *annotationRepository) UpdateScrobble(
 			"updated_at": time.Now().UTC(),
 		},
 		"$setOnInsert": bson.M{
-			"created_at":          time.Now().UTC(),
-			"starred":             false,
-			"rating":              0,
-			"play_complete_count": 0,
+			"created_at": time.Now().UTC(),
+			"starred":    false,
+			"rating":     0,
 		},
 	}
 
@@ -212,10 +210,9 @@ func (r *annotationRepository) UpdateCompleteScrobble(
 	update := bson.M{
 		"$inc": bson.M{"play_complete_count": 1},
 		"$setOnInsert": bson.M{
-			"created_at":          time.Now().UTC(),
-			"starred":             false,
-			"rating":              0,
-			"play_complete_count": 0,
+			"created_at": time.Now().UTC(),
+			"starred":    false,
+			"rating":     0,
 		},
 	}
 
