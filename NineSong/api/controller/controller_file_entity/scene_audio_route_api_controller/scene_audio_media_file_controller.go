@@ -67,6 +67,55 @@ func (c *MediaFileController) GetMediaFiles(ctx *gin.Context) {
 	controller.SuccessResponse(ctx, "mediaFiles", mediaFiles, len(mediaFiles))
 }
 
+func (c *MediaFileController) GetMediaFileMetadatas(ctx *gin.Context) {
+	var params struct {
+		Start               string `form:"start" binding:"required"`
+		End                 string `form:"end" binding:"required"`
+		Sort                string `form:"sort"`
+		Order               string `form:"order"`
+		Search              string `form:"search"`
+		Starred             string `form:"starred"`
+		AlbumID             string `form:"album_id"`
+		ArtistID            string `form:"artist_id"`
+		Year                string `form:"year"`
+		Suffix              string `form:"suffix"`
+		MinBitRate          string `form:"min_bitrate"`
+		MaxBitRate          string `form:"max_bitrate"`
+		FolderPath          string `form:"folder_path"`
+		FolderPathSubFilter string `form:"folder_path_sub_filter"`
+	}
+
+	if err := ctx.ShouldBindQuery(&params); err != nil {
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "PARAMS_ERROR", parseBindingError(err))
+		return
+	}
+
+	mediaFiles, err := c.MediaFileUsecase.GetMediaFileMetadataItems(
+		ctx.Request.Context(),
+		params.Start,
+		params.End,
+		params.Sort,
+		params.Order,
+		params.Search,
+		params.Starred,
+		params.AlbumID,
+		params.ArtistID,
+		params.Year,
+		params.Suffix,
+		params.MinBitRate,
+		params.MaxBitRate,
+		params.FolderPath,
+		params.FolderPathSubFilter,
+	)
+
+	if err != nil {
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
+		return
+	}
+
+	controller.SuccessResponse(ctx, "mediaFiles", mediaFiles, len(mediaFiles))
+}
+
 func (c *MediaFileController) GetMediaFileIds(ctx *gin.Context) {
 	params := struct {
 		Ids string `form:"ids" binding:"required"`

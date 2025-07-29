@@ -118,6 +118,8 @@ func NewFileUsecase(
 	folderRepo domain_file_entity.FolderRepository,
 	detector domain_file_entity.FileDetector,
 	timeoutMinutes int,
+
+	// Music Scene Repositories
 	artistRepo scene_audio_db_interface.ArtistRepository,
 	albumRepo scene_audio_db_interface.AlbumRepository,
 	mediaRepo scene_audio_db_interface.MediaFileRepository,
@@ -126,10 +128,7 @@ func NewFileUsecase(
 	wordCloudRepo scene_audio_db_interface.WordCloudDBRepository,
 	lyricsFileRepo scene_audio_db_interface.LyricsFileRepository,
 ) *FileUsecase {
-	workerCount := runtime.NumCPU() * 2
-	if workerCount < 4 {
-		workerCount = 4
-	}
+	workerCount := runtime.NumCPU()
 
 	audioProcessingUsecase := scene_audio.NewAudioProcessingUsecase(
 		db,

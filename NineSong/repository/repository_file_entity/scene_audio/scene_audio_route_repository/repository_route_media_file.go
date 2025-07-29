@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
@@ -114,6 +115,98 @@ func (r *mediaFileRepository) GetMediaFileItems(
 	}()
 
 	var results []scene_audio_route_models.MediaFileMetadata
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, fmt.Errorf("decode error: %w", err)
+	}
+
+	return results, nil
+}
+
+func (r *mediaFileRepository) GetMediaFileMetadataItems(
+	ctx context.Context,
+	start, end, sort, order, search, starred, albumId, artistId, year,
+	suffix, minBitrate, maxBitrate, folderPath, folderPathSubFilter string,
+) ([]scene_audio_db_models.MediaFileMetadata, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	coll := r.db.Collection(r.collection)
+
+	// 构建聚合管道（完全使用bson.D结构）
+	pipeline := []bson.D{
+		{
+			{Key: "$lookup", Value: bson.D{
+				{Key: "from", Value: domain.CollectionFileEntityAudioSceneAnnotation},
+				{Key: "let", Value: bson.D{{Key: "mediaId", Value: "$_id"}}},
+				{Key: "pipeline", Value: []bson.D{
+					{
+						{Key: "$match", Value: bson.D{
+							{Key: "$expr", Value: bson.D{
+								{Key: "$and", Value: bson.A{
+									bson.D{{Key: "$eq", Value: bson.A{"$item_id", "$$mediaId"}}},
+									bson.D{{Key: "$eq", Value: bson.A{"$item_type", "media"}}},
+								}},
+							}},
+						}},
+					},
+				}},
+				{Key: "as", Value: "annotations"},
+			}},
+		},
+		{
+			{Key: "$unwind", Value: bson.D{
+				{Key: "path", Value: "$annotations"},
+				{Key: "preserveNullAndEmptyArrays", Value: true},
+			}},
+		},
+		{
+			{Key: "$addFields", Value: bson.D{
+				{Key: "play_count", Value: "$annotations.play_count"},
+				{Key: "play_complete_count", Value: "$annotations.play_complete_count"},
+				{Key: "play_date", Value: "$annotations.play_date"},
+				{Key: "rating", Value: "$annotations.rating"},
+				{Key: "starred", Value: "$annotations.starred"},
+				{Key: "starred_at", Value: "$annotations.starred_at"},
+			}},
+		},
+	}
+
+	// 添加基础过滤条件
+	if match := buildMatchStage(search, starred, albumId, artistId, year,
+		suffix, minBitrate, maxBitrate, folderPath, folderPathSubFilter); len(match) > 0 {
+		pipeline = append(pipeline, bson.D{{Key: "$match", Value: match}})
+	}
+
+	// 处理play_date排序的特殊过滤
+	validatedSort := validateSortField(sort, albumId)
+	if validatedSort == "play_date" {
+		pipeline = append(pipeline, bson.D{
+			{Key: "$match", Value: bson.D{
+				{Key: "play_count", Value: bson.D{{Key: "$gt", Value: 0}}},
+			}},
+		})
+	}
+
+	// 添加排序阶段 - 关键修改：添加唯一字段作为次要排序条件
+	pipeline = append(pipeline, buildSortStage(validatedSort, order))
+
+	// 添加分页阶段
+	paginationStages := buildMediaPaginationStage(start, end)
+	if paginationStages != nil {
+		pipeline = append(pipeline, paginationStages...)
+	}
+
+	// 执行聚合查询
+	cursor, err := coll.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("database query failed: %w", err)
+	}
+	defer func() {
+		if cerr := cursor.Close(ctx); cerr != nil {
+			fmt.Printf("cursor close error: %v\n", cerr)
+		}
+	}()
+
+	var results []scene_audio_db_models.MediaFileMetadata
 	if err := cursor.All(ctx, &results); err != nil {
 		return nil, fmt.Errorf("decode error: %w", err)
 	}

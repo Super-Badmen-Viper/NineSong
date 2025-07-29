@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 	"strconv"
 	"strings"
@@ -81,6 +82,68 @@ func (uc *mediaFileUsecase) GetMediaFileItems(
 	}
 
 	return uc.mediaFileRepo.GetMediaFileItems(
+		ctx, start, end, sort, order,
+		search, starred,
+		albumId, artistId, year,
+		suffix, minBitrate, maxBitrate, folderPath, folderPathSubFilter,
+	)
+}
+
+func (uc *mediaFileUsecase) GetMediaFileMetadataItems(
+	ctx context.Context,
+	start, end, sort, order, search, starred, albumId, artistId, year,
+	suffix, minBitrate, maxBitrate, folderPath, folderPathSubFilter string,
+) ([]scene_audio_db_models.MediaFileMetadata, error) {
+	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
+	defer cancel()
+
+	// 参数验证
+	validations := []func() error{
+		func() error {
+			if _, err := strconv.Atoi(start); start != "" && err != nil {
+				return errors.New("invalid start parameter")
+			}
+			return nil
+		},
+		func() error {
+			if _, err := strconv.Atoi(end); end != "" && err != nil {
+				return errors.New("invalid end parameter")
+			}
+			return nil
+		},
+		func() error {
+			if albumId != "" {
+				if _, err := primitive.ObjectIDFromHex(albumId); err != nil {
+					return errors.New("invalid album id format")
+				}
+			}
+			return nil
+		},
+		func() error {
+			if artistId != "" {
+				if _, err := primitive.ObjectIDFromHex(artistId); err != nil {
+					return errors.New("invalid artist id format")
+				}
+			}
+			return nil
+		},
+		func() error {
+			if year != "" {
+				if _, err := strconv.Atoi(year); err != nil {
+					return errors.New("year must be integer")
+				}
+			}
+			return nil
+		},
+	}
+
+	for _, validate := range validations {
+		if err := validate(); err != nil {
+			return nil, err
+		}
+	}
+
+	return uc.mediaFileRepo.GetMediaFileMetadataItems(
 		ctx, start, end, sort, order,
 		search, starred,
 		albumId, artistId, year,

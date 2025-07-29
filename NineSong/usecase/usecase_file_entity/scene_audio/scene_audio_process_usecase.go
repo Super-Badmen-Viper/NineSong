@@ -70,10 +70,7 @@ func NewAudioProcessingUsecase(
 	wordCloudRepo scene_audio_db_interface.WordCloudDBRepository,
 	lyricsFileRepo scene_audio_db_interface.LyricsFileRepository,
 ) *AudioProcessingUsecase {
-	workerCount := runtime.NumCPU() * 2
-	if workerCount < 4 {
-		workerCount = 4
-	}
+	workerCount := runtime.NumCPU()
 
 	return &AudioProcessingUsecase{
 		db:             db,
