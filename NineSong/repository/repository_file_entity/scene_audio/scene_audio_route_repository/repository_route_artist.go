@@ -3,6 +3,7 @@ package scene_audio_route_repository
 import (
 	"context"
 	"fmt"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 	"strconv"
 	"strings"
@@ -113,6 +114,99 @@ func (r *artistRepository) GetArtistItems(
 	}(cursor, ctx)
 
 	var results []scene_audio_route_models.ArtistMetadata
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, fmt.Errorf("decode error: %w", err)
+	}
+
+	return results, nil
+}
+
+func (r *artistRepository) GetArtistMetadataItems(
+	ctx context.Context,
+	start, end, sort, order, search, starred string,
+) ([]scene_audio_db_models.ArtistMetadata, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	coll := r.db.Collection(r.collection)
+
+	pipeline := []bson.D{
+		// 使用$lookup但不立即$unwind
+		{
+			{Key: "$lookup", Value: bson.D{
+				{Key: "from", Value: domain.CollectionFileEntityAudioSceneAnnotation},
+				{Key: "let", Value: bson.D{{Key: "artistId", Value: "$_id"}}},
+				{Key: "pipeline", Value: []bson.D{
+					{
+						{Key: "$match", Value: bson.D{
+							{Key: "$expr", Value: bson.D{
+								{Key: "$and", Value: bson.A{
+									bson.D{{Key: "$eq", Value: bson.A{"$item_id", "$$artistId"}}},
+									bson.D{{Key: "$eq", Value: bson.A{"$item_type", "artist"}}},
+								}},
+							}},
+						}},
+					},
+					// 新增：只取第一个注解（避免重复）
+					{{Key: "$limit", Value: 1}},
+				}},
+				{Key: "as", Value: "annotations"},
+			}},
+		},
+		// 修改$unwind阶段
+		{
+			{Key: "$unwind", Value: bson.D{
+				{Key: "path", Value: "$annotations"},
+				{Key: "preserveNullAndEmptyArrays", Value: true}, // 保留无注解的艺术家
+			}},
+		},
+		{
+			{Key: "$addFields", Value: bson.D{
+				{Key: "play_count", Value: "$annotations.play_count"},
+				{Key: "play_complete_count", Value: "$annotations.play_complete_count"},
+				{Key: "play_date", Value: "$annotations.play_date"},
+				{Key: "rating", Value: "$annotations.rating"},
+				{Key: "starred", Value: "$annotations.starred"},
+				{Key: "starred_at", Value: "$annotations.starred_at"},
+			}},
+		},
+	}
+
+	// 添加过滤条件
+	if match := buildArtistMatch(search, starred); len(match) > 0 {
+		pipeline = append(pipeline, bson.D{{Key: "$match", Value: match}})
+	}
+
+	// 处理特殊排序
+	validatedSort := validateArtistSortField(sort)
+	if validatedSort == "play_date" {
+		pipeline = append(pipeline, bson.D{
+			{Key: "$match", Value: bson.D{
+				{Key: "play_count", Value: bson.D{{Key: "$gt", Value: 0}}},
+			}},
+		})
+	}
+
+	// 修复排序稳定性
+	pipeline = append(pipeline, buildArtistSortStage(validatedSort, order))
+
+	// 增强分页参数验证
+	paginationStages := buildArtistPaginationStage(start, end)
+	if paginationStages != nil {
+		pipeline = append(pipeline, paginationStages...)
+	}
+
+	cursor, err := coll.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("database query failed: %w", err)
+	}
+	defer func(cursor mongo.Cursor, ctx context.Context) {
+		err := cursor.Close(ctx)
+		if err != nil {
+			fmt.Printf("error closing cursor: %v\n", err)
+		}
+	}(cursor, ctx)
+
+	var results []scene_audio_db_models.ArtistMetadata
 	if err := cursor.All(ctx, &results); err != nil {
 		return nil, fmt.Errorf("decode error: %w", err)
 	}

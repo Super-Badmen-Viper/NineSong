@@ -23,6 +23,7 @@ func NewMediaFileCueRouter(
 	mediaCueGroup := group.Group("/cues")
 	{
 		mediaCueGroup.GET("", ctrl.GetMediaFileCues)
+		mediaCueGroup.GET("/metadatas", ctrl.GetMediaFileMetadataCues)
 		mediaCueGroup.GET("/sort", ctrl.GetMediaFileCuesMultipleSorting)
 		mediaCueGroup.GET("/filter_counts", ctrl.GetMediaCueFilterCounts)
 	}

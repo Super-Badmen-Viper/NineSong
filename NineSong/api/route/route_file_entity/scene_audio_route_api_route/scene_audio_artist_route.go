@@ -24,6 +24,7 @@ func NewArtistRouter(
 	artistGroup := group.Group("/artists")
 	{
 		artistGroup.GET("", ctrl.GetArtists)
+		artistGroup.GET("/metadatas", ctrl.GetArtistMetadatas)
 		artistGroup.GET("/sort", ctrl.GetArtistsMultipleSorting)
 		artistGroup.GET("/filter_counts", ctrl.GetArtistFilterCounts)
 	}

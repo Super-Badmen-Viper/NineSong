@@ -2,6 +2,7 @@ package scene_audio_route_interface
 
 import (
 	"context"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 )
@@ -14,6 +15,14 @@ type MediaFileCueRepository interface {
 		albumId, artistId,
 		year string,
 	) ([]scene_audio_route_models.MediaFileCueMetadata, error)
+
+	GetMediaFileCueMetadataItems(
+		ctx context.Context,
+		start, end, sort, order,
+		search, starred,
+		albumId, artistId,
+		year string,
+	) ([]scene_audio_db_models.MediaFileCueMetadata, error)
 
 	GetMediaFileCueItemsMultipleSorting(
 		ctx context.Context,

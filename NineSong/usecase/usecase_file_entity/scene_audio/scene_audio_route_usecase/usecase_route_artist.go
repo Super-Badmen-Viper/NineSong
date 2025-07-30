@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 	"strconv"
 	"strings"
@@ -62,6 +63,45 @@ func (uc *ArtistUsecase) GetArtistItems(
 	}
 
 	return uc.repo.GetArtistItems(ctx, start, end, sort, order, search, starred)
+}
+
+func (uc *ArtistUsecase) GetArtistMetadataItems(
+	ctx context.Context,
+	start, end, sort, order, search, starred string,
+) ([]scene_audio_db_models.ArtistMetadata, error) {
+	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
+	defer cancel()
+
+	validations := []func() error{
+		func() error {
+			if _, err := strconv.Atoi(start); start != "" && err != nil {
+				return errors.New("invalid start parameter")
+			}
+			return nil
+		},
+		func() error {
+			if _, err := strconv.Atoi(end); end != "" && err != nil {
+				return errors.New("invalid end parameter")
+			}
+			return nil
+		},
+		func() error {
+			if starred != "" {
+				if _, err := strconv.ParseBool(starred); err != nil {
+					return errors.New("invalid starred parameter")
+				}
+			}
+			return nil
+		},
+	}
+
+	for _, validate := range validations {
+		if err := validate(); err != nil {
+			return nil, err
+		}
+	}
+
+	return uc.repo.GetArtistMetadataItems(ctx, start, end, sort, order, search, starred)
 }
 
 func (uc *ArtistUsecase) GetArtistItemsMultipleSorting(

@@ -52,6 +52,41 @@ func (c *ArtistController) GetArtists(ctx *gin.Context) {
 	controller.SuccessResponse(ctx, "artists", artists, len(artists))
 }
 
+func (c *ArtistController) GetArtistMetadatas(ctx *gin.Context) {
+	params := struct {
+		Start   string `form:"start" binding:"required"`
+		End     string `form:"end" binding:"required"`
+		Sort    string `form:"sort"`
+		Order   string `form:"order"`
+		Search  string `form:"search"`
+		Starred string `form:"starred"`
+	}{
+		Start:   ctx.Query("start"),
+		End:     ctx.Query("end"),
+		Sort:    ctx.DefaultQuery("sort", "name"),
+		Order:   ctx.DefaultQuery("order", "asc"),
+		Search:  ctx.Query("search"),
+		Starred: ctx.Query("starred"),
+	}
+
+	artists, err := c.ArtistUsecase.GetArtistMetadataItems(
+		ctx.Request.Context(),
+		params.Start,
+		params.End,
+		params.Sort,
+		params.Order,
+		params.Search,
+		params.Starred,
+	)
+
+	if err != nil {
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
+		return
+	}
+
+	controller.SuccessResponse(ctx, "artists", artists, len(artists))
+}
+
 func (c *ArtistController) GetArtistsMultipleSorting(ctx *gin.Context) {
 	params := struct {
 		Start   string   `form:"start" binding:"required"`

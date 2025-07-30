@@ -66,6 +66,55 @@ func (c *AlbumController) GetAlbumItems(ctx *gin.Context) {
 	controller.SuccessResponse(ctx, "albums", albums, len(albums))
 }
 
+func (c *AlbumController) GetAlbumMetadataItems(ctx *gin.Context) {
+	params := struct {
+		Start    string `form:"start" binding:"required"`
+		End      string `form:"end" binding:"required"`
+		Sort     string `form:"sort"`
+		Order    string `form:"order"`
+		Search   string `form:"search"`
+		Starred  string `form:"starred"`
+		ArtistID string `form:"artist_id"`
+		MinYear  string `form:"min_year"`
+		MaxYear  string `form:"max_year"`
+	}{
+		Start:    ctx.Query("start"),
+		End:      ctx.Query("end"),
+		Sort:     ctx.DefaultQuery("sort", "name"),
+		Order:    ctx.DefaultQuery("order", "asc"),
+		Search:   ctx.Query("search"),
+		Starred:  ctx.Query("starred"),
+		ArtistID: ctx.Query("artist_id"),
+		MinYear:  ctx.Query("min_year"),
+		MaxYear:  ctx.Query("max_year"),
+	}
+
+	if params.Start == "" || params.End == "" {
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "MISSING_PARAMS", "必须提供start和end参数")
+		return
+	}
+
+	albums, err := c.AlbumUsecase.GetAlbumMetadataItems(
+		ctx.Request.Context(),
+		params.Start,
+		params.End,
+		params.Sort,
+		params.Order,
+		params.Search,
+		params.Starred,
+		params.ArtistID,
+		params.MinYear,
+		params.MaxYear,
+	)
+
+	if err != nil {
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
+		return
+	}
+
+	controller.SuccessResponse(ctx, "albums", albums, len(albums))
+}
+
 func (c *AlbumController) GetAlbumItemsMultipleSorting(ctx *gin.Context) {
 	params := struct {
 		Start    string   `form:"start" binding:"required"`
