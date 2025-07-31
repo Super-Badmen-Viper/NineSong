@@ -13,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -610,6 +611,9 @@ func buildMatchStage(search, starred, albumId, artistId, year, suffix, minBitrat
 		// 子路径模糊匹配优化
 		if folderPathSubFilter != "" {
 			// 使用非贪婪匹配减少回溯 [5,7](@ref)
+			if runtime.GOOS != "windows" {
+				folderPathSubFilter = strings.ReplaceAll(folderPathSubFilter, `\`, `/`)
+			}
 			subRegex := regexp.MustCompile(".*?" + regexp.QuoteMeta(folderPathSubFilter))
 			filter = append(filter, bson.E{
 				Key:   "path",
