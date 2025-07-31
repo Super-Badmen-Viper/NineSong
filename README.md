@@ -13,36 +13,44 @@ For NineSong, it only needs to respond to users around the world who need it and
 
 [NSMusicS](https://github.com/Super-Badmen-Viper/NSMusicS):https://github.com/Super-Badmen-Viper/NSMusicS will support Docker deployment by default and integrate the NineSong streaming service.    
 
-## DownLoad For 0.5.0~0.9.9-Beta Version (Music Scene): Released on June 15th, 2025
+## DownLoad For 1.0.0 Version (Music Scene): Released At the end of July 2025
 You need to put the. env and docker-compose.yaml files in the same folder. You can customize the parameter configuration of. env and docker-compose.yaml, such as mapping the media library folder to the Volumes of the NineSong container.  
 [download](https://github.com/Super-Badmen-Viper/NineSong/releases/): https://github.com/Super-Badmen-Viper/NineSong/releases
-Note that currently only the beta version is open for testing, and a truly complete experience will need to wait for the release of the 1.0.0 official version. If you want to try using it and help NineSong test bugs, you can install and deploy the 0.5.0 beta version, which provides sufficient basic functions for you to use. Even with the 0.5.0 beta version, its music experience surpasses all current Github music servers, let alone the 1.0.0 official version.  
-
-## DownLoad For 1.0.0 Version (Music Scene): Released At the end of July 2025
 Compared to other music servers (such as Navidrome, Jellyfin, Emby, Plex, Subsonic, Gonic), it offers the following enhanced features:
-- [ ] More comprehensive music library management:
+- More comprehensive music library management:
 - - [x] Rich single-level sorting options, supporting multi-level mixed sorting and multi-level mixed filtering;
 - - [x] deeper processing of composite tags to make the relevance between musics more comprehensive;
 - - [x] search jump optimization
 - - - [x] Support fuzzy search based on title, album, artist, and lyrics (multiple mixed matching of Chinese Pinyin and simplified traditional Chinese characters);
 - - - [x] recommended similar search results;
-- - [ ] support for dual-page browsing mode (unlimited virtual list, paged list);
-- - [ ] support uploading, downloading, and synchronizing music files between the server and client;
-- [x] More comprehensive music playback experience:
+- More comprehensive music playback experience:
 - - [x] various elegant playback styles[cover Square、cover Rotate、cover Beaut、cover Base、cover AlbumList];
 - - [x] exclusive playback modes for various music files[normal model、cue-music model];
-- [x] CUE exclusive playback (CUE: wav、ape、flac) and CUE file management:
+- CUE exclusive playback (CUE: wav、ape、flac) and CUE file management:
 - - [x] Exclusive management page for music disc image (mirror) auxiliary files. 
 - - [x] CUE playback styles suitable for music disc image features
 - - [x] Visualized virtual track playback of CUE
 - More complete TAG import and management:
 - - [x] support for importing complete TAGs from more types of music files (including m4a、cue(wav、ape、flac));
+- Personalized music recommendations based on user usage data: 
+- - [x] Phase 1 (June): Add tag cloud and recommend music based on user interests.
+## Subsequent updates (Music Scene):
+- More comprehensive music library management:
+- - [ ] support for dual-page browsing mode (unlimited virtual list, paged list);
+- - [ ] support uploading, downloading, and synchronizing music files between the server and client;
+- More complete TAG import and management:
 - - [ ] support for user-visualized TAG management, allowing remote uploads, auto-associating, manual merging of artist-album-single TAGs;
 - - [ ] support for richer TAG fields: artist profile pictures, artist photos (multiple selection), album covers, song quality versions (multiple selection), and lyrics versions (single selection);
-- [x] Integrated free public welfare music TAG API, allowing users to obtain online TAGs for songs and choose whether to synchronize TAG data.
-- [ ] Support for multi-channel audio effects; support for Advanced/Standard/Simple EQ; (October)
-- [ ] Personalized music recommendations based on user usage data.
-- - [x] Phase 1 (June): Add tag cloud and recommend music based on user interests.
+- ISO exclusive playback and ISO file management:
+- - [ ] Exclusive management page for music disc image (mirror) auxiliary files.
+- - [ ] ISO playback styles suitable for music disc image features
+- - [ ] Visualized virtual track playback of ISO
+- Support more sound effects settings: 
+- - [ ] support for multi-channel audio effects 
+- - [ ] support for Advanced/Standard/Simple EQ 
+- Integrated free public welfare music TAG API: 
+- - [ ] allowing users to obtain online TAGs for songs and choose whether to synchronize TAG data.
+- Personalized music recommendations based on user usage data: 
 - - [ ] Phase 2 (August): Use lightweight recommendation algorithms based on usage data.
 - - [ ] Phase 3 (October): Build a music knowledge graph by analyzing music metadata to achieve smarter recommendations.
 - - [ ] Phase 4 (December): Combine the knowledge graph with LLM (DeepSeek) for advanced music recommendations.
