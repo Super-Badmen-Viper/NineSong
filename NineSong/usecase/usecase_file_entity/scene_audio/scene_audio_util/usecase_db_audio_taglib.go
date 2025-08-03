@@ -48,19 +48,37 @@ func (e *AudioMetadataExtractorTaglib) Extract(
 	suffix := strings.ToLower(strings.TrimPrefix(filepath.Ext(path), "."))
 
 	var tags map[string][]string
-	var properties struct {
-		Length     time.Duration
-		Channels   uint
-		SampleRate uint
-		Bitrate    uint
-	}
+	var properties taglib.Properties
 	var readError error
-	tags, err := taglib.ReadTags(path)
+
+	// 安全读取 Tags（防御 taglib 内部 panic）
+	tags, err := func() (map[string][]string, error) {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("WARN: taglib panic on ReadTags(%s): %v", path, r)
+				readError = fmt.Errorf("taglib panic: %v", r)
+			}
+		}()
+		return taglib.ReadTags(path)
+	}()
 	if err != nil {
 		readError = err
 		tags = make(map[string][]string)
 	}
-	properties, err = taglib.ReadProperties(path)
+
+	// 安全读取 Properties（防御 taglib 内部 panic）
+	properties, err = func() (taglib.Properties, error) {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("WARN: taglib panic on ReadProperties(%s): %v", path, r)
+				readError = fmt.Errorf("taglib panic: %v", r)
+			}
+		}()
+		return taglib.ReadProperties(path)
+	}()
+	if err != nil {
+		readError = err
+	}
 
 	if readError != nil || suffix == "m4a" {
 		metadataJson, err := GetMediaMetadata(path)

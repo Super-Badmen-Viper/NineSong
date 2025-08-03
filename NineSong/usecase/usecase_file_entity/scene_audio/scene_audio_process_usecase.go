@@ -294,7 +294,6 @@ func (uc *AudioProcessingUsecase) ProcessMusicDirectory(
 		// 第二次遍历：处理文件
 		err = filepath.Walk(folder.FolderPath, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
-
 				log.Printf("访问路径 %s 出错: %v", path, err)
 				return nil // 跳过错误继续遍历
 			}
