@@ -30,6 +30,7 @@ services:
     volumes:
       - ./.env:/app/.env:ro
       - ${MEDIA_DATA_HOST_PATH}:/data/library
+      - metavolume:/app/MetaData  # 新增：持久化挂载 MetaData 目录 [6,8](@ref)
     depends_on:
       - mongodb
     security_opt:
@@ -49,7 +50,8 @@ services:
       - dbdata:/data/db
 
 volumes:
-  dbdata:
+  dbdata: # MongoDB 的持久化卷
+  metavolume:  # backend 的 MetaData 目录持久化卷
 
 # 容器网络架构
 networks:

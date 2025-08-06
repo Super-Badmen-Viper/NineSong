@@ -22,6 +22,10 @@ RUN go build -ldflags="-extldflags '-static'" -o main cmd/main.go
 # 第二阶段：运行环境
 FROM alpine:latest
 WORKDIR /app
+# 创建目标目录并预置权限（确保可写）
+RUN mkdir -p /app/MetaData && \
+    chown -R 1000:1000 /app/MetaData && \
+    chmod 775 /app/MetaData  # 组用户可写
 # 8. 配置阿里云镜像源
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 # 9. 安装运行时依赖
