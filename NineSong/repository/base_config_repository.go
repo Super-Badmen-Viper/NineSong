@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	driver "go.mongodb.org/mongo-driver/mongo"
-
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
 	"go.mongodb.org/mongo-driver/bson"
@@ -72,47 +70,35 @@ func (r *ConfigMongoRepository[T]) GetAll(ctx context.Context) ([]*T, error) {
 	return r.BaseMongoRepository.GetAll(ctx)
 }
 
-// ReplaceAll 替换所有配置（先删除再插入）
+// ReplaceAll 替换所有配置（非事务模式）
 func (r *ConfigMongoRepository[T]) ReplaceAll(ctx context.Context, configs []*T) error {
-	if len(configs) == 0 {
-		return r.deleteAll(ctx)
-	}
-
+	// 获取集合句柄
 	coll := r.db.Collection(r.collection)
 
-	// 启动事务确保原子性
-	session, err := r.db.Client().StartSession()
-	if err != nil {
-		return fmt.Errorf("failed to start session: %w", err)
-	}
-	defer session.EndSession(ctx)
-
-	_, err = session.WithTransaction(ctx, func(sc driver.SessionContext) (interface{}, error) {
+	// 如果没有新配置
+	if len(configs) == 0 {
 		// 删除所有现有配置
-		if _, err := coll.DeleteMany(sc, bson.M{}); err != nil {
-			return nil, fmt.Errorf("failed to delete existing configs: %w", err)
+		if _, err := coll.DeleteMany(ctx, bson.M{}); err != nil {
+			return fmt.Errorf("failed to delete existing configs: %w", err)
 		}
+		return nil
+	}
 
-		// 设置时间戳
-		for _, config := range configs {
-			r.setTimestamps(config, true)
-		}
+	// 1. 删除所有现有配置
+	if _, err := coll.DeleteMany(ctx, bson.M{}); err != nil {
+		return fmt.Errorf("failed to delete existing configs: %w", err)
+	}
 
-		// 插入新配置
-		docs := make([]interface{}, len(configs))
-		for i, config := range configs {
-			docs[i] = config
-		}
+	// 2. 准备插入文档
+	docs := make([]interface{}, len(configs))
+	for i, config := range configs {
+		r.setTimestamps(config, true) // 设置时间戳
+		docs[i] = config
+	}
 
-		if _, err := coll.InsertMany(sc, docs); err != nil {
-			return nil, fmt.Errorf("failed to insert new configs: %w", err)
-		}
-
-		return nil, nil
-	})
-
-	if err != nil {
-		return fmt.Errorf("replace all configs failed: %w", err)
+	// 3. 插入新配置
+	if _, err := coll.InsertMany(ctx, docs); err != nil {
+		return fmt.Errorf("failed to insert new configs: %w", err)
 	}
 
 	return nil

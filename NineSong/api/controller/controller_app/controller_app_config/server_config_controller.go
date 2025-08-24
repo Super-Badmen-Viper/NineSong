@@ -67,7 +67,7 @@ func (ctrl *AppServerConfigController) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.usecase.Delete(c.Request.Context(), id); err != nil {
+	if err := ctrl.usecase.Delete(c.Request.Context(), id.Hex()); err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "未找到ID为 " + idParam + " 的配置项",

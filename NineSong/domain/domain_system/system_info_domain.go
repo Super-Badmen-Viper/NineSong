@@ -1,7 +1,7 @@
 package domain_system
 
 import (
-	"context"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/usecase"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -31,7 +31,8 @@ type SystemInfo struct {
 	OperatingSystem            string             `json:"operatingSystem" bson:"operating_system"`
 }
 
+// SystemInfoUsecase defines the usecase interface for system info.
+// It embeds the generic ConfigUsecase to provide standard Get/Update operations.
 type SystemInfoUsecase interface {
-	Get(ctx context.Context) (*SystemInfo, error)
-	Update(ctx context.Context, info *SystemInfo) error
+	usecase.ConfigUsecase[SystemInfo]
 }

@@ -1,7 +1,7 @@
 package domain_app_library
 
 import (
-	"context"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/usecase"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
@@ -57,7 +57,8 @@ type AppMediaFileLibrary struct {
 	MediumImageURL       string             `bson:"medium_image_url"`
 }
 
+// AppMediaFileLibraryUsecase defines the usecase interface for the media file library.
+// It embeds the generic ConfigUsecase to provide standard GetAll/ReplaceAll operations.
 type AppMediaFileLibraryUsecase interface {
-	ReplaceAll(ctx context.Context, configs []*AppMediaFileLibrary) error
-	GetAll(ctx context.Context) ([]*AppMediaFileLibrary, error)
+	usecase.ConfigUsecase[AppMediaFileLibrary]
 }

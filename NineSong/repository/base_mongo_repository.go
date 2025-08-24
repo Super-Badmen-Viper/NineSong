@@ -6,6 +6,7 @@ import (
 	"fmt"
 	driver "go.mongodb.org/mongo-driver/mongo"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
@@ -71,7 +72,7 @@ func (r *BaseMongoRepository[T]) GetByID(ctx context.Context, id primitive.Objec
 	return &entity, nil
 }
 
-// Update 更新实体
+// Update 更新实体（支持 Upsert）
 func (r *BaseMongoRepository[T]) Update(ctx context.Context, entity *T) error {
 	if entity == nil {
 		return errors.New("entity cannot be nil")
@@ -82,20 +83,18 @@ func (r *BaseMongoRepository[T]) Update(ctx context.Context, entity *T) error {
 		return errors.New("entity ID cannot be empty")
 	}
 
-	// 设置更新时间
+	// 设置更新时间戳
 	r.setTimestamps(entity, false)
 
 	coll := r.db.Collection(r.collection)
 	filter := bson.M{"_id": id}
 	update := bson.M{"$set": entity}
 
-	result, err := coll.UpdateOne(ctx, filter, update)
+	// 关键修改：启用 Upsert 选项
+	opts := options.Update().SetUpsert(true)
+	_, err := coll.UpdateOne(ctx, filter, update, opts)
 	if err != nil {
-		return fmt.Errorf("failed to update entity: %w", err)
-	}
-
-	if result.MatchedCount == 0 {
-		return fmt.Errorf("entity not found with id: %s", id.Hex())
+		return fmt.Errorf("failed to update or insert entity: %w", err)
 	}
 
 	return nil
@@ -362,30 +361,11 @@ func (r *BaseMongoRepository[T]) setTimestamps(entity *T, isCreate bool) {
 	}
 }
 
-// 辅助方法：获取实体ID
+// 获取实体ID
 func (r *BaseMongoRepository[T]) getEntityID(entity *T) primitive.ObjectID {
-	val := reflect.ValueOf(entity).Elem()
-	typ := val.Type()
-
-	for i := 0; i < val.NumField(); i++ {
-		field := val.Field(i)
-		fieldType := typ.Field(i)
-
-		fieldName := fieldType.Tag.Get("bson")
-		if fieldName == "" {
-			fieldName = fieldType.Name
-		}
-
-		if (fieldName == "_id" || fieldName == "ID" || fieldName == "Id") && field.Type() == reflect.TypeOf(primitive.ObjectID{}) {
-			return field.Interface().(primitive.ObjectID)
-		}
+	if entity == nil {
+		return primitive.NilObjectID
 	}
-
-	return primitive.ObjectID{}
-}
-
-// 辅助方法：设置实体ID
-func (r *BaseMongoRepository[T]) setEntityID(entity *T, id primitive.ObjectID) {
 	val := reflect.ValueOf(entity).Elem()
 	typ := val.Type()
 
@@ -393,18 +373,75 @@ func (r *BaseMongoRepository[T]) setEntityID(entity *T, id primitive.ObjectID) {
 		field := val.Field(i)
 		fieldType := typ.Field(i)
 
-		if !field.CanSet() {
+		// 跳过非导出字段（getEntityID也需要检查）
+		if !field.CanInterface() { // 或 field.CanAddr()+field.CanSet()
 			continue
 		}
 
-		fieldName := fieldType.Tag.Get("bson")
+		// 解析bson标签（兼容带选项的标签）
+		tag := fieldType.Tag.Get("bson")
+		fieldName, _, _ := strings.Cut(tag, ",") // 分割标签和选项
 		if fieldName == "" {
 			fieldName = fieldType.Name
 		}
 
-		if (fieldName == "_id" || fieldName == "ID" || fieldName == "Id") && field.Type() == reflect.TypeOf(primitive.ObjectID{}) {
-			field.Set(reflect.ValueOf(id))
+		// 匹配ID字段名，并检查类型兼容性（支持指针和非指针）
+		if matchesIDField(fieldName) && isObjectIDType(field.Type()) {
+			if field.Kind() == reflect.Ptr {
+				if !field.IsNil() {
+					return field.Elem().Interface().(primitive.ObjectID)
+				}
+				return primitive.NilObjectID
+			}
+			return field.Interface().(primitive.ObjectID)
+		}
+	}
+	return primitive.NilObjectID
+}
+
+// 设置实体ID
+func (r *BaseMongoRepository[T]) setEntityID(entity *T, id primitive.ObjectID) {
+	if entity == nil {
+		return
+	}
+	val := reflect.ValueOf(entity).Elem()
+	typ := val.Type()
+
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		fieldType := typ.Field(i)
+
+		if !field.CanSet() { // 跳过不可修改字段
+			continue
+		}
+
+		// 统一解析标签
+		tag := fieldType.Tag.Get("bson")
+		fieldName, _, _ := strings.Cut(tag, ",")
+		if fieldName == "" {
+			fieldName = fieldType.Name
+		}
+
+		// 类型检查兼容指针和非指针
+		if matchesIDField(fieldName) && isObjectIDType(field.Type()) {
+			if field.Kind() == reflect.Ptr {
+				newID := id // 避免取地址临时变量
+				field.Set(reflect.ValueOf(&newID))
+			} else {
+				field.Set(reflect.ValueOf(id))
+			}
 			return
 		}
 	}
+}
+
+// 辅助函数：检查字段名是否匹配ID
+func matchesIDField(name string) bool {
+	return name == "_id" || name == "ID"
+}
+
+// 辅助函数：检查类型是否为primitive.ObjectID或其指针
+func isObjectIDType(t reflect.Type) bool {
+	return t == reflect.TypeOf(primitive.ObjectID{}) ||
+		t == reflect.TypeOf(&primitive.ObjectID{})
 }
