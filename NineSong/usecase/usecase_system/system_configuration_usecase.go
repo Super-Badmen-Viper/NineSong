@@ -9,7 +9,7 @@ import (
 )
 
 // systemConfigurationUsecase implements the usecase interface for system configuration.
-// It embeds the generic ConfigUsecase to handle the core Get/Update logic.
+// It embeds the generic ConfigUsecase to handle the core Get/Upsert logic.
 // This approach reduces boilerplate code and centralizes the common logic in base_usecase.go.
 type systemConfigurationUsecase struct {
 	usecase.ConfigUsecase[domain_system.SystemConfiguration]

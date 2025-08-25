@@ -9,7 +9,7 @@ import (
 )
 
 // systemInfoUsecase implements the usecase interface for system information.
-// It embeds the generic ConfigUsecase to handle the core Get/Update logic.
+// It embeds the generic ConfigUsecase to handle the core Get/Upsert logic.
 type systemInfoUsecase struct {
 	usecase.ConfigUsecase[domain_system.SystemInfo]
 }

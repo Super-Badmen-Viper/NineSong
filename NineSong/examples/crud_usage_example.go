@@ -32,7 +32,7 @@ import (
                             1. 标准CRUD模板 (BaseRepository)
 ==================================================================================
 适用场景：基础实体管理，如用户、订单、商品等标准业务实体
-核心功能：Create、Read、Update、Delete + 批量操作 + 分页查询
+核心功能：Create、Read、Upsert、Delete + 批量操作 + 分页查询
 */
 
 // ========== Domain 层 ==========
@@ -202,7 +202,7 @@ func (uc *productUsecaseImpl) SearchProducts(ctx context.Context, keyword, categ
                          3. 配置CRUD模板 (ConfigRepository)
 ==================================================================================
 适用场景：系统配置、应用设置、全局参数等单例或少量配置管理
-核心功能：Get、Update、批量替换 + 单例模式支持
+核心功能：Get、Upsert、批量替换 + 单例模式支持
 */
 
 // ========== Domain 层 ==========
@@ -260,7 +260,7 @@ func (uc *systemConfigUsecaseImpl) InitDefaultConfig(ctx context.Context) error 
 		EnableDebug:  false,
 		CacheTimeout: 3600, // 1小时
 	}
-	return uc.Update(ctx, defaultConfig)
+	return uc.Upsert(ctx, defaultConfig)
 }
 
 func (uc *systemConfigUsecaseImpl) UpdateCacheTimeout(ctx context.Context, timeout int) error {
@@ -269,7 +269,7 @@ func (uc *systemConfigUsecaseImpl) UpdateCacheTimeout(ctx context.Context, timeo
 		return err
 	}
 	config.CacheTimeout = timeout
-	return uc.Update(ctx, config)
+	return uc.Upsert(ctx, config)
 }
 
 func (uc *systemConfigUsecaseImpl) ToggleDebugMode(ctx context.Context) error {
@@ -278,7 +278,7 @@ func (uc *systemConfigUsecaseImpl) ToggleDebugMode(ctx context.Context) error {
 		return err
 	}
 	config.EnableDebug = !config.EnableDebug
-	return uc.Update(ctx, config)
+	return uc.Upsert(ctx, config)
 }
 
 /*

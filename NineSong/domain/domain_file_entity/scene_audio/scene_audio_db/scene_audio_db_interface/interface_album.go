@@ -11,6 +11,8 @@ import (
 
 // AlbumRepository 专辑领域层接口
 type AlbumRepository interface {
+	//domain.BaseRepository[scene_audio_db_models.AlbumMetadata]
+
 	// 创建/更新
 	Upsert(ctx context.Context, album *scene_audio_db_models.AlbumMetadata) error
 	BulkUpsert(ctx context.Context, albums []*scene_audio_db_models.AlbumMetadata) (int, error)

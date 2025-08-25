@@ -32,7 +32,7 @@ type SystemInfo struct {
 }
 
 // SystemInfoUsecase defines the usecase interface for system info.
-// It embeds the generic ConfigUsecase to provide standard Get/Update operations.
+// It embeds the generic ConfigUsecase to provide standard Get/Upsert operations.
 type SystemInfoUsecase interface {
 	usecase.ConfigUsecase[SystemInfo]
 }

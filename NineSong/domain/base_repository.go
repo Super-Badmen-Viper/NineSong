@@ -15,9 +15,9 @@ type BaseRepository[T any] interface {
 	// 基础CRUD操作
 	Create(ctx context.Context, entity *T) error
 	GetByID(ctx context.Context, id primitive.ObjectID) (*T, error)
-	Update(ctx context.Context, entity *T) error
+	Upsert(ctx context.Context, entity *T) error
 	UpdateByID(ctx context.Context, id primitive.ObjectID, update bson.M) (bool, error)
-	Delete(ctx context.Context, id primitive.ObjectID) error
+	DeleteByID(ctx context.Context, id primitive.ObjectID) error
 
 	// 批量操作
 	CreateMany(ctx context.Context, entities []*T) error
@@ -46,7 +46,7 @@ type BaseRepository[T any] interface {
 type ConfigRepository[T any] interface {
 	// 配置操作
 	Get(ctx context.Context) (*T, error)
-	Update(ctx context.Context, config *T) error
+	Upsert(ctx context.Context, config *T) error
 
 	// 批量配置操作（适用于多配置项场景）
 	GetAll(ctx context.Context) ([]*T, error)

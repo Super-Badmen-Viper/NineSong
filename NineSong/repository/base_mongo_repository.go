@@ -72,8 +72,8 @@ func (r *BaseMongoRepository[T]) GetByID(ctx context.Context, id primitive.Objec
 	return &entity, nil
 }
 
-// Update 更新实体（支持 Upsert）
-func (r *BaseMongoRepository[T]) Update(ctx context.Context, entity *T) error {
+// Upsert 更新实体（支持 Upsert）
+func (r *BaseMongoRepository[T]) Upsert(ctx context.Context, entity *T) error {
 	if entity == nil {
 		return errors.New("entity cannot be nil")
 	}
@@ -90,7 +90,6 @@ func (r *BaseMongoRepository[T]) Update(ctx context.Context, entity *T) error {
 	filter := bson.M{"_id": id}
 	update := bson.M{"$set": entity}
 
-	// 关键修改：启用 Upsert 选项
 	opts := options.Update().SetUpsert(true)
 	_, err := coll.UpdateOne(ctx, filter, update, opts)
 	if err != nil {
@@ -124,8 +123,8 @@ func (r *BaseMongoRepository[T]) UpdateByID(ctx context.Context, id primitive.Ob
 	return result.ModifiedCount > 0, nil
 }
 
-// Delete 删除实体
-func (r *BaseMongoRepository[T]) Delete(ctx context.Context, id primitive.ObjectID) error {
+// DeleteByID 删除实体
+func (r *BaseMongoRepository[T]) DeleteByID(ctx context.Context, id primitive.ObjectID) error {
 	if id.IsZero() {
 		return errors.New("id cannot be empty")
 	}

@@ -38,8 +38,8 @@ func (r *ConfigMongoRepository[T]) Get(ctx context.Context) (*T, error) {
 	return &config, nil
 }
 
-// Update 更新配置
-func (r *ConfigMongoRepository[T]) Update(ctx context.Context, config *T) error {
+// Upsert 更新配置
+func (r *ConfigMongoRepository[T]) Upsert(ctx context.Context, config *T) error {
 	if config == nil {
 		return errors.New("config cannot be nil")
 	}

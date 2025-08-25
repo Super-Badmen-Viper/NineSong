@@ -16,5 +16,5 @@ func NewSystemConfigurationRouter(timeout time.Duration, db mongo.Database, grou
 	ctrl := controller_system.NewSystemConfigurationController(uc)
 
 	group.GET("/system/config", ctrl.Get)
-	group.PUT("/system/config", ctrl.Update)
+	group.PUT("/system/config", ctrl.Upsert)
 }

@@ -1332,7 +1332,7 @@
 					"response": []
 				},
 				{
-					"name": "Update Library",
+					"name": "Upsert Library",
 					"request": {
 						"auth": {
 							"type": "bearer",

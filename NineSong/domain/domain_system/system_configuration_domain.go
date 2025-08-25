@@ -104,7 +104,7 @@ type TrickplayConfig struct {
 }
 
 // SystemConfigurationUsecase defines the usecase interface for system configuration.
-// It embeds the generic ConfigUsecase to provide standard Get/Update operations.
+// It embeds the generic ConfigUsecase to provide standard Get/Upsert operations.
 // Additional business-specific methods can be added here if needed.
 type SystemConfigurationUsecase interface {
 	usecase.ConfigUsecase[SystemConfiguration]

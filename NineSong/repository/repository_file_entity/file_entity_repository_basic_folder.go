@@ -272,7 +272,7 @@ func (r *folderRepo) Create(ctx context.Context, folder *domain_file_entity.Libr
 	return err
 }
 
-func (r *folderRepo) Delete(ctx context.Context, id primitive.ObjectID) error {
+func (r *folderRepo) DeleteByID(ctx context.Context, id primitive.ObjectID) error {
 	// 检查媒体库状态
 	if lib, err := r.GetByID(ctx, id); err == nil && lib.Status == domain_file_entity.StatusScanning {
 		return domain_file_entity.ErrLibraryInUse
@@ -287,7 +287,7 @@ func (r *folderRepo) Delete(ctx context.Context, id primitive.ObjectID) error {
 	return err
 }
 
-func (r *folderRepo) Update(
+func (r *folderRepo) Upsert(
 	ctx context.Context,
 	id primitive.ObjectID,
 	newName string,

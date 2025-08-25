@@ -23,14 +23,14 @@ func (c *SystemConfigurationController) Get(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, info)
 }
 
-func (c *SystemConfigurationController) Update(ctx *gin.Context) {
+func (c *SystemConfigurationController) Upsert(ctx *gin.Context) {
 	var req domain_system.SystemConfiguration
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if err := c.usecase.Update(ctx, &req); err != nil {
+	if err := c.usecase.Upsert(ctx, &req); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

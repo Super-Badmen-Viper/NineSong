@@ -16,9 +16,9 @@ type BaseUsecase[T any] interface {
 	// 基础CRUD操作
 	Create(ctx context.Context, entity *T) (*T, error)
 	GetByID(ctx context.Context, id string) (*T, error)
-	Update(ctx context.Context, entity *T) error
+	Upsert(ctx context.Context, entity *T) error
 	UpdateByID(ctx context.Context, id string, updates map[string]interface{}) error
-	Delete(ctx context.Context, id string) error
+	DeleteByID(ctx context.Context, id string) error
 
 	// 批量操作
 	CreateMany(ctx context.Context, entities []*T) error
@@ -36,7 +36,7 @@ type BaseUsecase[T any] interface {
 // ConfigUsecase 配置类Usecase接口
 type ConfigUsecase[T any] interface {
 	Get(ctx context.Context) (*T, error)
-	Update(ctx context.Context, config *T) error
+	Upsert(ctx context.Context, config *T) error
 	GetAll(ctx context.Context) ([]*T, error)
 	ReplaceAll(ctx context.Context, configs []*T) error
 }
@@ -101,8 +101,8 @@ func (uc *BaseUsecaseImpl[T]) GetByID(ctx context.Context, id string) (*T, error
 	return entity, nil
 }
 
-// Update 更新实体
-func (uc *BaseUsecaseImpl[T]) Update(ctx context.Context, entity *T) error {
+// Upsert 更新实体
+func (uc *BaseUsecaseImpl[T]) Upsert(ctx context.Context, entity *T) error {
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
 	defer cancel()
 
@@ -110,7 +110,7 @@ func (uc *BaseUsecaseImpl[T]) Update(ctx context.Context, entity *T) error {
 		return errors.New("entity cannot be nil")
 	}
 
-	if err := uc.repo.Update(ctx, entity); err != nil {
+	if err := uc.repo.Upsert(ctx, entity); err != nil {
 		return fmt.Errorf("failed to update entity: %w", err)
 	}
 
@@ -144,8 +144,8 @@ func (uc *BaseUsecaseImpl[T]) UpdateByID(ctx context.Context, id string, updates
 	return nil
 }
 
-// Delete 删除实体
-func (uc *BaseUsecaseImpl[T]) Delete(ctx context.Context, id string) error {
+// DeleteByID 删除实体
+func (uc *BaseUsecaseImpl[T]) DeleteByID(ctx context.Context, id string) error {
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
 	defer cancel()
 
@@ -158,7 +158,7 @@ func (uc *BaseUsecaseImpl[T]) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("invalid id format: %w", err)
 	}
 
-	if err := uc.repo.Delete(ctx, objID); err != nil {
+	if err := uc.repo.DeleteByID(ctx, objID); err != nil {
 		return fmt.Errorf("failed to delete entity: %w", err)
 	}
 
@@ -319,8 +319,8 @@ func (uc *ConfigUsecaseImpl[T]) Get(ctx context.Context) (*T, error) {
 	return config, nil
 }
 
-// Update 更新配置
-func (uc *ConfigUsecaseImpl[T]) Update(ctx context.Context, config *T) error {
+// Upsert 更新配置
+func (uc *ConfigUsecaseImpl[T]) Upsert(ctx context.Context, config *T) error {
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
 	defer cancel()
 
@@ -328,7 +328,7 @@ func (uc *ConfigUsecaseImpl[T]) Update(ctx context.Context, config *T) error {
 		return errors.New("config cannot be nil")
 	}
 
-	if err := uc.repo.Update(ctx, config); err != nil {
+	if err := uc.repo.Upsert(ctx, config); err != nil {
 		return fmt.Errorf("failed to update config: %w", err)
 	}
 
