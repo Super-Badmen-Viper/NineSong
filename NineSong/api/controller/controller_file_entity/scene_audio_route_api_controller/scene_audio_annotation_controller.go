@@ -1,11 +1,12 @@
 package scene_audio_route_api_controller
 
 import (
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/controller"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/controller"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
+	"github.com/gin-gonic/gin"
 )
 
 type AnnotationController struct {
@@ -107,15 +108,15 @@ func (c *AnnotationController) UpdateCompleteScrobble(ctx *gin.Context) {
 }
 
 type UpdateTagSourceRequest struct {
-	ItemID   string                               `json:"item_id" form:"item_id" binding:"required"`
-	ItemType string                               `json:"item_type" form:"item_type" binding:"required,oneof=artist album media media_cue"`
-	Tags     []scene_audio_route_models.TagSource `json:"tags" binding:"required"`
+	ItemID   string                            `json:"item_id" form:"item_id" binding:"required"`
+	ItemType string                            `json:"item_type" form:"item_type" binding:"required,oneof=artist album media media_cue"`
+	Tags     []scene_audio_db_models.TagSource `json:"tags" binding:"required"`
 }
 
 type UpdateWeightedTagRequest struct {
-	ItemID   string                                 `json:"item_id" form:"item_id" binding:"required"`
-	ItemType string                                 `json:"item_type" form:"item_type" binding:"required,oneof=artist album media media_cue"`
-	Tags     []scene_audio_route_models.WeightedTag `json:"tags" binding:"required"`
+	ItemID   string                              `json:"item_id" form:"item_id" binding:"required"`
+	ItemType string                              `json:"item_type" form:"item_type" binding:"required,oneof=artist album media media_cue"`
+	Tags     []scene_audio_db_models.WeightedTag `json:"tags" binding:"required"`
 }
 
 func (c *AnnotationController) UpdateTagSource(ctx *gin.Context) {

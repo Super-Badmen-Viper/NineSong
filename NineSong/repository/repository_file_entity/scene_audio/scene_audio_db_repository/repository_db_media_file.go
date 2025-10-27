@@ -250,10 +250,10 @@ func (r *mediaFileRepository) GetRecommendedByKeywords(
 	ctx context.Context,
 	keywords []string,
 	limit int,
-) ([]scene_audio_db_models.Recommendation, error) {
+) ([]scene_audio_db_models.WordCloudRecommendation, error) {
 	coll := r.db.Collection(r.collection)
 	if len(keywords) == 0 {
-		return []scene_audio_db_models.Recommendation{}, nil
+		return []scene_audio_db_models.WordCloudRecommendation{}, nil
 	}
 
 	// 1. 预过滤阶段（性能优化）
@@ -316,9 +316,9 @@ func (r *mediaFileRepository) GetRecommendedByKeywords(
 	}
 
 	// 6. 转换为响应模型
-	results := make([]scene_audio_db_models.Recommendation, len(files))
+	results := make([]scene_audio_db_models.WordCloudRecommendation, len(files))
 	for i, f := range files {
-		results[i] = scene_audio_db_models.Recommendation{
+		results[i] = scene_audio_db_models.WordCloudRecommendation{
 			ID:    f.ID,
 			Type:  "media_file",
 			Name:  f.Title,

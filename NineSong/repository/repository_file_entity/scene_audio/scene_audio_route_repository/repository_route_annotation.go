@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 
+	"go.mongodb.org/mongo-driver/mongo/options"
+
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -65,7 +66,7 @@ func (r *annotationRepository) UpdateStarred(
 		return false, fmt.Errorf("update operation failed: %w", err)
 	}
 
-	var doc scene_audio_route_models.AnnotationMetadata
+	var doc scene_audio_db_models.AnnotationMetadata
 	if res.UpsertedID != nil {
 		filter = bson.M{"_id": res.UpsertedID}
 	}
@@ -105,7 +106,7 @@ func (r *annotationRepository) UpdateUnStarred(
 		return false, errors.New("annotation not found")
 	}
 
-	var doc scene_audio_route_models.AnnotationMetadata
+	var doc scene_audio_db_models.AnnotationMetadata
 	if err := coll.FindOne(ctx, filter).Decode(&doc); err != nil {
 		return false, fmt.Errorf("fetch document failed: %w", err)
 	}
@@ -144,7 +145,7 @@ func (r *annotationRepository) UpdateRating(
 		return false, fmt.Errorf("update operation failed: %w", err)
 	}
 
-	var doc scene_audio_route_models.AnnotationMetadata
+	var doc scene_audio_db_models.AnnotationMetadata
 	if res.UpsertedID != nil {
 		filter = bson.M{"_id": res.UpsertedID}
 	}
@@ -186,7 +187,7 @@ func (r *annotationRepository) UpdateScrobble(
 		return false, fmt.Errorf("update operation failed: %w", err)
 	}
 
-	var doc scene_audio_route_models.AnnotationMetadata
+	var doc scene_audio_db_models.AnnotationMetadata
 	if res.UpsertedID != nil {
 		filter = bson.M{"_id": res.UpsertedID}
 	}
@@ -224,7 +225,7 @@ func (r *annotationRepository) UpdateCompleteScrobble(
 		return false, fmt.Errorf("update operation failed: %w", err)
 	}
 
-	var doc scene_audio_route_models.AnnotationMetadata
+	var doc scene_audio_db_models.AnnotationMetadata
 	if res.UpsertedID != nil {
 		filter = bson.M{"_id": res.UpsertedID}
 	}
@@ -239,7 +240,7 @@ func (r *annotationRepository) UpdateCompleteScrobble(
 func (r *annotationRepository) UpdateTagSource(
 	ctx context.Context,
 	itemId, itemType string,
-	tags []scene_audio_route_models.TagSource,
+	tags []scene_audio_db_models.TagSource,
 ) (bool, error) {
 	filter, err := r.createFilter(itemId, itemType)
 	if err != nil {
@@ -275,7 +276,7 @@ func (r *annotationRepository) UpdateTagSource(
 func (r *annotationRepository) UpdateWeightedTag(
 	ctx context.Context,
 	itemId, itemType string,
-	tags []scene_audio_route_models.WeightedTag,
+	tags []scene_audio_db_models.WeightedTag,
 ) (bool, error) {
 	filter, err := r.createFilter(itemId, itemType)
 	if err != nil {

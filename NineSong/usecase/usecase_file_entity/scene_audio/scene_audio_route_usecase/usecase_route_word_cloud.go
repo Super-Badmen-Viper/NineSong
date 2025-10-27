@@ -141,7 +141,7 @@ func (w *wordCloudUsecase) GetHighFrequencyWordCloudSearch(
 
 func (w *wordCloudUsecase) GetRecommendedWordCloudSearch(
 	ctx context.Context, keywords []string,
-) ([]scene_audio_db_models.Recommendation, error) {
+) ([]scene_audio_db_models.WordCloudRecommendation, error) {
 	const recommendLimit = 30
 	allRecommendations, err := w.repoMediaFile.GetRecommendedByKeywords(ctx, keywords, recommendLimit)
 	if err != nil {
@@ -149,7 +149,7 @@ func (w *wordCloudUsecase) GetRecommendedWordCloudSearch(
 	}
 
 	// 合并并去重结果
-	uniqueRecs := make(map[string]scene_audio_db_models.Recommendation)
+	uniqueRecs := make(map[string]scene_audio_db_models.WordCloudRecommendation)
 	for _, rec := range allRecommendations {
 		key := rec.Type + ":" + rec.ID.Hex()
 		if existing, exists := uniqueRecs[key]; !exists || existing.Score < rec.Score {
@@ -158,7 +158,7 @@ func (w *wordCloudUsecase) GetRecommendedWordCloudSearch(
 	}
 
 	// 按相关性分数排序
-	finalResults := make([]scene_audio_db_models.Recommendation, 0, len(uniqueRecs))
+	finalResults := make([]scene_audio_db_models.WordCloudRecommendation, 0, len(uniqueRecs))
 	for _, rec := range uniqueRecs {
 		finalResults = append(finalResults, rec)
 	}

@@ -20,5 +20,5 @@ type WordCloudRouteRepository interface {
 
 	GetRecommendedWordCloudSearch(
 		ctx context.Context, keywords []string,
-	) ([]scene_audio_db_models.Recommendation, error)
+	) ([]scene_audio_db_models.WordCloudRecommendation, error)
 }

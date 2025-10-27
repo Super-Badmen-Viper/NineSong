@@ -11,7 +11,7 @@ import (
 type MediaFileRepository interface {
 	GetAllGenre(ctx context.Context) ([]scene_audio_db_models.WordCloudMetadata, error)
 	GetHighFrequencyWords(ctx context.Context, limit int) ([]scene_audio_db_models.WordCloudMetadata, error)
-	GetRecommendedByKeywords(ctx context.Context, keywords []string, limit int) ([]scene_audio_db_models.Recommendation, error)
+	GetRecommendedByKeywords(ctx context.Context, keywords []string, limit int) ([]scene_audio_db_models.WordCloudRecommendation, error)
 	GetAllCounts(ctx context.Context) ([]scene_audio_db_models.MediaFileCounts, error)
 
 	// 创建/更新

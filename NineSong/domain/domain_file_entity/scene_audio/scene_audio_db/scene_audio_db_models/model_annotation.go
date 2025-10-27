@@ -1,8 +1,9 @@
 package scene_audio_db_models
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type AnnotationMetadata struct {

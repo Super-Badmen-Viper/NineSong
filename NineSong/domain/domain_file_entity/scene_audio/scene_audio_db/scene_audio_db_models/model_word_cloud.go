@@ -12,7 +12,7 @@ type WordCloudMetadata struct {
 	Rank  int
 }
 
-type Recommendation struct {
+type WordCloudRecommendation struct {
 	ID    primitive.ObjectID
 	Type  string
 	Name  string

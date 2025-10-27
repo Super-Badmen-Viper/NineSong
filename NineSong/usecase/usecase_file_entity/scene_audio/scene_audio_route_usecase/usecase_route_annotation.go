@@ -3,9 +3,9 @@ package scene_audio_route_usecase
 import (
 	"context"
 	"errors"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
 	"time"
 
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
 )
 
@@ -113,7 +113,7 @@ func (uc *annotationUsecase) UpdateCompleteScrobble(
 func (uc *annotationUsecase) UpdateTagSource(
 	ctx context.Context,
 	itemId, itemType string,
-	tags []scene_audio_route_models.TagSource,
+	tags []scene_audio_db_models.TagSource,
 ) (bool, error) {
 	if err := uc.validateItemType(itemType); err != nil {
 		return false, err
@@ -128,7 +128,7 @@ func (uc *annotationUsecase) UpdateTagSource(
 func (uc *annotationUsecase) UpdateWeightedTag(
 	ctx context.Context,
 	itemId, itemType string,
-	tags []scene_audio_route_models.WeightedTag,
+	tags []scene_audio_db_models.WeightedTag,
 ) (bool, error) {
 	if err := uc.validateItemType(itemType); err != nil {
 		return false, err

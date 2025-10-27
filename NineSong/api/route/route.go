@@ -1,13 +1,14 @@
 package route
 
 import (
+	"time"
+
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/route/route_app/route_app_config"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/route/route_app/route_app_library"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/route/route_auth"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/route/route_file_entity/scene_audio_db_api_route"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/route/route_file_entity/scene_audio_route_api_route"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/route/route_system"
-	"time"
 
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/middleware/middleware_system"
 
@@ -67,4 +68,5 @@ func RouterPrivate(env *bootstrap.Env, timeout time.Duration, db mongo.Database,
 	scene_audio_route_api_route.NewHomeRouter(timeout, db, protectedRouter)
 	scene_audio_route_api_route.NewRetrievalRouter(timeout, db, protectedRouter)
 	scene_audio_route_api_route.NewWordCloudRouter(timeout, db, protectedRouter)
+	scene_audio_route_api_route.NewRecommendRouter(timeout, db, protectedRouter)
 }
