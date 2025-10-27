@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
@@ -181,4 +182,11 @@ func (uc *ArtistUsecase) GetArtistFilterItemsCount(
 	defer cancel()
 
 	return uc.repo.GetArtistFilterItemsCount(ctx)
+}
+
+func (uc *ArtistUsecase) GetArtistTreeItems(ctx context.Context, start, end, artistId string) ([]scene_audio_route_models.ArtistTreeMetadata, error) {
+	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
+	defer cancel()
+
+	return uc.repo.GetArtistTreeItems(ctx, start, end, artistId)
 }

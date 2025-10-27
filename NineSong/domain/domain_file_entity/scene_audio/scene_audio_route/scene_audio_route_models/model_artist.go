@@ -1,8 +1,9 @@
 package scene_audio_route_models
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type ArtistMetadata struct {
@@ -32,6 +33,15 @@ type ArtistMetadata struct {
 	Rating            int       `bson:"rating"`
 	Starred           bool      `bson:"starred"`
 	StarredAt         time.Time `bson:"starred_at"`
+}
+
+type ArtistTreeMetadata struct {
+	Artist ArtistMetadata      `bson:"artist"`
+	Albums []AlbumTreeMetadata `bson:"albums"`
+}
+type AlbumTreeMetadata struct {
+	Album      AlbumMetadata       `bson:"album"`
+	MediaFiles []MediaFileMetadata `bson:"media_files"`
 }
 
 type ArtistFilterCounts struct {

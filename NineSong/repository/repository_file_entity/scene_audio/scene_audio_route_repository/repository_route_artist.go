@@ -3,17 +3,19 @@ package scene_audio_route_repository
 import (
 	"context"
 	"fmt"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type artistRepository struct {
@@ -214,7 +216,6 @@ func (r *artistRepository) GetArtistMetadataItems(
 	return results, nil
 }
 
-// GetArtistItemsMultipleSorting 新增：支持多重排序的艺术家查询
 func (r *artistRepository) GetArtistItemsMultipleSorting(
 	ctx context.Context,
 	start, end string,
@@ -302,6 +303,116 @@ func (r *artistRepository) GetArtistItemsMultipleSorting(
 	}
 
 	return results, nil
+}
+
+func (r *artistRepository) GetArtistTreeItems(ctx context.Context, start, end, artistId string) ([]scene_audio_route_models.ArtistTreeMetadata, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	coll := r.db.Collection(r.collection)
+
+	// 构建查询条件
+	matchStage := bson.D{}
+	if artistId != "" {
+		// 如果提供了artistId，则只查询该艺术家
+		objectId, err := primitive.ObjectIDFromHex(artistId)
+		if err != nil {
+			return nil, fmt.Errorf("invalid artistId format: %w", err)
+		}
+		matchStage = bson.D{{Key: "_id", Value: objectId}}
+	}
+
+	// 首先获取艺术家列表
+	artistPipeline := []bson.D{
+		// 添加匹配条件
+		{{Key: "$match", Value: matchStage}},
+		// 添加注解数据
+		{
+			{Key: "$lookup", Value: bson.D{
+				{Key: "from", Value: domain.CollectionFileEntityAudioSceneAnnotation},
+				{Key: "let", Value: bson.D{{Key: "artistId", Value: "$_id"}}},
+				{Key: "pipeline", Value: []bson.D{
+					{
+						{Key: "$match", Value: bson.D{
+							{Key: "$expr", Value: bson.D{
+								{Key: "$and", Value: bson.A{
+									bson.D{{Key: "$eq", Value: bson.A{"$item_id", "$$artistId"}}},
+									bson.D{{Key: "$eq", Value: bson.A{"$item_type", "artist"}}},
+								}},
+							}},
+						}},
+					},
+				}},
+				{Key: "as", Value: "annotations"},
+			}},
+		},
+		{
+			{Key: "$unwind", Value: bson.D{
+				{Key: "path", Value: "$annotations"},
+				{Key: "preserveNullAndEmptyArrays", Value: true},
+			}},
+		},
+		{
+			{Key: "$addFields", Value: bson.D{
+				{Key: "play_count", Value: "$annotations.play_count"},
+				{Key: "play_complete_count", Value: "$annotations.play_complete_count"},
+				{Key: "play_date", Value: "$annotations.play_date"},
+				{Key: "rating", Value: "$annotations.rating"},
+				{Key: "starred", Value: "$annotations.starred"},
+				{Key: "starred_at", Value: "$annotations.starred_at"},
+			}},
+		},
+	}
+
+	// 添加分页处理
+	paginationStages := buildArtistPaginationStage(start, end)
+	if paginationStages != nil {
+		artistPipeline = append(artistPipeline, paginationStages...)
+	}
+
+	// 执行艺术家查询
+	artistCursor, err := coll.Aggregate(ctx, artistPipeline)
+	if err != nil {
+		return nil, fmt.Errorf("artist query failed: %w", err)
+	}
+	defer artistCursor.Close(ctx)
+
+	var artists []scene_audio_route_models.ArtistMetadata
+	if err := artistCursor.All(ctx, &artists); err != nil {
+		return nil, fmt.Errorf("decode artist error: %w", err)
+	}
+
+	// 为每个艺术家获取专辑数据（按年份倒序排列）
+	result := make([]scene_audio_route_models.ArtistTreeMetadata, len(artists))
+	albumRepo := NewAlbumRepository(r.db, domain.CollectionFileEntityAudioSceneAlbum)
+	mediaFileRepo := NewMediaFileRepository(r.db, domain.CollectionFileEntityAudioSceneMediaFile)
+
+	for i, artist := range artists {
+		result[i].Artist = artist
+
+		// 获取艺术家的专辑，按年份倒序排列
+		albums, err := albumRepo.GetAlbumItems(ctx, "0", "1000", "max_year", "desc", "", "", artist.ID.Hex(), "", "")
+		if err != nil {
+			return nil, fmt.Errorf("album query failed for artist %s: %w", artist.ID.Hex(), err)
+		}
+
+		// 为每个专辑获取媒体文件
+		albumTree := make([]scene_audio_route_models.AlbumTreeMetadata, len(albums))
+		for j, album := range albums {
+			albumTree[j].Album = album
+
+			// 获取专辑的所有媒体文件，按索引升序排列
+			mediaFiles, err := mediaFileRepo.GetMediaFileItems(ctx, "0", "1000", "index", "asc", "", "", album.ID.Hex(), "", "", "", "", "", "", "")
+			if err != nil {
+				return nil, fmt.Errorf("media file query failed for album %s: %w", album.ID.Hex(), err)
+			}
+
+			albumTree[j].MediaFiles = mediaFiles
+		}
+
+		result[i].Albums = albumTree
+	}
+
+	return result, nil
 }
 
 // 新增：构建艺术家多重排序阶段

@@ -1,12 +1,13 @@
 package scene_audio_route_api_controller
 
 import (
+	"net/http"
+	"strings"
+
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/controller"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
 	"github.com/gin-gonic/gin"
-	"net/http"
-	"strings"
 )
 
 type ArtistController struct {
@@ -142,4 +143,30 @@ func (c *ArtistController) GetArtistFilterCounts(ctx *gin.Context) {
 	}
 
 	controller.SuccessResponse(ctx, "artists", counts, 1)
+}
+
+func (c *ArtistController) GetArtistTrees(ctx *gin.Context) {
+	params := struct {
+		Start    string `form:"start" binding:"required"`
+		End      string `form:"end" binding:"required"`
+		ArtistId string `form:"artist_id"`
+	}{
+		Start:    ctx.Query("start"),
+		End:      ctx.Query("end"),
+		ArtistId: ctx.Query("artist_id"),
+	}
+
+	artistTrees, err := c.ArtistUsecase.GetArtistTreeItems(
+		ctx.Request.Context(),
+		params.Start,
+		params.End,
+		params.ArtistId,
+	)
+
+	if err != nil {
+		controller.ErrorResponse(ctx, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
+		return
+	}
+
+	controller.SuccessResponse(ctx, "artistTrees", artistTrees, len(artistTrees))
 }

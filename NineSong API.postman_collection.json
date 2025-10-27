@@ -130,7 +130,7 @@
 										"header": [],
 										"body": {
 											"mode": "raw",
-											"raw": "[\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b48\",\r\n        \"ConfigKey\": \"0_Music\",\r\n        \"ConfigValue\": \"E:\\\\0_Music\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b49\",\r\n        \"ConfigKey\": \"Music\",\r\n        \"ConfigValue\": \"C:\\\\Users\\\\17741\\\\Music\"\r\n    },\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b4a\",\r\n        \"ConfigKey\": \"iTunes\",\r\n        \"ConfigValue\": \"C:\\\\Users\\\\17741\\\\Music\\\\iTunes\"\r\n    }\r\n]",
+											"raw": "[\r\n    {\r\n        \"ID\": \"67dcdae5c51665e7dfc95b48\",\r\n        \"ConfigKey\": \"0_Music\",\r\n        \"ConfigValue\": \"E:\\\\0_Music\"\r\n    }\r\n]",
 											"options": {
 												"raw": {
 													"language": "json"
@@ -988,7 +988,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"id\": \"67dcdae5c51665e7dfc95b1d\",\r\n    \"operatingSystemDisplayName\": \"\",\r\n    \"hasPendingRestart\": false,\r\n    \"isShuttingDown\": false,\r\n    \"supportsLibraryMonitor\": true,\r\n    \"webSocketPortNumber\": 8096,\r\n    \"completedInstallations\": [],\r\n    \"canSelfRestart\": true,\r\n    \"canLaunchWebBrowser\": false,\r\n    \"programDataPath\": \"C:\\\\ProgramData\\\\Jellyfin\\\\Server\",\r\n    \"webPath\": \"E:\\\\0_Jellyfin\\\\Server\\\\jellyfin-web\",\r\n    \"itemsByNamePath\": \"C:\\\\ProgramData\\\\Jellyfin\\\\Server\\\\metadata\",\r\n    \"cachePath\": \"C:\\\\ProgramData\\\\Jellyfin\\\\Server\\\\cache\",\r\n    \"logPath\": \"C:\\\\ProgramData\\\\Jellyfin\\\\Server\\\\log\",\r\n    \"internalMetadataPath\": \"C:\\\\ProgramData\\\\Jellyfin\\\\Server\\\\metadata\",\r\n    \"transcodingTempPath\": \"C:\\\\ProgramData\\\\Jellyfin\\\\Server\\\\cache\\\\transcodes\",\r\n    \"hasUpdateAvailable\": false,\r\n    \"encoderLocation\": \"System\",\r\n    \"systemArchitecture\": \"X64\",\r\n    \"localAddress\": \"http://127.0.0.1:8096\",\r\n    \"serverName\": \"XIANGCHENG007\",\r\n    \"version\": \"10.10.5\",\r\n    \"operatingSystem\": \"\"\r\n}",
+									"raw": "{\r\n    \"id\": \"687a1a89609eb952559cc972\",\r\n    \"operatingSystemDisplayName\": \"\",\r\n    \"hasPendingRestart\": false,\r\n    \"isShuttingDown\": false,\r\n    \"supportsLibraryMonitor\": true,\r\n    \"webSocketPortNumber\": 8096,\r\n    \"completedInstallations\": [],\r\n    \"canSelfRestart\": true,\r\n    \"canLaunchWebBrowser\": false,\r\n    \"programDataPath\": \"C:\\\\ProgramData\\\\Jellyfin\\\\Server\",\r\n    \"webPath\": \"E:\\\\0_Jellyfin\\\\Server\\\\jellyfin-web\",\r\n    \"itemsByNamePath\": \"C:\\\\ProgramData\\\\Jellyfin\\\\Server\\\\metadata\",\r\n    \"cachePath\": \"C:\\\\ProgramData\\\\Jellyfin\\\\Server\\\\cache\",\r\n    \"logPath\": \"C:\\\\ProgramData\\\\Jellyfin\\\\Server\\\\log\",\r\n    \"internalMetadataPath\": \"C:\\\\ProgramData\\\\Jellyfin\\\\Server\\\\metadata\",\r\n    \"transcodingTempPath\": \"C:\\\\ProgramData\\\\Jellyfin\\\\Server\\\\cache\\\\transcodes\",\r\n    \"hasUpdateAvailable\": false,\r\n    \"encoderLocation\": \"System\",\r\n    \"systemArchitecture\": \"X64\",\r\n    \"localAddress\": \"http://127.0.0.1:8096\",\r\n    \"serverName\": \"XIANGCHENG007\",\r\n    \"version\": \"10.10.5\",\r\n    \"operatingSystem\": \"\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1332,7 +1332,7 @@
 					"response": []
 				},
 				{
-					"name": "Upsert Library",
+					"name": "Update Library",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -1523,6 +1523,63 @@
 									"response": []
 								},
 								{
+									"name": "Artists Metadatas",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/artists/metadatas?start=0&end=20&sort=song_count&order=desc",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"artists",
+												"metadatas"
+											],
+											"query": [
+												{
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "20"
+												},
+												{
+													"key": "sort",
+													"value": "song_count"
+												},
+												{
+													"key": "order",
+													"value": "desc"
+												},
+												{
+													"key": "starred",
+													"value": "false",
+													"disabled": true
+												},
+												{
+													"key": "search",
+													"value": "李玉刚",
+													"disabled": true
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
 									"name": "Artists Sort",
 									"request": {
 										"auth": {
@@ -1607,6 +1664,59 @@
 										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
 									},
 									"response": []
+								},
+								{
+									"name": "ArtistTrees",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/artists/tree?start=0&end=20&artist_id=700dd098529534f1af4c2405",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"artists",
+												"tree"
+											],
+											"query": [
+												{
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "20"
+												},
+												{
+													"key": "artist_id",
+													"value": "700dd098529534f1af4c2405"
+												},
+												{
+													"key": "starred",
+													"value": "false",
+													"disabled": true
+												},
+												{
+													"key": "search",
+													"value": "李玉刚",
+													"disabled": true
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
 								}
 							]
 						},
@@ -1635,6 +1745,77 @@
 											],
 											"path": [
 												"albums"
+											],
+											"query": [
+												{
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "100"
+												},
+												{
+													"key": "sort",
+													"value": "created_at"
+												},
+												{
+													"key": "order",
+													"value": "asc"
+												},
+												{
+													"key": "starred",
+													"value": "false",
+													"disabled": true
+												},
+												{
+													"key": "search",
+													"value": "李玉刚",
+													"disabled": true
+												},
+												{
+													"key": "min_year",
+													"value": "2011",
+													"disabled": true
+												},
+												{
+													"key": "max_year",
+													"value": "2011",
+													"disabled": true
+												},
+												{
+													"key": "artist_id",
+													"value": "72a3bda8d92da836a6a4705b"
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Albums Metadatas",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/albums/metadatas?start=0&end=100&sort=created_at&order=asc&artist_id=72a3bda8d92da836a6a4705b",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"albums",
+												"metadatas"
 											],
 											"query": [
 												{
@@ -1873,6 +2054,108 @@
 													"key": "folder_path",
 													"value": "E:\\0_Music",
 													"disabled": true
+												},
+												{
+													"key": "folder_path_sub_filter",
+													"value": null,
+													"disabled": true
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Medias Metadatas",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/medias/metadatas?start=0&end=120&order=desc&sort=artist",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"medias",
+												"metadatas"
+											],
+											"query": [
+												{
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "120"
+												},
+												{
+													"key": "order",
+													"value": "desc"
+												},
+												{
+													"key": "sort",
+													"value": "artist"
+												},
+												{
+													"key": "starred",
+													"value": "false",
+													"disabled": true
+												},
+												{
+													"key": "artist_id",
+													"value": "9fb5c8d585ae9c2d2317a14f",
+													"disabled": true
+												},
+												{
+													"key": "search",
+													"value": "公轉",
+													"disabled": true
+												},
+												{
+													"key": "album_id",
+													"value": "d83ca60bd8830d6471c1daaf",
+													"disabled": true
+												},
+												{
+													"key": "year",
+													"value": "2015",
+													"disabled": true
+												},
+												{
+													"key": "suffix",
+													"value": "flac",
+													"disabled": true
+												},
+												{
+													"key": "min_bitrate",
+													"value": "600",
+													"disabled": true
+												},
+												{
+													"key": "max_bitrate",
+													"value": "1000",
+													"disabled": true
+												},
+												{
+													"key": "folder_path",
+													"value": "E:\\0_Music",
+													"disabled": true
+												},
+												{
+													"key": "folder_path_sub_filter",
+													"value": null,
+													"disabled": true
 												}
 											]
 										},
@@ -1906,13 +2189,24 @@
 											],
 											"query": [
 												{
-													"key": "starred",
-													"value": "false",
-													"disabled": true
+													"key": "sort",
+													"value": "year:desc"
 												},
 												{
-													"key": "year",
-													"value": "2015",
+													"key": "sort",
+													"value": "size:desc"
+												},
+												{
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "30"
+												},
+												{
+													"key": "starred",
+													"value": "false",
 													"disabled": true
 												},
 												{
@@ -1931,20 +2225,34 @@
 													"disabled": true
 												},
 												{
-													"key": "sort",
-													"value": "year:desc"
+													"key": "year",
+													"value": "2015",
+													"disabled": true
 												},
 												{
-													"key": "sort",
-													"value": "size:desc"
+													"key": "suffix",
+													"value": "flac",
+													"disabled": true
 												},
 												{
-													"key": "start",
-													"value": "0"
+													"key": "min_bitrate",
+													"value": "600",
+													"disabled": true
 												},
 												{
-													"key": "end",
-													"value": "30"
+													"key": "max_bitrate",
+													"value": "1000",
+													"disabled": true
+												},
+												{
+													"key": "folder_path",
+													"value": "E:\\0_Music",
+													"disabled": true
+												},
+												{
+													"key": "folder_path_sub_filter",
+													"value": null,
+													"disabled": true
 												}
 											]
 										},
@@ -2043,6 +2351,78 @@
 											],
 											"path": [
 												"cues"
+											],
+											"query": [
+												{
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "20"
+												},
+												{
+													"key": "sort",
+													"value": "size"
+												},
+												{
+													"key": "order",
+													"value": "desc"
+												},
+												{
+													"key": "starred",
+													"value": "false",
+													"disabled": true
+												},
+												{
+													"key": "search",
+													"value": "心跳",
+													"disabled": true
+												},
+												{
+													"key": "year",
+													"value": "2015",
+													"disabled": true
+												},
+												{
+													"key": "album_id",
+													"value": "27bb7a2525af6ec7e1d5c4b8",
+													"disabled": true
+												},
+												{
+													"key": "artist_id",
+													"value": "8e8465680c603c710351902e",
+													"disabled": true
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Media_Cues Metadatas",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/cues/metadatas?start=0&end=20&sort=size&order=desc",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"cues",
+												"metadatas"
 											],
 											"query": [
 												{
@@ -2673,23 +3053,27 @@
 													"value": "asc"
 												},
 												{
-													"key": "search",
-													"value": "",
-													"disabled": true
+													"key": "playlistId",
+													"value": "686dd7bb3fbe870850030ea5"
 												},
 												{
 													"key": "starred",
-													"value": "",
+													"value": "false",
 													"disabled": true
 												},
 												{
-													"key": "albumId",
-													"value": "27bb7a2525af6ec7e1d5c4b8",
+													"key": "artist_id",
+													"value": "9fb5c8d585ae9c2d2317a14f",
 													"disabled": true
 												},
 												{
-													"key": "artistId",
-													"value": "8e8465680c603c710351902e",
+													"key": "search",
+													"value": "公轉",
+													"disabled": true
+												},
+												{
+													"key": "album_id",
+													"value": "d83ca60bd8830d6471c1daaf",
 													"disabled": true
 												},
 												{
@@ -2698,8 +3082,29 @@
 													"disabled": true
 												},
 												{
-													"key": "playlistId",
-													"value": "686dd7bb3fbe870850030ea5"
+													"key": "suffix",
+													"value": "flac",
+													"disabled": true
+												},
+												{
+													"key": "min_bitrate",
+													"value": "600",
+													"disabled": true
+												},
+												{
+													"key": "max_bitrate",
+													"value": "1000",
+													"disabled": true
+												},
+												{
+													"key": "folder_path",
+													"value": "E:\\0_Music",
+													"disabled": true
+												},
+												{
+													"key": "folder_path_sub_filter",
+													"value": null,
+													"disabled": true
 												}
 											]
 										},
@@ -2757,23 +3162,27 @@
 													"value": "artist:desc"
 												},
 												{
-													"key": "search",
-													"value": "",
-													"disabled": true
+													"key": "playlistId",
+													"value": "686dd7bb3fbe870850030ea5"
 												},
 												{
 													"key": "starred",
-													"value": "",
+													"value": "false",
 													"disabled": true
 												},
 												{
-													"key": "albumId",
-													"value": "27bb7a2525af6ec7e1d5c4b8",
+													"key": "artist_id",
+													"value": "9fb5c8d585ae9c2d2317a14f",
 													"disabled": true
 												},
 												{
-													"key": "artistId",
-													"value": "8e8465680c603c710351902e",
+													"key": "search",
+													"value": "公轉",
+													"disabled": true
+												},
+												{
+													"key": "album_id",
+													"value": "d83ca60bd8830d6471c1daaf",
 													"disabled": true
 												},
 												{
@@ -2782,8 +3191,29 @@
 													"disabled": true
 												},
 												{
-													"key": "playlistId",
-													"value": "686dd7bb3fbe870850030ea5"
+													"key": "suffix",
+													"value": "flac",
+													"disabled": true
+												},
+												{
+													"key": "min_bitrate",
+													"value": "600",
+													"disabled": true
+												},
+												{
+													"key": "max_bitrate",
+													"value": "1000",
+													"disabled": true
+												},
+												{
+													"key": "folder_path",
+													"value": "E:\\0_Music",
+													"disabled": true
+												},
+												{
+													"key": "folder_path_sub_filter",
+													"value": null,
+													"disabled": true
 												}
 											]
 										},
@@ -3196,7 +3626,7 @@
 									"name": "Lyrics",
 									"item": [
 										{
-											"name": "GetLyrics ID",
+											"name": "GetLyrics",
 											"protocolProfileBehavior": {
 												"disableBodyPruning": true
 											},
@@ -3234,7 +3664,7 @@
 													]
 												},
 												"url": {
-													"raw": "{{baseUrl}}/media/lyrics?media_file_id=681dfab0694d7b3fc40aced5",
+													"raw": "{{baseUrl}}/media/lyrics?artist=aoa&title=LUV ME&file_type=lrc",
 													"host": [
 														"{{baseUrl}}"
 													],
@@ -3245,7 +3675,20 @@
 													"query": [
 														{
 															"key": "media_file_id",
-															"value": "681dfab0694d7b3fc40aced5"
+															"value": "681dfab0694d7b3fc40aced5",
+															"disabled": true
+														},
+														{
+															"key": "artist",
+															"value": "aoa"
+														},
+														{
+															"key": "title",
+															"value": "LUV ME"
+														},
+														{
+															"key": "file_type",
+															"value": "lrc"
 														}
 													]
 												},
@@ -3451,6 +3894,46 @@
 											"path": [
 												"homes",
 												"medias",
+												"random"
+											],
+											"query": [
+												{
+													"key": "start",
+													"value": "0"
+												},
+												{
+													"key": "end",
+													"value": "20"
+												}
+											]
+										},
+										"description": "Generated from cURL: curl --request POST  \n\\--url [http://localhost:8082/login](http://localhost:8082/login)  \n\\--header 'content-type: application/x-www-form-urlencoded'  \n\\--data email=test@gmail.com  \n\\--data password=test  \n\\--data 'name=Test Name'"
+									},
+									"response": []
+								},
+								{
+									"name": "Random MediaCues",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{accessToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/homes/cues/random?start=0&end=20",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"homes",
+												"cues",
 												"random"
 											],
 											"query": [
