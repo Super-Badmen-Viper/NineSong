@@ -5,6 +5,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"path/filepath"
+	"regexp"
+	"runtime"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+	"unicode/utf8"
+
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_interface"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
@@ -15,16 +25,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	driver "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
-	"os"
-	"path/filepath"
-	"regexp"
-	"runtime"
-	"sort"
-	"strings"
-	"sync"
-	"time"
-	"unicode/utf8"
 )
 
 type mediaFileRepository struct {
@@ -38,40 +38,14 @@ type mediaFileRepository struct {
 }
 
 func NewMediaFileRepository(db mongo.Database, collection string) scene_audio_db_interface.MediaFileRepository {
-	if runtime.GOOS == "windows" {
-		jieba := gojieba.NewJieba()
-		stopWords := domain_util.LoadCombinedStopWords()
+	jieba := gojieba.NewJieba()
+	stopWords := domain_util.LoadCombinedStopWords()
 
-		return &mediaFileRepository{
-			db:         db,
-			collection: collection,
-			jieba:      jieba,
-			stopWords:  stopWords,
-		}
-	} else {
-		dictPath := os.Getenv("JIEBA_DICT_PATH")
-		if dictPath == "" {
-			dictPath = "/app/jieba-dict"
-		}
-
-		log.Printf("正在使用jieba词典路径: %s", dictPath)
-
-		jieba := gojieba.NewJieba(
-			dictPath+"/jieba.dict.utf8",
-			dictPath+"/hmm_model.utf8",
-			dictPath+"/user.dict.utf8",
-			dictPath+"/idf.utf8",
-			dictPath+"/stop_words.utf8",
-		)
-
-		stopWords := domain_util.LoadCombinedStopWords()
-
-		return &mediaFileRepository{
-			db:         db,
-			collection: collection,
-			jieba:      jieba,
-			stopWords:  stopWords,
-		}
+	return &mediaFileRepository{
+		db:         db,
+		collection: collection,
+		jieba:      jieba,
+		stopWords:  stopWords,
 	}
 }
 

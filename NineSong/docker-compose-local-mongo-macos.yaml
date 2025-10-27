@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  mongodb-local:
+    image: mongo:6.0
+    container_name: ninesong-mongodb-local
+    command: mongod --auth
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${DB_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${DB_PASS}
+    ports:
+      - "27017:27017"
+    volumes:
+      - dbdata:/data/db
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+volumes:
+  dbdata:

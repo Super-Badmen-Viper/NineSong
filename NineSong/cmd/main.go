@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/route"
 	"log"
 	"time"
 
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/route"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/bootstrap"
 	"github.com/gin-gonic/gin"
 )
