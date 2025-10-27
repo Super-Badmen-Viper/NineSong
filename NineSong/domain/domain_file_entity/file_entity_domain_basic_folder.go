@@ -56,8 +56,8 @@ type FolderRepository interface {
 	UpdateStats(ctx context.Context, folderID primitive.ObjectID, fileCount int, status LibraryStatus) error
 
 	Create(ctx context.Context, folder *LibraryFolderMetadata) error
-	Delete(ctx context.Context, id primitive.ObjectID) error
-	Update(ctx context.Context, id primitive.ObjectID, newName string, newFolderPath string) error
+	DeleteByID(ctx context.Context, id primitive.ObjectID) error
+	Upsert(ctx context.Context, id primitive.ObjectID, newName string, newFolderPath string) error
 	IsLibraryInUse(ctx context.Context, id primitive.ObjectID) (bool, error)
 
 	GetAll(ctx context.Context) ([]*LibraryFolderMetadata, error)

@@ -1,7 +1,7 @@
 package domain_app_config
 
 import (
-	"context"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/usecase"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -11,7 +11,8 @@ type AppLibraryConfig struct {
 	ConfigValue string             `bson:"config_value"`
 }
 
+// AppLibraryConfigUsecase defines the usecase interface for app library configuration.
+// It embeds the generic ConfigUsecase to provide standard GetAll/ReplaceAll operations.
 type AppLibraryConfigUsecase interface {
-	ReplaceAll(ctx context.Context, configs []*AppLibraryConfig) error
-	GetAll(ctx context.Context) ([]*AppLibraryConfig, error)
+	usecase.ConfigUsecase[AppLibraryConfig]
 }

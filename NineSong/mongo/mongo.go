@@ -34,6 +34,7 @@ type Database interface {
 	Client() Client
 	ListCollectionNames(ctx context.Context, filter interface{}) ([]string, error)
 	CreateCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error
+	Raw() interface{}
 }
 
 type Collection interface {
@@ -177,6 +178,10 @@ func (md *mongoDatabase) ListCollectionNames(ctx context.Context, filter interfa
 
 func (md *mongoDatabase) CreateCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
 	return md.db.CreateCollection(ctx, name, opts...)
+}
+
+func (md *mongoDatabase) Raw() interface{} {
+	return md.db
 }
 
 func (mc *mongoCollection) FindOne(ctx context.Context, filter interface{}) SingleResult {

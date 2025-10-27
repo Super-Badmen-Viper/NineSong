@@ -16,6 +16,6 @@ func NewAppServerConfigRouter(timeout time.Duration, db mongo.Database, group *g
 	ctrl := controller_app_config.NewAppServerConfigController(uc)
 
 	group.GET("/app/server", ctrl.GetAll)
-	group.PUT("/app/server", ctrl.Update)
-	group.DELETE("/app/server", ctrl.Delete)
+	group.PUT("/app/server", ctrl.Upsert)
+	group.DELETE("/app/server", ctrl.DeleteByID)
 }

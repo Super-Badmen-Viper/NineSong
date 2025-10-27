@@ -17,7 +17,7 @@ func NewAppServerConfigController(uc domain_app_config.AppServerConfigUsecase) *
 	return &AppServerConfigController{usecase: uc}
 }
 
-func (ctrl *AppServerConfigController) Update(c *gin.Context) {
+func (ctrl *AppServerConfigController) Upsert(c *gin.Context) {
 	var req domain_app_config.AppServerConfig
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request format"})
@@ -29,7 +29,7 @@ func (ctrl *AppServerConfigController) Update(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.usecase.Update(c.Request.Context(), &req); err != nil {
+	if err := ctrl.usecase.Upsert(c.Request.Context(), &req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "update failed"})
 		return
 	}
@@ -49,7 +49,7 @@ func (ctrl *AppServerConfigController) GetAll(c *gin.Context) {
 	c.JSON(http.StatusOK, configs)
 }
 
-func (ctrl *AppServerConfigController) Delete(c *gin.Context) {
+func (ctrl *AppServerConfigController) DeleteByID(c *gin.Context) {
 	idParam := c.Query("id")
 
 	if idParam == "" {
@@ -67,7 +67,7 @@ func (ctrl *AppServerConfigController) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.usecase.Delete(c.Request.Context(), id); err != nil {
+	if err := ctrl.usecase.DeleteByID(c.Request.Context(), id.Hex()); err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "未找到ID为 " + idParam + " 的配置项",

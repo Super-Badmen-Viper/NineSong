@@ -1,7 +1,7 @@
 package domain_app_config
 
 import (
-	"context"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/usecase"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
@@ -16,8 +16,8 @@ type AppServerConfig struct {
 	Type        string             `bson:"type" bson:"type"`
 }
 
+// AppServerConfigUsecase defines the usecase interface for app server configuration.
+// It embeds the generic BaseUsecase to provide standard CRUD operations.
 type AppServerConfigUsecase interface {
-	Update(ctx context.Context, config *AppServerConfig) error
-	GetAll(ctx context.Context) ([]*AppServerConfig, error)
-	Delete(ctx context.Context, id primitive.ObjectID) error
+	usecase.BaseUsecase[AppServerConfig]
 }

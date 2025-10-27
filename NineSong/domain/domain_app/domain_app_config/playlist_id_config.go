@@ -1,7 +1,7 @@
 package domain_app_config
 
 import (
-	"context"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/usecase"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -11,7 +11,8 @@ type AppPlaylistIDConfig struct {
 	ConfigValue string             `bson:"config_value"`
 }
 
+// AppPlaylistIDConfigUsecase defines the usecase interface for app playlist ID configuration.
+// It embeds the generic ConfigUsecase to provide standard GetAll/ReplaceAll operations.
 type AppPlaylistIDConfigUsecase interface {
-	ReplaceAll(ctx context.Context, configs []*AppPlaylistIDConfig) error
-	GetAll(ctx context.Context) ([]*AppPlaylistIDConfig, error)
+	usecase.ConfigUsecase[AppPlaylistIDConfig]
 }

@@ -398,7 +398,7 @@ func (uc *FileUsecase) ProcessDirectory(
 				return fmt.Errorf("folder query failed: %w", err)
 			}
 			if folder != nil {
-				err = uc.folderRepo.Delete(ctx, folder.ID)
+				err = uc.folderRepo.DeleteByID(ctx, folder.ID)
 				if err != nil {
 					return err
 				}

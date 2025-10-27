@@ -1,7 +1,7 @@
 package domain_system
 
 import (
-	"context"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/usecase"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -103,7 +103,9 @@ type TrickplayConfig struct {
 	ProcessThreads               int    `json:"ProcessThreads" bson:"process_threads"`
 }
 
+// SystemConfigurationUsecase defines the usecase interface for system configuration.
+// It embeds the generic ConfigUsecase to provide standard Get/Upsert operations.
+// Additional business-specific methods can be added here if needed.
 type SystemConfigurationUsecase interface {
-	Get(ctx context.Context) (*SystemConfiguration, error)
-	Update(ctx context.Context, info *SystemConfiguration) error
+	usecase.ConfigUsecase[SystemConfiguration]
 }

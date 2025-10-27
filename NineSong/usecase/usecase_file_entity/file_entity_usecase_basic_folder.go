@@ -56,7 +56,7 @@ func (uc *libraryUsecase) DeleteLibrary(ctx context.Context, id string) error {
 	if err != nil {
 		return errors.New("invalid library ID")
 	}
-	return uc.folderRepo.Delete(ctx, objID)
+	return uc.folderRepo.DeleteByID(ctx, objID)
 }
 
 func (uc *libraryUsecase) UpdateLibrary(
@@ -79,7 +79,7 @@ func (uc *libraryUsecase) UpdateLibrary(
 		return domain_file_entity.ErrLibraryDuplicate
 	}
 
-	return uc.folderRepo.Update(ctx, id, newName, newFolderPath)
+	return uc.folderRepo.Upsert(ctx, id, newName, newFolderPath)
 }
 
 func (uc *libraryUsecase) GetLibraries(ctx context.Context) ([]*domain_file_entity.LibraryFolderMetadata, error) {

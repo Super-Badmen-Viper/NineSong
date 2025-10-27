@@ -16,5 +16,5 @@ func NewSystemInfoRouter(timeout time.Duration, db mongo.Database, group *gin.Ro
 	ctrl := controller_system.NewSystemInfoController(uc)
 
 	group.GET("/system/info", ctrl.Get)
-	group.PUT("/system/info", ctrl.Update)
+	group.PUT("/system/info", ctrl.Upsert)
 }
