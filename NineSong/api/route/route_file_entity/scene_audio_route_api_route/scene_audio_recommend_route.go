@@ -32,9 +32,9 @@ func NewRecommendRouter(
 	// 注册路由
 	recommendGroup := group.Group("/recommend")
 	{
-		// 基于注释和词云的推荐
-		// GET /recommend/annotation_wordcloud?start=0&end=30&recommend_type=media&random_seed=666&recommend_offset=0
-		recommendGroup.GET("/annotation_wordcloud", recommendCtrl.GetRecommendAnnotationWordCloudItems)
+		// 通用推荐
+		// GET /recommend/general?recommend_type=media&limit=30&random_seed=666&recommend_offset=0
+		recommendGroup.GET("/general", recommendCtrl.GetGeneralRecommendations)
 
 		// 个性化推荐
 		// GET /recommend/personalized?recommend_type=media&limit=30[&user_id=xxx]

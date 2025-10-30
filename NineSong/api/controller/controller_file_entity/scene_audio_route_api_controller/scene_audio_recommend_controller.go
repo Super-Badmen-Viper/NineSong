@@ -17,37 +17,28 @@ func NewRecommendController(uc scene_audio_route_interface.RecommendRouteReposit
 	return &RecommendController{RecommendUsecase: uc}
 }
 
-func (c *RecommendController) GetRecommendAnnotationWordCloudItems(ctx *gin.Context) {
+func (c *RecommendController) GetGeneralRecommendations(ctx *gin.Context) {
 	params := struct {
-		Start         string `form:"start" binding:"required"`
-		End           string `form:"end" binding:"required"`
 		RecommendType string `form:"recommend_type" binding:"required,oneof=artist album media media_cue"`
+		Limit         string `form:"limit" binding:"required"`
 		RandomSeed    string `form:"random_seed" binding:"required"`
 		Offset        string `form:"recommend_offset" binding:"required"`
 	}{
-		Start:         ctx.Query("start"),
-		End:           ctx.Query("end"),
 		RecommendType: ctx.Query("recommend_type"),
+		Limit:         ctx.Query("limit"),
 		RandomSeed:    ctx.Query("random_seed"),
 		Offset:        ctx.Query("recommend_offset"),
 	}
 
-	// 验证start和end参数
-	start, err := strconv.Atoi(params.Start)
+	// 验证limit参数
+	limit, err := strconv.Atoi(params.Limit)
 	if err != nil {
-		controller.ErrorResponse(ctx, http.StatusBadRequest, "INVALID_START", "start参数必须是数字")
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "INVALID_LIMIT", "limit参数必须是数字")
 		return
 	}
 
-	end, err := strconv.Atoi(params.End)
-	if err != nil {
-		controller.ErrorResponse(ctx, http.StatusBadRequest, "INVALID_END", "end参数必须是数字")
-		return
-	}
-
-	// 验证start < end
-	if start >= end {
-		controller.ErrorResponse(ctx, http.StatusBadRequest, "INVALID_RANGE", "start必须小于end")
+	if limit <= 0 {
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "INVALID_LIMIT", "limit参数必须大于0")
 		return
 	}
 
@@ -58,11 +49,10 @@ func (c *RecommendController) GetRecommendAnnotationWordCloudItems(ctx *gin.Cont
 		return
 	}
 
-	recommendResults, err := c.RecommendUsecase.GetRecommendAnnotationWordCloudItems(
+	recommendResults, err := c.RecommendUsecase.GetGeneralRecommendations(
 		ctx.Request.Context(),
-		params.Start,
-		params.End,
 		params.RecommendType,
+		limit,
 		params.RandomSeed,
 		params.Offset,
 	)

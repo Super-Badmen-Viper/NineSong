@@ -35,23 +35,29 @@ func NewRecommendUsecase(
 	}
 }
 
-func (uc *RecommendUsecase) GetRecommendAnnotationWordCloudItems(
+func (uc *RecommendUsecase) GetGeneralRecommendations(
 	ctx context.Context,
-	start, end, recommendType, randomSeed, recommendOffset string,
+	recommendType string,
+	limit int,
+	randomSeed string,
+	recommendOffset string,
 ) ([]interface{}, error) {
 	// 验证参数
-	if start == "" || end == "" || recommendType == "" || randomSeed == "" || recommendOffset == "" {
+	if recommendType == "" || randomSeed == "" || recommendOffset == "" {
 		return nil, fmt.Errorf("所有参数都是必需的")
+	}
+
+	if limit <= 0 {
+		return nil, fmt.Errorf("limit参数必须大于0")
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
 	defer cancel()
 
-	results, err := uc.repoMediaFileRecommend.GetRecommendAnnotationWordCloudItems(
+	results, err := uc.repoMediaFileRecommend.GetGeneralRecommendations(
 		ctx,
-		start,
-		end,
 		recommendType,
+		limit,
 		randomSeed,
 		recommendOffset,
 	)
