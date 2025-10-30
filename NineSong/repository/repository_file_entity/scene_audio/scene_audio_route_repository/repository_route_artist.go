@@ -363,13 +363,7 @@ func (r *artistRepository) GetArtistTreeItems(ctx context.Context, start, end, a
 		},
 	}
 
-	// 添加分页处理
-	paginationStages := buildArtistPaginationStage(start, end)
-	if paginationStages != nil {
-		artistPipeline = append(artistPipeline, paginationStages...)
-	}
-
-	// 执行艺术家查询
+	// 执行艺术家查询（不应用分页）
 	artistCursor, err := coll.Aggregate(ctx, artistPipeline)
 	if err != nil {
 		return nil, fmt.Errorf("artist query failed: %w", err)
@@ -381,7 +375,7 @@ func (r *artistRepository) GetArtistTreeItems(ctx context.Context, start, end, a
 		return nil, fmt.Errorf("decode artist error: %w", err)
 	}
 
-	// 为每个艺术家获取专辑数据（按年份倒序排列）
+	// 为每个艺术家获取专辑数据（按年份倒序排列，并应用分页）
 	result := make([]scene_audio_route_models.ArtistTreeMetadata, len(artists))
 	albumRepo := NewAlbumRepository(r.db, domain.CollectionFileEntityAudioSceneAlbum)
 	mediaFileRepo := NewMediaFileRepository(r.db, domain.CollectionFileEntityAudioSceneMediaFile)
@@ -389,8 +383,8 @@ func (r *artistRepository) GetArtistTreeItems(ctx context.Context, start, end, a
 	for i, artist := range artists {
 		result[i].Artist = artist
 
-		// 获取艺术家的专辑，按年份倒序排列
-		albums, err := albumRepo.GetAlbumItems(ctx, "0", "1000", "max_year", "desc", "", "", artist.ID.Hex(), "", "")
+		// 获取艺术家的专辑，按年份倒序排列，并应用分页
+		albums, err := albumRepo.GetAlbumItems(ctx, start, end, "max_year", "desc", "", "", artist.ID.Hex(), "", "")
 		if err != nil {
 			return nil, fmt.Errorf("album query failed for artist %s: %w", artist.ID.Hex(), err)
 		}

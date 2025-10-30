@@ -6,11 +6,6 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/usecase/usecase_file_entity/scene_audio/scene_audio_util"
-	"github.com/mozillazg/go-pinyin"
-	ffmpeggo "github.com/u2takey/ffmpeg-go"
-	driver "go.mongodb.org/mongo-driver/mongo"
 	"io"
 	"io/fs"
 	"log"
@@ -22,6 +17,12 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
+	usercase_audio_util "github.com/amitshekhariitbhu/go-backend-clean-architecture/usecase/usecase_file_entity/scene_audio/scene_audio_util"
+	"github.com/mozillazg/go-pinyin"
+	ffmpeggo "github.com/u2takey/ffmpeg-go"
+	driver "go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_interface"
@@ -523,10 +524,6 @@ func (uc *AudioProcessingUsecase) ProcessMusicDirectory(
 					if count == 0 {
 						if err = uc.albumRepo.DeleteByID(ctx, id); err != nil {
 							log.Printf("失效专辑%s%s删除失败: %v", strID, counter.countType, err)
-						}
-					} else if count > 0 {
-						if _, err = uc.albumRepo.UpdateCounter(ctx, id, counter.counterName, int(count)); err != nil {
-							log.Printf("专辑%s%s计数更新失败: %v", strID, counter.countType, err)
 						}
 					}
 				}
@@ -1992,18 +1989,18 @@ func (uc *AudioProcessingUsecase) updateAudioArtistAndAlbumStatistics(
 			if !artistID.IsZero() && index == 0 {
 				if mediaFileCue != nil {
 					if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "size", mediaFileCue.Size); err != nil {
-						log.Printf("专辑大小统计更新失败: %v", err)
+						log.Printf("艺术家大小统计更新失败: %v", err)
 					}
 					if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "duration", int(mediaFileCue.CueDuration)); err != nil {
-						log.Printf("专辑播放时间统计更新失败: %v", err)
+						log.Printf("艺术家播放时间统计更新失败: %v", err)
 					}
 				}
 				if mediaFile != nil {
 					if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "size", mediaFile.Size); err != nil {
-						log.Printf("专辑大小统计更新失败: %v", err)
+						log.Printf("艺术家大小统计更新失败: %v", err)
 					}
 					if _, err := uc.artistRepo.UpdateCounter(ctx, artistID, "duration", int(mediaFile.Duration)); err != nil {
-						log.Printf("专辑播放时间统计更新失败: %v", err)
+						log.Printf("艺术家播放时间统计更新失败: %v", err)
 					}
 				}
 			}
@@ -2015,12 +2012,15 @@ func (uc *AudioProcessingUsecase) updateAudioArtistAndAlbumStatistics(
 	}
 	if !albumID.IsZero() {
 		if mediaFile != nil {
+			// 增加歌曲数量
 			if _, err := uc.albumRepo.UpdateCounter(ctx, albumID, "song_count", 1); err != nil {
 				log.Printf("专辑单曲数量统计更新失败: %v", err)
 			}
+			// 累加文件大小
 			if _, err := uc.albumRepo.UpdateCounter(ctx, albumID, "size", mediaFile.Size); err != nil {
 				log.Printf("专辑大小统计更新失败: %v", err)
 			}
+			// 累加播放时长
 			if _, err := uc.albumRepo.UpdateCounter(ctx, albumID, "duration", int(mediaFile.Duration)); err != nil {
 				log.Printf("专辑播放时间统计更新失败: %v", err)
 			}
