@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
@@ -21,6 +23,11 @@ import (
 type recommendRepository struct {
 	db         mongo.Database
 	collection string
+
+	// 缓存相关字段
+	wordCloudCache map[string][]scene_audio_db_models.WordCloudMetadata
+	cacheMutex     sync.RWMutex
+	cacheExpiry    time.Time
 }
 
 func NewRecommendRepository(db mongo.Database, collection string) scene_audio_route_interface.RecommendRouteRepository {
@@ -274,25 +281,25 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 			{{"$addFields", bson.D{
 				{"score", bson.D{
 					{"$add", []interface{}{
-						// 播放次数占30%
-						bson.D{{"$multiply", []interface{}{"$play_count", 0.3}}},
+						// 播放次数占25%
+						bson.D{{"$multiply", []interface{}{"$play_count", 0.25}}},
 						// 评分占20%
 						bson.D{{"$multiply", []interface{}{"$rating", 0.2}}},
-						// 收藏状态占30%
-						bson.D{{"$cond", []interface{}{"$starred", 0.3, 0}}},
+						// 收藏状态占25%
+						bson.D{{"$cond", []interface{}{"$starred", 0.25, 0}}},
 						// 完整播放次数占10%
 						bson.D{{"$cond", []interface{}{
 							bson.D{{"$gte", []interface{}{"$play_complete_count", 1}}},
 							0.1,
 							0,
 						}}},
-						// 最近播放时间占10% (越近分数越高)
+						// 最近播放时间占20% (越近分数越高)
 						bson.D{{"$multiply", []interface{}{
 							bson.D{{"$divide", []interface{}{
 								bson.D{{"$subtract", []interface{}{"$$NOW", "$play_date"}}},
 								1000 * 60 * 60 * 24, // 转换为天数
 							}}},
-							0.1, // 越近分数越高
+							0.2, // 越近分数越高，权重提高到20%
 						}}},
 					}},
 				}},
@@ -309,7 +316,7 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 		}
 	default:
 		// 通用推荐：结合随机性和用户行为数据
-		// 50%随机性 + 50%基于用户行为的智能选取
+		// 30%随机性 + 70%基于用户行为的智能选取
 		annotationPipeline = []bson.D{
 			{{"$match", matchCondition}},
 			{{"$addFields", bson.D{
@@ -318,22 +325,22 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 			{{"$addFields", bson.D{
 				{"score", bson.D{
 					{"$add", []interface{}{
-						// 随机因素占50%
-						bson.D{{"$multiply", []interface{}{"$random_value", 0.5}}},
-						// 播放次数占20%
-						bson.D{{"$multiply", []interface{}{"$play_count", 0.2}}},
-						// 最近播放时间占15% (越近分数越高)
+						// 随机因素占30%
+						bson.D{{"$multiply", []interface{}{"$random_value", 0.3}}},
+						// 播放次数占25%
+						bson.D{{"$multiply", []interface{}{"$play_count", 0.25}}},
+						// 最近播放时间占20% (越近分数越高)
 						bson.D{{"$multiply", []interface{}{
 							bson.D{{"$divide", []interface{}{
 								bson.D{{"$subtract", []interface{}{"$$NOW", "$play_date"}}},
 								1000 * 60 * 60 * 24, // 转换为天数
 							}}},
-							0.15, // 越近分数越高
+							0.2, // 越近分数越高
 						}}},
-						// 喜欢状态占10%
-						bson.D{{"$cond", []interface{}{"$starred", 0.1, 0}}},
-						// 收藏星级占5%
-						bson.D{{"$multiply", []interface{}{"$rating", 0.05}}},
+						// 喜欢状态占15%
+						bson.D{{"$cond", []interface{}{"$starred", 0.15, 0}}},
+						// 收藏星级占10%
+						bson.D{{"$multiply", []interface{}{"$rating", 0.1}}},
 					}},
 				}},
 			}}},
@@ -358,7 +365,7 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 	// 如果没有注释数据，使用降级策略
 	if len(annotations) == 0 {
 		fmt.Printf("没有找到注释数据，使用降级策略\n")
-		return r.getItemsWithoutAnnotations(ctx, targetCollection, recommendType, start, end, recommendOffset)
+		return r.getItemsWithoutAnnotations(ctx, targetCollection, recommendType, start, end, recommendOffset, randomSeed)
 	}
 
 	// 步骤2: 根据annotation的item_id和item_type寻找对应的项
@@ -417,7 +424,7 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 	// 如果没有项目数据，使用降级策略
 	if len(items) == 0 {
 		fmt.Printf("没有找到项目数据，使用降级策略\n")
-		return r.getItemsWithoutAnnotations(ctx, targetCollection, recommendType, start, end, recommendOffset)
+		return r.getItemsWithoutAnnotations(ctx, targetCollection, recommendType, start, end, recommendOffset, randomSeed)
 	}
 
 	// 步骤3: 从项目中提取标签信息
@@ -427,61 +434,20 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 
 	fmt.Printf("开始从%d个项目中提取标签\n", len(items))
 
-	// 首先获取所有词云标签用于匹配（限制数量以提高性能）
-	wordCloudColl := r.db.Collection(domain.CollectionFileEntityAudioSceneMediaFileWordCloud)
-	wordCloudPipeline1 := []bson.D{
-		{{"$sort", bson.D{{"count", -1}}}},
-		{{"$limit", 500}}, // 限制获取500个最常见的词云标签
-	}
-
-	wordCloudCursor, err := wordCloudColl.Aggregate(ctx, wordCloudPipeline1)
+	// 批量获取所有词云标签用于匹配（限制数量以提高性能）
+	allWordCloudTags, err := r.getCachedWordCloudTags(ctx)
 	if err != nil {
 		fmt.Printf("获取词云标签失败: %v\n", err)
 		return nil, fmt.Errorf("获取词云标签失败: %w", err)
 	}
-	defer wordCloudCursor.Close(ctx)
-
-	var allWordCloudTags []scene_audio_db_models.WordCloudMetadata
-	if err = wordCloudCursor.All(ctx, &allWordCloudTags); err != nil {
-		return nil, fmt.Errorf("解析词云标签失败: %w", err)
-	}
 
 	fmt.Printf("获取到%d个词云标签用于匹配\n", len(allWordCloudTags))
 
+	// 批量处理项目标签提取
+	// 创建一个映射来存储所有项目文本，以便一次性处理
+	projectTexts := make([]string, len(items))
+
 	for i, item := range items {
-		// 添加调试信息，查看前几个项目的字段
-		if i < 5 { // 增加到5个项目
-			fmt.Printf("项目%d:\n", i)
-
-			// 查看相关字段
-			if album, ok := item["album"]; ok {
-				if albumStr, ok := album.(string); ok && albumStr != "" {
-					fmt.Printf("  album: %s\n", albumStr)
-				}
-			}
-			if artist, ok := item["artist"]; ok {
-				if artistStr, ok := artist.(string); ok && artistStr != "" {
-					fmt.Printf("  artist: %s\n", artistStr)
-				}
-			}
-			if fileName, ok := item["file_name"]; ok {
-				if fileNameStr, ok := fileName.(string); ok && fileNameStr != "" {
-					fmt.Printf("  file_name: %s\n", fileNameStr)
-				}
-			}
-			if lyrics, ok := item["lyrics"]; ok {
-				if lyricsStr, ok := lyrics.(string); ok && lyricsStr != "" {
-					fmt.Printf("  lyrics: %.50s...\n", lyricsStr) // 只显示前50个字符
-				}
-			}
-			if genre, ok := item["genre"]; ok {
-				if genreStr, ok := genre.(string); ok && genreStr != "" {
-					fmt.Printf("  genre: %s\n", genreStr)
-				}
-			}
-			fmt.Printf("\n")
-		}
-
 		// 收集项目的所有文本内容用于匹配
 		var itemTexts []string
 		if album, ok := item["album"]; ok {
@@ -509,14 +475,18 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 			}
 		}
 
-		// 添加调试信息
-		if i < 3 {
-			fmt.Printf("项目%d的文本内容长度: %d\n", i, len(strings.Join(itemTexts, " ")))
-		}
-
 		// 将项目文本连接成一个字符串用于匹配
 		fullItemText := strings.ToLower(strings.Join(itemTexts, " "))
+		projectTexts[i] = fullItemText
 
+		// 添加调试信息
+		if i < 3 {
+			fmt.Printf("项目%d的文本内容长度: %d\n", i, len(fullItemText))
+		}
+	}
+
+	// 批量处理标签匹配
+	for i, fullItemText := range projectTexts {
 		// 与词云标签进行模糊匹配
 		for _, wordCloudTag := range allWordCloudTags {
 			tagName := strings.ToLower(wordCloudTag.Name)
@@ -532,7 +502,7 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 		}
 
 		// 提取genre字段（单独添加）
-		if genre, ok := item["genre"]; ok {
+		if genre, ok := items[i]["genre"]; ok {
 			if genreName, ok := genre.(string); ok && genreName != "" {
 				// 去重并过滤空标签
 				if !tagSet[genreName] {
@@ -560,12 +530,10 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 	// 如果没有标签，使用降级策略
 	if len(allTagNames) == 0 {
 		fmt.Printf("没有从项目中提取到标签，使用降级策略\n")
-		return r.getItemsWithoutAnnotations(ctx, targetCollection, recommendType, start, end, recommendOffset)
+		return r.getItemsWithoutAnnotations(ctx, targetCollection, recommendType, start, end, recommendOffset, randomSeed)
 	}
 
 	// 步骤4: 在词云数据表中查找相似标签
-	// wordCloudColl 已经在标签提取部分声明
-
 	// 将itemType映射到词云数据中的type值
 	wordCloudType := itemType
 	if itemType == "media" {
@@ -576,6 +544,9 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 
 	// 添加调试信息，检查实际的词云类型
 	fmt.Printf("映射后的词云类型: %s\n", wordCloudType)
+
+	// 获取词云集合
+	wordCloudColl := r.db.Collection(domain.CollectionFileEntityAudioSceneMediaFileWordCloud)
 
 	// 添加调试信息，检查数据库中是否有词云数据
 	if count, err := wordCloudColl.CountDocuments(ctx, bson.M{}); err != nil {
@@ -591,62 +562,177 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 		fmt.Printf("类型为%s的词云数据数量: %d\n", wordCloudType, typeCount)
 	}
 
-	wordCloudPipeline := []bson.D{
-		{{"$match", bson.D{
-			{"name", bson.D{{"$in", allTagNames}}},
-			{"type", wordCloudType},
-		}}},
-		{{"$sort", bson.D{{"count", -1}}}},
-		{{"$limit", 100}},
-	}
-
-	// 添加调试信息
-	fmt.Printf("词云查询条件: 标签数量=%d, 类型=%s\n", len(allTagNames), wordCloudType)
-	if len(allTagNames) > 0 {
-		fmt.Printf("第一个标签: %s\n", allTagNames[0])
-	}
-
-	// 添加调试信息
-	fmt.Printf("词云查询Pipeline: %+v\n", wordCloudPipeline)
-
-	wordCloudCursor1, err := wordCloudColl.Aggregate(ctx, wordCloudPipeline)
-	if err != nil {
-		fmt.Printf("词云数据查询失败: %v\n", err)
-		fmt.Printf("查询Pipeline: %+v\n", wordCloudPipeline)
-		return nil, fmt.Errorf("词云数据查询失败: %w", err)
-	}
-	defer wordCloudCursor1.Close(ctx)
-
+	// 初始化词云标签数组
 	var wordCloudTags []scene_audio_db_models.WordCloudMetadata
-	if err := wordCloudCursor1.All(ctx, &wordCloudTags); err != nil {
-		return nil, fmt.Errorf("解析词云数据失败: %w", err)
-	}
 
-	// 如果没有找到匹配类型和标签的词云数据，则尝试只匹配标签名称
-	if len(wordCloudTags) == 0 {
-		fmt.Printf("没有找到匹配类型和标签的词云数据，尝试只匹配标签名称\n")
-		// 使用精确匹配而不是模糊匹配
-		var nameConditions []bson.D
-		for _, tagName := range allTagNames {
-			nameConditions = append(nameConditions, bson.D{{"name", tagName}})
-		}
-
-		wordCloudPipeline = []bson.D{
-			{{"$match", bson.D{{"name", bson.D{{"$in", allTagNames}}}}}},
+	// 首先尝试使用缓存获取特定类型的词云标签
+	cachedWordCloudTags, err := r.getCachedWordCloudTagsByType(ctx, wordCloudType)
+	if err != nil {
+		fmt.Printf("获取缓存的词云标签失败: %v\n", err)
+		// 如果缓存获取失败，使用原始查询方式
+		wordCloudPipeline := []bson.D{
+			{{"$match", bson.D{
+				{"name", bson.D{{"$in", allTagNames}}},
+				{"type", wordCloudType},
+			}}},
 			{{"$sort", bson.D{{"count", -1}}}},
 			{{"$limit", 100}},
 		}
 
-		wordCloudCursor2, err := wordCloudColl.Aggregate(ctx, wordCloudPipeline)
+		// 添加调试信息
+		fmt.Printf("词云查询条件: 标签数量=%d, 类型=%s\n", len(allTagNames), wordCloudType)
+		if len(allTagNames) > 0 {
+			fmt.Printf("第一个标签: %s\n", allTagNames[0])
+		}
+
+		// 添加调试信息
+		fmt.Printf("词云查询Pipeline: %+v\n", wordCloudPipeline)
+
+		wordCloudCursor1, err := wordCloudColl.Aggregate(ctx, wordCloudPipeline)
 		if err != nil {
 			fmt.Printf("词云数据查询失败: %v\n", err)
 			fmt.Printf("查询Pipeline: %+v\n", wordCloudPipeline)
 			return nil, fmt.Errorf("词云数据查询失败: %w", err)
 		}
-		defer wordCloudCursor2.Close(ctx)
+		defer wordCloudCursor1.Close(ctx)
 
-		if err := wordCloudCursor2.All(ctx, &wordCloudTags); err != nil {
+		if err := wordCloudCursor1.All(ctx, &wordCloudTags); err != nil {
 			return nil, fmt.Errorf("解析词云数据失败: %w", err)
+		}
+	} else {
+		// 在缓存中查找匹配的标签
+		var matchedTags []scene_audio_db_models.WordCloudMetadata
+		tagNameSet := make(map[string]bool)
+		for _, tagName := range allTagNames {
+			tagNameSet[tagName] = true
+		}
+
+		for _, wordCloudTag := range cachedWordCloudTags {
+			if _, exists := tagNameSet[wordCloudTag.Name]; exists {
+				matchedTags = append(matchedTags, wordCloudTag)
+			}
+		}
+
+		// 如果在缓存中找到了匹配的标签，使用这些标签
+		if len(matchedTags) > 0 {
+			// 按count排序
+			sort.Slice(matchedTags, func(i, j int) bool {
+				return matchedTags[i].Count > matchedTags[j].Count
+			})
+
+			// 限制返回数量
+			if len(matchedTags) > 100 {
+				matchedTags = matchedTags[:100]
+			}
+
+			wordCloudTags = matchedTags
+		} else {
+			// 如果缓存中没有找到匹配的标签，使用原始查询方式
+			wordCloudPipeline := []bson.D{
+				{{"$match", bson.D{
+					{"name", bson.D{{"$in", allTagNames}}},
+					{"type", wordCloudType},
+				}}},
+				{{"$sort", bson.D{{"count", -1}}}},
+				{{"$limit", 100}},
+			}
+
+			// 添加调试信息
+			fmt.Printf("词云查询条件: 标签数量=%d, 类型=%s\n", len(allTagNames), wordCloudType)
+			if len(allTagNames) > 0 {
+				fmt.Printf("第一个标签: %s\n", allTagNames[0])
+			}
+
+			// 添加调试信息
+			fmt.Printf("词云查询Pipeline: %+v\n", wordCloudPipeline)
+
+			wordCloudCursor1, err := wordCloudColl.Aggregate(ctx, wordCloudPipeline)
+			if err != nil {
+				fmt.Printf("词云数据查询失败: %v\n", err)
+				fmt.Printf("查询Pipeline: %+v\n", wordCloudPipeline)
+				return nil, fmt.Errorf("词云数据查询失败: %w", err)
+			}
+			defer wordCloudCursor1.Close(ctx)
+
+			if err := wordCloudCursor1.All(ctx, &wordCloudTags); err != nil {
+				return nil, fmt.Errorf("解析词云数据失败: %w", err)
+			}
+		}
+	}
+
+	// 如果没有找到匹配类型和标签的词云数据，则尝试只匹配标签名称
+	if len(wordCloudTags) == 0 {
+		fmt.Printf("没有找到匹配类型和标签的词云数据，尝试只匹配标签名称\n")
+
+		// 使用缓存的默认词云标签
+		cachedAllWordCloudTags, err := r.getCachedWordCloudTags(ctx)
+		if err != nil {
+			fmt.Printf("获取缓存的所有词云标签失败: %v\n", err)
+			// 如果缓存获取失败，使用原始查询方式
+			wordCloudPipeline := []bson.D{
+				{{"$match", bson.D{{"name", bson.D{{"$in", allTagNames}}}}}},
+				{{"$sort", bson.D{{"count", -1}}}},
+				{{"$limit", 100}},
+			}
+
+			wordCloudCursor2, err := wordCloudColl.Aggregate(ctx, wordCloudPipeline)
+			if err != nil {
+				fmt.Printf("词云数据查询失败: %v\n", err)
+				fmt.Printf("查询Pipeline: %+v\n", wordCloudPipeline)
+				return nil, fmt.Errorf("词云数据查询失败: %w", err)
+			}
+			defer wordCloudCursor2.Close(ctx)
+
+			if err := wordCloudCursor2.All(ctx, &wordCloudTags); err != nil {
+				return nil, fmt.Errorf("解析词云数据失败: %w", err)
+			}
+		} else {
+			// 在缓存中查找匹配的标签
+			var matchedTags []scene_audio_db_models.WordCloudMetadata
+			tagNameSet := make(map[string]bool)
+			for _, tagName := range allTagNames {
+				tagNameSet[tagName] = true
+			}
+
+			for _, wordCloudTag := range cachedAllWordCloudTags {
+				if _, exists := tagNameSet[wordCloudTag.Name]; exists {
+					matchedTags = append(matchedTags, wordCloudTag)
+				}
+			}
+
+			// 如果在缓存中找到了匹配的标签，使用这些标签
+			if len(matchedTags) > 0 {
+				// 按count排序
+				sort.Slice(matchedTags, func(i, j int) bool {
+					return matchedTags[i].Count > matchedTags[j].Count
+				})
+
+				// 限制返回数量
+				if len(matchedTags) > 100 {
+					matchedTags = matchedTags[:100]
+				}
+
+				wordCloudTags = matchedTags
+			} else {
+				// 如果缓存中没有找到匹配的标签，使用原始查询方式
+				wordCloudPipeline := []bson.D{
+					{{"$match", bson.D{{"name", bson.D{{"$in", allTagNames}}}}}},
+					{{"$sort", bson.D{{"count", -1}}}},
+					{{"$limit", 100}},
+				}
+
+				wordCloudCursor2, err := wordCloudColl.Aggregate(ctx, wordCloudPipeline)
+				if err != nil {
+					fmt.Printf("词云数据查询失败: %v\n", err)
+					fmt.Printf("查询Pipeline: %+v\n", wordCloudPipeline)
+					return nil, fmt.Errorf("词云数据查询失败: %w", err)
+				}
+				defer wordCloudCursor2.Close(ctx)
+
+				if err := wordCloudCursor2.All(ctx, &wordCloudTags); err != nil {
+					return nil, fmt.Errorf("解析词云数据失败: %w", err)
+				}
+			}
 		}
 	}
 
@@ -670,7 +756,7 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 		if err != nil {
 			fmt.Printf("genre标签查询失败: %v\n", err)
 			// 如果genre查询也失败，使用降级策略
-			return r.getItemsWithoutAnnotations(ctx, targetCollection, recommendType, start, end, recommendOffset)
+			return r.getItemsWithoutAnnotations(ctx, targetCollection, recommendType, start, end, recommendOffset, randomSeed)
 		}
 		defer genreCursor.Close(ctx)
 
@@ -698,29 +784,74 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 
 		// 如果genre匹配也失败，使用降级策略
 		fmt.Printf("没有找到genre标签匹配项，使用降级策略\n")
-		return r.getItemsWithoutAnnotations(ctx, targetCollection, recommendType, start, end, recommendOffset)
+		return r.getItemsWithoutAnnotations(ctx, targetCollection, recommendType, start, end, recommendOffset, randomSeed)
 	}
 
 	// 4. 使用这些tag在对应的数据库表中寻找推荐项并返回数据
-	// 构建推荐标签列表（取词云中出现频率最高的标签，但要根据实际匹配情况进行动态调整）
+	// 构建推荐标签列表（基于相关性动态选择标签）
 	var recommendTagNames []string
 	tagNameToCount := make(map[string]int)
 
-	// 根据词云标签的频率和匹配度动态选择标签
-	// 如果词云标签数量超过20个，只取前20个最常见的标签
-	maxTags := 20
-	if len(wordCloudTags) < maxTags {
-		maxTags = len(wordCloudTags)
+	// 计算每个标签的相关性分数
+	type TagScore struct {
+		Name  string
+		Score float64
+		Count int
 	}
 
-	for i := 0; i < maxTags; i++ {
-		recommendTagNames = append(recommendTagNames, wordCloudTags[i].Name)
-		tagNameToCount[wordCloudTags[i].Name] = wordCloudTags[i].Count
+	var tagScores []TagScore
+
+	// 为每个词云标签计算相关性分数
+	for _, tag := range wordCloudTags {
+		// 基础分数为词云中的出现次数
+		baseScore := float64(tag.Count)
+
+		// 计算与项目标签的匹配度
+		matchScore := 0.0
+		for _, projectTagName := range allTagNames {
+			if strings.EqualFold(tag.Name, projectTagName) {
+				matchScore += 1.0
+			} else if strings.Contains(strings.ToLower(tag.Name), strings.ToLower(projectTagName)) ||
+				strings.Contains(strings.ToLower(projectTagName), strings.ToLower(tag.Name)) {
+				matchScore += 0.5
+			}
+		}
+
+		// 综合分数 = 基础分数 * 匹配度权重
+		finalScore := baseScore * (1.0 + matchScore*0.5)
+
+		tagScores = append(tagScores, TagScore{
+			Name:  tag.Name,
+			Score: finalScore,
+			Count: tag.Count,
+		})
 	}
 
-	// 如果标签数量仍然很少（少于5个），则添加genre标签作为补充
-	if len(recommendTagNames) < 5 && len(allTagNames) > len(recommendTagNames) {
-		additionalTagsNeeded := 5 - len(recommendTagNames)
+	// 按相关性分数排序
+	sort.Slice(tagScores, func(i, j int) bool {
+		return tagScores[i].Score > tagScores[j].Score
+	})
+
+	// 根据相关性动态选择标签数量
+	// 最多选择30个标签，最少选择5个标签
+	maxTags := 30
+	minTags := 5
+	selectedTags := 0
+
+	// 先选择高相关性的标签
+	for _, tagScore := range tagScores {
+		if selectedTags >= maxTags {
+			break
+		}
+
+		recommendTagNames = append(recommendTagNames, tagScore.Name)
+		tagNameToCount[tagScore.Name] = tagScore.Count
+		selectedTags++
+	}
+
+	// 如果选择的标签数量少于最小值，补充一些genre标签
+	if len(recommendTagNames) < minTags && len(allTagNames) > len(recommendTagNames) {
+		additionalTagsNeeded := minTags - len(recommendTagNames)
 		for _, tagName := range allTagNames {
 			// 检查标签是否已经添加
 			alreadyAdded := false
@@ -940,7 +1071,7 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 	// 如果没有生成推荐结果，使用降级策略
 	if len(results) == 0 {
 		fmt.Printf("没有生成推荐结果，使用降级策略\n")
-		return r.getItemsWithoutAnnotations(ctx, targetCollection, recommendType, start, end, recommendOffset)
+		return r.getItemsWithoutAnnotations(ctx, targetCollection, recommendType, start, end, recommendOffset, randomSeed)
 	}
 
 	return results, nil
@@ -1229,9 +1360,10 @@ func (r *recommendRepository) getItemsWithoutAnnotations(
 	startInt int,
 	endInt int,
 	recommendOffsetInt int,
+	randomSeed int64,
 ) ([]interface{}, error) {
 	// 设置随机种子
-	rand.Seed(time.Now().UnixNano())
+	rand.Seed(randomSeed)
 
 	// 直接从目标集合获取数据，使用随机推荐
 	itemColl := r.db.Collection(targetCollection)
@@ -1279,6 +1411,97 @@ func (r *recommendRepository) getItemsWithoutAnnotations(
 	}
 
 	return results, nil
+}
+
+// getCachedWordCloudTags 获取带缓存的词云标签
+func (r *recommendRepository) getCachedWordCloudTags(ctx context.Context) ([]scene_audio_db_models.WordCloudMetadata, error) {
+	// 检查缓存是否有效
+	r.cacheMutex.RLock()
+	if r.wordCloudCache != nil && time.Now().Before(r.cacheExpiry) {
+		// 返回默认类型的词云标签缓存
+		if tags, exists := r.wordCloudCache["default"]; exists {
+			r.cacheMutex.RUnlock()
+			return tags, nil
+		}
+	}
+	r.cacheMutex.RUnlock()
+
+	// 缓存失效或不存在，重新获取数据
+	wordCloudColl := r.db.Collection(domain.CollectionFileEntityAudioSceneMediaFileWordCloud)
+
+	// 使用单次查询获取所有词云标签
+	wordCloudPipeline := []bson.D{
+		{{"$sort", bson.D{{"count", -1}}}},
+		{{"$limit", 1000}}, // 获取1000个最常见的词云标签
+	}
+
+	wordCloudCursor, err := wordCloudColl.Aggregate(ctx, wordCloudPipeline)
+	if err != nil {
+		return nil, fmt.Errorf("获取词云标签失败: %w", err)
+	}
+	defer wordCloudCursor.Close(ctx)
+
+	var allWordCloudTags []scene_audio_db_models.WordCloudMetadata
+	if err = wordCloudCursor.All(ctx, &allWordCloudTags); err != nil {
+		return nil, fmt.Errorf("解析词云标签失败: %w", err)
+	}
+
+	// 更新缓存
+	r.cacheMutex.Lock()
+	if r.wordCloudCache == nil {
+		r.wordCloudCache = make(map[string][]scene_audio_db_models.WordCloudMetadata)
+	}
+	r.wordCloudCache["default"] = allWordCloudTags
+	r.cacheExpiry = time.Now().Add(5 * time.Minute) // 缓存5分钟
+	r.cacheMutex.Unlock()
+
+	return allWordCloudTags, nil
+}
+
+// getCachedWordCloudTagsByType 根据类型获取带缓存的词云标签
+func (r *recommendRepository) getCachedWordCloudTagsByType(ctx context.Context, wordCloudType string) ([]scene_audio_db_models.WordCloudMetadata, error) {
+	// 检查缓存是否有效
+	cacheKey := "type_" + wordCloudType
+	r.cacheMutex.RLock()
+	if r.wordCloudCache != nil && time.Now().Before(r.cacheExpiry) {
+		if tags, exists := r.wordCloudCache[cacheKey]; exists {
+			r.cacheMutex.RUnlock()
+			return tags, nil
+		}
+	}
+	r.cacheMutex.RUnlock()
+
+	// 缓存失效或不存在，重新获取数据
+	wordCloudColl := r.db.Collection(domain.CollectionFileEntityAudioSceneMediaFileWordCloud)
+
+	// 使用单次查询获取指定类型的词云标签
+	wordCloudPipeline := []bson.D{
+		{{"$match", bson.D{{"type", wordCloudType}}}},
+		{{"$sort", bson.D{{"count", -1}}}},
+		{{"$limit", 500}}, // 获取500个最常见的词云标签
+	}
+
+	wordCloudCursor, err := wordCloudColl.Aggregate(ctx, wordCloudPipeline)
+	if err != nil {
+		return nil, fmt.Errorf("获取词云标签失败: %w", err)
+	}
+	defer wordCloudCursor.Close(ctx)
+
+	var wordCloudTags []scene_audio_db_models.WordCloudMetadata
+	if err = wordCloudCursor.All(ctx, &wordCloudTags); err != nil {
+		return nil, fmt.Errorf("解析词云标签失败: %w", err)
+	}
+
+	// 更新缓存
+	r.cacheMutex.Lock()
+	if r.wordCloudCache == nil {
+		r.wordCloudCache = make(map[string][]scene_audio_db_models.WordCloudMetadata)
+	}
+	r.wordCloudCache[cacheKey] = wordCloudTags
+	r.cacheExpiry = time.Now().Add(5 * time.Minute) // 缓存5分钟
+	r.cacheMutex.Unlock()
+
+	return wordCloudTags, nil
 }
 
 // 智能标签匹配函数
