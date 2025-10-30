@@ -41,6 +41,7 @@ func (uc *RecommendUsecase) GetGeneralRecommendations(
 	limit int,
 	randomSeed string,
 	recommendOffset string,
+	logShow bool,
 ) ([]interface{}, error) {
 	// 验证参数
 	if recommendType == "" || randomSeed == "" || recommendOffset == "" {
@@ -60,6 +61,7 @@ func (uc *RecommendUsecase) GetGeneralRecommendations(
 		limit,
 		randomSeed,
 		recommendOffset,
+		logShow,
 	)
 
 	if err != nil {
@@ -79,6 +81,7 @@ func (uc *RecommendUsecase) GetPersonalizedRecommendations(
 	userId string,
 	recommendType string,
 	limit int,
+	logShow bool,
 ) ([]interface{}, error) {
 	// 验证参数
 	if recommendType == "" {
@@ -97,6 +100,7 @@ func (uc *RecommendUsecase) GetPersonalizedRecommendations(
 		userId,
 		recommendType,
 		limit,
+		logShow,
 	)
 
 	if err != nil {
@@ -115,6 +119,7 @@ func (uc *RecommendUsecase) GetPopularRecommendations(
 	ctx context.Context,
 	recommendType string,
 	limit int,
+	logShow bool,
 ) ([]interface{}, error) {
 	// 验证参数
 	if recommendType == "" {
@@ -132,6 +137,7 @@ func (uc *RecommendUsecase) GetPopularRecommendations(
 		ctx,
 		recommendType,
 		limit,
+		logShow,
 	)
 
 	if err != nil {

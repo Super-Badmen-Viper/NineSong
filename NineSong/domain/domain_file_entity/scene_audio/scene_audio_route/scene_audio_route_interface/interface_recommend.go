@@ -11,6 +11,7 @@ type RecommendRouteRepository interface {
 		limit int,
 		randomSeed string,
 		recommendOffset string,
+		logShow bool,
 	) ([]interface{}, error)
 
 	GetPersonalizedRecommendations(
@@ -18,11 +19,13 @@ type RecommendRouteRepository interface {
 		userId string,
 		recommendType string,
 		limit int,
+		logShow bool,
 	) ([]interface{}, error)
 
 	GetPopularRecommendations(
 		ctx context.Context,
 		recommendType string,
 		limit int,
+		logShow bool,
 	) ([]interface{}, error)
 }

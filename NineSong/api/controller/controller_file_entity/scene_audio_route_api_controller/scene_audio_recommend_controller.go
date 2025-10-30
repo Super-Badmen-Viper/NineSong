@@ -23,11 +23,13 @@ func (c *RecommendController) GetGeneralRecommendations(ctx *gin.Context) {
 		Limit         string `form:"limit" binding:"required"`
 		RandomSeed    string `form:"random_seed" binding:"required"`
 		Offset        string `form:"recommend_offset" binding:"required"`
+		LogShow       string `form:"log_show"` // 控制是否输出日志
 	}{
 		RecommendType: ctx.Query("recommend_type"),
 		Limit:         ctx.Query("limit"),
 		RandomSeed:    ctx.Query("random_seed"),
 		Offset:        ctx.Query("recommend_offset"),
+		LogShow:       ctx.Query("log_show"),
 	}
 
 	// 验证limit参数
@@ -49,12 +51,19 @@ func (c *RecommendController) GetGeneralRecommendations(ctx *gin.Context) {
 		return
 	}
 
+	// 解析logShow参数，默认为true（输出日志）
+	logShow := true
+	if params.LogShow == "false" {
+		logShow = false
+	}
+
 	recommendResults, err := c.RecommendUsecase.GetGeneralRecommendations(
 		ctx.Request.Context(),
 		params.RecommendType,
 		limit,
 		params.RandomSeed,
 		params.Offset,
+		logShow,
 	)
 
 	if err != nil {
@@ -76,10 +85,12 @@ func (c *RecommendController) GetPersonalizedRecommendations(ctx *gin.Context) {
 		UserId        string `form:"user_id"`
 		RecommendType string `form:"recommend_type" binding:"required,oneof=artist album media media_cue"`
 		Limit         string `form:"limit" binding:"required"`
+		LogShow       string `form:"log_show"` // 控制是否输出日志
 	}{
 		UserId:        ctx.Query("user_id"),
 		RecommendType: ctx.Query("recommend_type"),
 		Limit:         ctx.Query("limit"),
+		LogShow:       ctx.Query("log_show"),
 	}
 
 	// 验证limit参数
@@ -94,11 +105,18 @@ func (c *RecommendController) GetPersonalizedRecommendations(ctx *gin.Context) {
 		return
 	}
 
+	// 解析logShow参数，默认为true（输出日志）
+	logShow := true
+	if params.LogShow == "false" {
+		logShow = false
+	}
+
 	recommendResults, err := c.RecommendUsecase.GetPersonalizedRecommendations(
 		ctx.Request.Context(),
 		params.UserId,
 		params.RecommendType,
 		limit,
+		logShow,
 	)
 
 	if err != nil {
@@ -119,9 +137,11 @@ func (c *RecommendController) GetPopularRecommendations(ctx *gin.Context) {
 	params := struct {
 		RecommendType string `form:"recommend_type" binding:"required,oneof=artist album media media_cue"`
 		Limit         string `form:"limit" binding:"required"`
+		LogShow       string `form:"log_show"` // 控制是否输出日志
 	}{
 		RecommendType: ctx.Query("recommend_type"),
 		Limit:         ctx.Query("limit"),
+		LogShow:       ctx.Query("log_show"),
 	}
 
 	// 验证limit参数
@@ -136,10 +156,17 @@ func (c *RecommendController) GetPopularRecommendations(ctx *gin.Context) {
 		return
 	}
 
+	// 解析logShow参数，默认为true（输出日志）
+	logShow := true
+	if params.LogShow == "false" {
+		logShow = false
+	}
+
 	recommendResults, err := c.RecommendUsecase.GetPopularRecommendations(
 		ctx.Request.Context(),
 		params.RecommendType,
 		limit,
+		logShow,
 	)
 
 	if err != nil {
