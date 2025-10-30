@@ -7,7 +7,7 @@ import (
 type RecommendRouteRepository interface {
 	GetRecommendAnnotationWordCloudItems(
 		ctx context.Context,
-		start, end, recommendType, randomSeed, offset string,
+		start, end, recommendType, randomSeed, recommendOffset string,
 	) ([]interface{}, error)
 
 	GetPersonalizedRecommendations(

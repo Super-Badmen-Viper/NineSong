@@ -5,16 +5,16 @@ import (
 )
 
 type WordCloudMetadata struct {
-	ID    primitive.ObjectID
-	Name  string
-	Count int
-	Type  string // "media_file" or "media_file_cue"
-	Rank  int
+	ID    primitive.ObjectID `bson:"_id"`
+	Name  string             `bson:"name"`
+	Count int                `bson:"count"`
+	Type  string             `bson:"type"` // "artist", "album", "media", "media_cue"
+	Rank  int                `bson:"rank"`
 }
 
 type WordCloudRecommendation struct {
-	ID    primitive.ObjectID
-	Type  string
-	Name  string
-	Score float64 // 相关性分数
+	ID    primitive.ObjectID `bson:"_id"`
+	Type  string             `bson:"type"`
+	Name  string             `bson:"name"`
+	Score float64            `bson:"score"` // 相关性分数
 }

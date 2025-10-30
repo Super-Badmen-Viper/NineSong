@@ -37,10 +37,10 @@ func NewRecommendUsecase(
 
 func (uc *RecommendUsecase) GetRecommendAnnotationWordCloudItems(
 	ctx context.Context,
-	start, end, recommendType, randomSeed, offset string,
+	start, end, recommendType, randomSeed, recommendOffset string,
 ) ([]interface{}, error) {
 	// 验证参数
-	if start == "" || end == "" || recommendType == "" || randomSeed == "" || offset == "" {
+	if start == "" || end == "" || recommendType == "" || randomSeed == "" || recommendOffset == "" {
 		return nil, fmt.Errorf("所有参数都是必需的")
 	}
 
@@ -53,7 +53,7 @@ func (uc *RecommendUsecase) GetRecommendAnnotationWordCloudItems(
 		end,
 		recommendType,
 		randomSeed,
-		offset,
+		recommendOffset,
 	)
 
 	if err != nil {

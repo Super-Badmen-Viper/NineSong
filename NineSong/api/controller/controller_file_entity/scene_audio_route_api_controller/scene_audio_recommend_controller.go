@@ -23,13 +23,13 @@ func (c *RecommendController) GetRecommendAnnotationWordCloudItems(ctx *gin.Cont
 		End           string `form:"end" binding:"required"`
 		RecommendType string `form:"recommend_type" binding:"required,oneof=artist album media media_cue"`
 		RandomSeed    string `form:"random_seed" binding:"required"`
-		Offset        string `form:"offset" binding:"required"`
+		Offset        string `form:"recommend_offset" binding:"required"`
 	}{
 		Start:         ctx.Query("start"),
 		End:           ctx.Query("end"),
 		RecommendType: ctx.Query("recommend_type"),
 		RandomSeed:    ctx.Query("random_seed"),
-		Offset:        ctx.Query("offset"),
+		Offset:        ctx.Query("recommend_offset"),
 	}
 
 	// 验证start和end参数
