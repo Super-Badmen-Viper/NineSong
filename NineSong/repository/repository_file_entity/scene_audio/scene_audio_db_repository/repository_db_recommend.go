@@ -196,6 +196,131 @@ func (r *recommendRepository) GetPersonalizedRecommendations(
 	return results, nil
 }
 
+// getRecommendationsFromAnnotations 直接从annotation数据生成推荐结果
+func (r *recommendRepository) getRecommendationsFromAnnotations(
+	ctx context.Context,
+	targetCollection string,
+	annotations []scene_audio_db_models.AnnotationMetadata,
+	recommendType string,
+	limit int,
+	algorithmType string,
+) ([]interface{}, error) {
+	r.logInfo("【推荐系统-二阶段】开始从annotation数据直接生成推荐结果，算法类型: %s", algorithmType)
+
+	// 获取目标集合
+	itemColl := r.db.Collection(targetCollection)
+
+	// 提取所有annotated的item ID
+	var annotatedItemIDs []string
+	for _, annotation := range annotations {
+		annotatedItemIDs = append(annotatedItemIDs, annotation.ItemID)
+	}
+
+	// 添加调试信息
+	r.logInfo("【推荐系统-二阶段】找到%d个已标注项目", len(annotatedItemIDs))
+
+	// 构建查询条件：找到不在已标注项目中的数据
+	var queryCondition bson.D
+	if len(annotatedItemIDs) > 0 {
+		// 转换为ObjectID
+		var annotatedObjectIDs []primitive.ObjectID
+		for _, id := range annotatedItemIDs {
+			if objectID, err := primitive.ObjectIDFromHex(id); err == nil {
+				annotatedObjectIDs = append(annotatedObjectIDs, objectID)
+			}
+		}
+
+		// 构建查询条件：排除已标注的项目
+		queryCondition = bson.D{
+			{"_id", bson.D{{"$nin", annotatedObjectIDs}}},
+		}
+	}
+
+	// 根据算法类型调整查询策略
+	switch algorithmType {
+	case "personalized":
+		// 个性化推荐：结合用户行为特征进行推荐
+		r.logDebug("【推荐系统-二阶段】执行个性化推荐查询")
+		// 在个性化推荐中，我们可以基于用户的播放历史特征来查找相似项目
+		// 这里可以根据需要扩展更复杂的逻辑
+	case "popular":
+		// 热门推荐：根据内容的流行度特征进行推荐
+		r.logDebug("【推荐系统-二阶段】执行热门推荐查询")
+		// 可以在热门推荐中添加额外的条件，如基于播放次数等
+	}
+
+	// 构建聚合管道
+	pipeline := []bson.D{
+		{{"$match", queryCondition}},
+		{{"$sample", bson.D{{"size", limit * 2}}}}, // 多获取一些用于排序
+		{{"$skip", 0}},
+		{{"$limit", limit}},
+	}
+
+	// 执行查询
+	cursor, err := itemColl.Aggregate(ctx, pipeline)
+	if err != nil {
+		r.logDebug("【推荐系统-二阶段】推荐查询执行失败: %v", err)
+		return nil, fmt.Errorf("推荐查询执行失败: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	// 处理结果
+	var results []interface{}
+	for cursor.Next(ctx) {
+		var itemInfo bson.M
+		if err := cursor.Decode(&itemInfo); err != nil {
+			r.logDebug("【推荐系统-二阶段】解码推荐项目失败: %v", err)
+			continue
+		}
+
+		// 查找该项目的播放日期和次数
+		var playCount int
+		var rating int
+		var starred bool
+
+		// 计算推荐分数 - 使用正确的参数格式
+		itemScoreInfo := bson.M{}
+		tagCountMap := map[string]int{}
+		var lastPlayTime *time.Time
+		score := r.calculateRecommendationScore(itemScoreInfo, tagCountMap, algorithmType, lastPlayTime)
+
+		// 创建推荐结果
+		result, err := r.createRecommendationResult(
+			itemInfo,
+			recommendType,
+			score,
+			"基于用户行为的直接推荐",
+			playCount,
+			rating,
+			starred,
+			algorithmType,
+			map[string]string{"limit": strconv.Itoa(limit)},
+			[]string{algorithmType},
+			annotations,
+			[]scene_audio_db_models.WordCloudMetadata{},
+			[]scene_audio_db_models.WordCloudRecommendation{},
+		)
+		if err != nil {
+			r.logDebug("【推荐系统-二阶段】创建推荐结果失败: %v", err)
+			continue
+		}
+
+		results = append(results, result)
+	}
+
+	// 记录结果数量
+	r.logInfo("【推荐系统-二阶段】成功生成%d个推荐结果", len(results))
+
+	// 如果没有结果，使用降级策略
+	if len(results) == 0 {
+		r.logInfo("【推荐系统-二阶段】没有找到符合条件的推荐项，启动降级策略")
+		return r.getItemsWithoutAnnotations(ctx, targetCollection, recommendType, 0, limit, 0, time.Now().UnixNano())
+	}
+
+	return results, nil
+}
+
 // GetPopularRecommendations - 热门推荐接口
 func (r *recommendRepository) GetPopularRecommendations(
 	ctx context.Context,
@@ -266,9 +391,8 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 	logShow bool,
 ) ([]interface{}, error) {
 
-	if r.logShow {
-		fmt.Printf("开始统一推荐流程，itemType=%s, algorithmType=%s\n", itemType, algorithmType)
-	}
+	r.logInfo("【推荐系统-主流程】开始统一推荐流程，itemType=%s, recommendType=%s, algorithmType=%s, limit=%d",
+		itemType, recommendType, algorithmType, limit)
 
 	// 创建推荐流程管道
 	pipeline := &RecommendationPipeline{
@@ -279,44 +403,57 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 	}
 
 	// 步骤1: 从annotation集合中获取用户行为数据
+	r.logDebug("[主流程-步骤1] 开始获取用户行为数据...")
 	annotations, err := pipeline.dataFetcher.GetAnnotations(ctx, itemType, algorithmType)
 	if err != nil {
+		r.logInfo("[主流程-步骤1] 获取用户行为数据失败，进入降级策略")
 		return nil, fmt.Errorf("获取注释数据失败: %w", err)
 	}
 
 	// 步骤2: 根据annotation的item_id和item_type寻找对应的项
+	r.logDebug("[主流程-步骤2] 开始根据用户行为数据查找对应的目标项目...")
 	items, err := pipeline.dataFetcher.GetItems(ctx, targetCollection, annotations)
 	if err != nil {
+		r.logInfo("[主流程-步骤2] 获取目标项目数据失败，进入降级策略")
 		return nil, fmt.Errorf("获取项目数据失败: %w", err)
 	}
 
-	if r.logShow {
-		fmt.Printf("找到%d个项目数据\n", len(items))
-	}
+	r.logInfo("【推荐系统-主流程】成功获取到%d个目标项目数据", len(items))
 
 	// 如果没有项目数据，使用降级策略
 	if len(items) == 0 {
-		if r.logShow {
-			fmt.Printf("没有找到项目数据，使用降级策略\n")
-		}
+		r.logInfo("【推荐系统-主流程】没有找到项目数据，启动降级策略")
 		return r.getItemsWithoutAnnotations(ctx, targetCollection, recommendType, 0, limit, recommendOffset, randomSeed)
 	}
 
+	// 根据算法类型决定是否使用词云匹配
+	if algorithmType != "general" {
+		// 对于个性化和热门推荐，直接使用annotation数据在对应表中查询，跳过词云相关步骤
+		r.logInfo("【推荐系统-主流程】%s推荐跳过词云匹配，直接使用annotation数据进行推荐", algorithmType)
+		return r.getRecommendationsFromAnnotations(ctx, targetCollection, annotations, recommendType, limit, algorithmType)
+	}
+
+	// 通用推荐：继续使用词云匹配（原有逻辑）
 	// 步骤3: 从项目中提取标签信息
-	allTagNames, _, err := pipeline.tagExtractor.ExtractTags(ctx, items)
+	r.logDebug("[主流程-步骤3] 开始从目标项目中提取标签信息...")
+	allTagNames, tagSourceCount, err := pipeline.tagExtractor.ExtractTags(ctx, items)
 	if err != nil {
+		r.logInfo("[主流程-步骤3] 提取标签失败，进入降级策略")
 		return nil, fmt.Errorf("提取标签失败: %w", err)
 	}
 
+	// 记录标签提取统计信息
+	r.logInfo("[主流程-步骤3] 成功从项目中提取%d个标签，词云来源: %d, 类别来源: %d",
+		len(allTagNames), tagSourceCount["word_cloud"], tagSourceCount["genre"])
+
 	// 如果没有标签，使用降级策略
 	if len(allTagNames) == 0 {
-		if r.logShow {
-			fmt.Printf("没有从项目中提取到标签，使用降级策略\n")
-		}
+		r.logInfo("【推荐系统-主流程】没有从项目中提取到标签，启动降级策略")
 		return r.getItemsWithoutAnnotations(ctx, targetCollection, recommendType, 0, limit, recommendOffset, randomSeed)
 	}
 
 	// 步骤4: 在词云数据表中查找相似标签
+	r.logDebug("[主流程-步骤4] 开始在词云数据中查找相似标签...")
 	// 将itemType映射到词云数据中的type值
 	wordCloudType := itemType
 	if itemType == "media" {
@@ -326,33 +463,23 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 	}
 
 	// 添加调试信息，检查实际的词云类型
-	if r.logShow {
-		fmt.Printf("映射后的词云类型: %s\n", wordCloudType)
-	}
+	r.logInfo("[主流程-步骤4] 映射后的词云类型: %s", wordCloudType)
 
 	// 获取词云集合
 	wordCloudColl := r.db.Collection(domain.CollectionFileEntityAudioSceneMediaFileWordCloud)
 
 	// 添加调试信息，检查数据库中是否有词云数据
 	if count, err := wordCloudColl.CountDocuments(ctx, bson.M{}); err != nil {
-		if r.logShow {
-			fmt.Printf("词云数据计数查询失败: %v\n", err)
-		}
+		r.logDebug("【推荐系统-主流程-步骤4】词云数据计数查询失败: %v", err)
 	} else {
-		if r.logShow {
-			fmt.Printf("词云数据总数量: %d\n", count)
-		}
+		r.logDebug("【推荐系统-主流程-步骤4】词云数据总数量: %d", count)
 	}
 
 	// 检查特定类型的词云数据数量
 	if typeCount, err := wordCloudColl.CountDocuments(ctx, bson.M{"type": wordCloudType}); err != nil {
-		if r.logShow {
-			fmt.Printf("特定类型词云数据计数查询失败: %v\n", err)
-		}
+		r.logDebug("【推荐系统-主流程-步骤4】特定类型词云数据计数查询失败: %v", err)
 	} else {
-		if r.logShow {
-			fmt.Printf("类型为%s的词云数据数量: %d\n", wordCloudType, typeCount)
-		}
+		r.logDebug("【推荐系统-主流程-步骤4】类型为%s的词云数据数量: %d", wordCloudType, typeCount)
 	}
 
 	// 初始化词云标签数组
@@ -361,9 +488,7 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 	// 首先尝试使用缓存获取特定类型的词云标签
 	cachedWordCloudTags, err := r.getCachedWordCloudTagsByType(ctx, wordCloudType)
 	if err != nil {
-		if r.logShow {
-			fmt.Printf("获取缓存的词云标签失败: %v\n", err)
-		}
+		r.logDebug("【推荐系统-主流程-步骤4】获取缓存的词云标签失败: %v", err)
 		// 如果缓存获取失败，使用原始查询方式
 		wordCloudPipeline := []bson.D{
 			{{"$match", bson.D{
@@ -375,19 +500,13 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 		}
 
 		// 添加调试信息
-		if r.logShow {
-			fmt.Printf("词云查询条件: 标签数量=%d, 类型=%s\n", len(allTagNames), wordCloudType)
-		}
+		r.logDebug("【推荐系统-主流程-步骤4】词云查询条件: 标签数量=%d, 类型=%s", len(allTagNames), wordCloudType)
 		if len(allTagNames) > 0 {
-			if r.logShow {
-				fmt.Printf("第一个标签: %s\n", allTagNames[0])
-			}
+			r.logDebug("【推荐系统-主流程-步骤4】第一个标签: %s", allTagNames[0])
 		}
 
 		// 添加调试信息
-		if r.logShow {
-			fmt.Printf("词云查询Pipeline: %+v\n", wordCloudPipeline)
-		}
+		r.logDebug("【推荐系统-主流程-步骤4】词云查询Pipeline: %+v", wordCloudPipeline)
 
 		wordCloudCursor1, err := wordCloudColl.Aggregate(ctx, wordCloudPipeline)
 		if err := r.handleError("词云数据查询", err); err != nil {
@@ -440,28 +559,18 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 			}
 
 			// 添加调试信息
-			if r.logShow {
-				fmt.Printf("词云查询条件: 标签数量=%d, 类型=%s\n", len(allTagNames), wordCloudType)
-			}
+			r.logDebug("【推荐系统-主流程-步骤4】词云查询条件: 标签数量=%d, 类型=%s", len(allTagNames), wordCloudType)
 			if len(allTagNames) > 0 {
-				if r.logShow {
-					fmt.Printf("第一个标签: %s\n", allTagNames[0])
-				}
+				r.logDebug("【推荐系统-主流程-步骤4】第一个标签: %s", allTagNames[0])
 			}
 
 			// 添加调试信息
-			if r.logShow {
-				fmt.Printf("词云查询Pipeline: %+v\n", wordCloudPipeline)
-			}
+			r.logDebug("【推荐系统-主流程-步骤4】词云查询Pipeline: %+v", wordCloudPipeline)
 
 			wordCloudCursor1, err := wordCloudColl.Aggregate(ctx, wordCloudPipeline)
 			if err != nil {
-				if r.logShow {
-					fmt.Printf("词云数据查询失败: %v\n", err)
-				}
-				if r.logShow {
-					fmt.Printf("查询Pipeline: %+v\n", wordCloudPipeline)
-				}
+				r.logDebug("【推荐系统-主流程-步骤4】词云数据查询失败: %v", err)
+				r.logDebug("【推荐系统-主流程-步骤4】查询Pipeline: %+v", wordCloudPipeline)
 				return nil, fmt.Errorf("词云数据查询失败: %w", err)
 			}
 			defer wordCloudCursor1.Close(ctx)
@@ -474,16 +583,12 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 
 	// 如果没有找到匹配类型和标签的词云数据，则尝试只匹配标签名称
 	if len(wordCloudTags) == 0 {
-		if r.logShow {
-			fmt.Printf("没有找到匹配类型和标签的词云数据，尝试只匹配标签名称\n")
-		}
+		r.logInfo("【推荐系统-主流程-步骤4】没有找到匹配类型和标签的词云数据，尝试只匹配标签名称")
 
 		// 使用缓存的默认词云标签
 		cachedAllWordCloudTags, err := r.getCachedWordCloudTags(ctx)
 		if err != nil {
-			if r.logShow {
-				fmt.Printf("获取缓存的所有词云标签失败: %v\n", err)
-			}
+			r.logDebug("【推荐系统-主流程-步骤4】获取缓存的所有词云标签失败: %v", err)
 			// 如果缓存获取失败，使用原始查询方式
 			wordCloudPipeline := []bson.D{
 				{{"$match", bson.D{{"name", bson.D{{"$in", allTagNames}}}}}},
@@ -493,12 +598,8 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 
 			wordCloudCursor2, err := wordCloudColl.Aggregate(ctx, wordCloudPipeline)
 			if err != nil {
-				if r.logShow {
-					fmt.Printf("词云数据查询失败: %v\n", err)
-				}
-				if r.logShow {
-					fmt.Printf("查询Pipeline: %+v\n", wordCloudPipeline)
-				}
+				r.logDebug("【推荐系统-主流程-步骤4】词云数据查询失败: %v", err)
+				r.logDebug("【推荐系统-主流程-步骤4】查询Pipeline: %+v", wordCloudPipeline)
 				return nil, fmt.Errorf("词云数据查询失败: %w", err)
 			}
 			defer wordCloudCursor2.Close(ctx)
@@ -543,12 +644,8 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 
 				wordCloudCursor2, err := wordCloudColl.Aggregate(ctx, wordCloudPipeline)
 				if err != nil {
-					if r.logShow {
-						fmt.Printf("词云数据查询失败: %v\n", err)
-					}
-					if r.logShow {
-						fmt.Printf("查询Pipeline: %+v\n", wordCloudPipeline)
-					}
+					r.logDebug("【推荐系统-主流程-步骤4】词云数据查询失败: %v", err)
+					r.logDebug("【推荐系统-主流程-步骤4】查询Pipeline: %+v", wordCloudPipeline)
 					return nil, fmt.Errorf("词云数据查询失败: %w", err)
 				}
 				defer wordCloudCursor2.Close(ctx)
@@ -561,15 +658,11 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 	}
 
 	// 添加调试信息
-	if r.logShow {
-		fmt.Printf("找到%d个词云标签\n", len(wordCloudTags))
-	}
+	r.logInfo("【推荐系统-主流程-步骤4】成功找到%d个相似词云标签", len(wordCloudTags))
 
 	// 如果没有词云标签，尝试匹配genre标签
 	if len(wordCloudTags) == 0 {
-		if r.logShow {
-			fmt.Printf("没有找到词云标签，尝试匹配genre标签\n")
-		}
+		r.logInfo("【推荐系统-主流程-步骤4】没有找到词云标签，尝试匹配genre标签")
 
 		// 构建genre匹配查询
 		genrePipeline := []bson.D{
@@ -585,9 +678,7 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 
 		genreCursor, err := itemColl.Aggregate(ctx, genrePipeline)
 		if err != nil {
-			if r.logShow {
-				fmt.Printf("genre标签查询失败: %v\n", err)
-			}
+			r.logDebug("【推荐系统-主流程-步骤4】genre标签查询失败: %v", err)
 			// 如果genre查询也失败，使用降级策略
 			return r.getItemsWithoutAnnotations(ctx, targetCollection, recommendType, 0, limit, recommendOffset, randomSeed)
 		}
@@ -611,21 +702,18 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 
 		// 如果genre匹配成功，返回结果
 		if len(genreResults) > 0 {
-			if r.logShow {
-				fmt.Printf("通过genre标签找到%d个推荐项\n", len(genreResults))
-			}
+			r.logInfo("【推荐系统-主流程-步骤4】通过genre标签找到%d个推荐项", len(genreResults))
 			return genreResults, nil
 		}
 
 		// 如果genre匹配也失败，使用降级策略
-		if r.logShow {
-			fmt.Printf("没有找到genre标签匹配项，使用降级策略\n")
-		}
+		r.logInfo("【推荐系统-主流程-步骤4】没有找到genre标签匹配项，启动降级策略")
 		return r.getItemsWithoutAnnotations(ctx, targetCollection, recommendType, 0, limit, recommendOffset, randomSeed)
 	}
 
 	// 4. 使用这些tag在对应的数据库表中寻找推荐项并返回数据
-	// 构建推荐标签列表（基于相关性动态选择标签）
+	// 步骤5: 构建推荐标签列表（基于相关性动态选择标签）
+	r.logDebug("[主流程-步骤5] 开始计算标签相关性分数并构建推荐标签列表...")
 	var recommendTagNames []string
 	tagNameToCount := make(map[string]int)
 
@@ -639,6 +727,7 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 	var tagScores []TagScore
 
 	// 为每个词云标签计算相关性分数
+	startTime := time.Now()
 	for _, tag := range wordCloudTags {
 		// 基础分数为词云中的出现次数
 		baseScore := float64(tag.Count)
@@ -668,6 +757,8 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 	sort.Slice(tagScores, func(i, j int) bool {
 		return tagScores[i].Score > tagScores[j].Score
 	})
+
+	r.logDebug("【推荐系统-主流程-步骤5】标签相关性计算完成，耗时: %v", time.Since(startTime))
 
 	// 根据相关性动态选择标签数量
 	// 最多选择30个标签，最少选择5个标签
@@ -711,9 +802,7 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 	}
 
 	// 添加调试信息
-	if r.logShow {
-		fmt.Printf("使用%d个标签进行推荐\n", len(recommendTagNames))
-	}
+	r.logInfo("【推荐系统-主流程-步骤5】成功构建推荐标签列表，共选择%d个标签进行推荐", len(recommendTagNames))
 
 	// 获取集合引用
 	annotationColl := r.db.Collection(domain.CollectionFileEntityAudioSceneAnnotation)
@@ -754,34 +843,38 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 	}
 
 	// 添加调试信息
-	if r.logShow {
-		fmt.Printf("找到%d个已标注项目\n", len(annotatedItemObjectIds))
-	}
+	r.logInfo("【推荐系统-主流程-步骤5】找到%d个已标注项目", len(annotatedItemObjectIds))
 
 	// 构建最终推荐查询
 	// 构建匹配条件 - 先尝试宽松的条件
+	// 注意：media表没有tags字段，使用实际存在的字段进行匹配
 	recommendMatchCondition := bson.D{
 		{"$or", []bson.D{
-			{{"tags", bson.D{{"$in", recommendTagNames}}}},
+			{{"title", bson.D{{"$in", recommendTagNames}}}},
+			{{"album", bson.D{{"$in", recommendTagNames}}}},
+			{{"artist", bson.D{{"$in", recommendTagNames}}}},
+			{{"album_artist", bson.D{{"$in", recommendTagNames}}}},
 			{{"genre", bson.D{{"$in", recommendTagNames}}}},
+			{{"file_name", bson.D{{"$in", recommendTagNames}}}},
+			{{"lyrics", bson.D{{"$in", recommendTagNames}}}},
 		}},
 	}
 
+	// 步骤6: 构建最终推荐查询
+	r.logDebug("【推荐系统-主流程-步骤6】开始构建推荐查询条件并执行推荐...")
 	// 添加调试信息
-	if r.logShow {
-		fmt.Printf("推荐标签数量: %d\n", len(recommendTagNames))
-		if len(recommendTagNames) > 0 {
-			fmt.Printf("前5个推荐标签: %v\n", recommendTagNames[:int(math.Min(5, float64(len(recommendTagNames))))])
-		}
-		fmt.Printf("已标注项目数量: %d\n", len(annotatedItemObjectIds))
+	r.logInfo("【推荐系统-主流程-步骤6】推荐标签数量: %d, 已标注项目数量: %d", len(recommendTagNames), len(annotatedItemObjectIds))
+	if len(recommendTagNames) > 0 {
+		endIdx := int(math.Min(5, float64(len(recommendTagNames))))
+		r.logDebug("【推荐系统-主流程-步骤6】前%d个推荐标签: %v", endIdx, recommendTagNames[:endIdx])
 	}
 
 	// 计算符合条件的项目数量（不排除已标注项目）
 	matchCount, err := itemColl.CountDocuments(ctx, recommendMatchCondition)
 	if err != nil {
-		r.logInfo("计算符合条件的项目数量失败: %v", err)
+		r.logInfo("【推荐系统-主流程-步骤6】计算符合条件的项目数量失败: %v", err)
 	} else {
-		r.logInfo("符合条件的项目数量（不排除已标注项目）: %d", matchCount)
+		r.logInfo("【推荐系统-主流程-步骤6】符合条件的项目数量（不排除已标注项目）: %d", matchCount)
 	}
 
 	// 如果没有符合条件的项目，尝试更宽松的条件
@@ -793,10 +886,11 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 
 		genreMatchCount, err := itemColl.CountDocuments(ctx, genreMatchCondition)
 		if err != nil {
-			r.logInfo("计算genre匹配的项目数量失败: %v", err)
+			r.logInfo("【推荐系统-主流程-步骤6】计算genre匹配的项目数量失败: %v", err)
 		} else {
-			r.logInfo("genre匹配的项目数量: %d", genreMatchCount)
+			r.logInfo("【推荐系统-主流程-步骤6】genre匹配的项目数量: %d", genreMatchCount)
 			if genreMatchCount > 0 {
+				r.logDebug("【推荐系统-主流程-步骤6】使用genre字段作为匹配条件")
 				recommendMatchCondition = genreMatchCondition
 				matchCount = genreMatchCount
 			}
@@ -820,10 +914,11 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 
 			fileNameMatchCount, err := itemColl.CountDocuments(ctx, fileNameMatchCondition)
 			if err != nil {
-				r.logInfo("计算文件名匹配的项目数量失败: %v", err)
+				r.logInfo("【推荐系统-主流程-步骤6】计算文件名匹配的项目数量失败: %v", err)
 			} else {
-				r.logInfo("文件名匹配的项目数量: %d", fileNameMatchCount)
+				r.logInfo("【推荐系统-主流程-步骤6】文件名匹配的项目数量: %d", fileNameMatchCount)
 				if fileNameMatchCount > 0 {
+					r.logDebug("【推荐系统-主流程-步骤6】使用文件名作为匹配条件")
 					recommendMatchCondition = fileNameMatchCondition
 					matchCount = fileNameMatchCount
 				}
@@ -832,14 +927,18 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 	}
 
 	// 构建最终的推荐查询条件（添加排除已标注项目的条件）
+	r.logDebug("【推荐系统-主流程-步骤6】构建最终推荐查询条件")
 	finalRecommendMatchCondition := recommendMatchCondition
 	if len(annotatedItemObjectIds) > 0 {
+		r.logDebug("【推荐系统-主流程-步骤6】添加排除已交互项目的条件")
 		finalRecommendMatchCondition = bson.D{
 			{"_id", bson.D{{"$nin", annotatedItemObjectIds}}}, // 排除已交互的项目
 			{"$and", []bson.D{recommendMatchCondition}},
 		}
 	}
 
+	// 构建推荐查询管道
+	r.logDebug("【推荐系统-主流程-步骤6】构建推荐聚合管道")
 	recommendPipeline := []bson.D{
 		// 匹配包含推荐标签的项目（排除用户已经交互过的项目）
 		{{"$match", finalRecommendMatchCondition}},
@@ -851,20 +950,28 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 		{{"$limit", limit}},
 	}
 
+	// 执行推荐查询
+	r.logDebug("【推荐系统-二阶段】执行推荐聚合查询")
 	recommendCursor, err := itemColl.Aggregate(ctx, recommendPipeline)
 	if err := r.handleError("推荐项目查询", err); err != nil {
+		r.logInfo("【推荐系统-二阶段】推荐查询执行失败，准备降级策略")
 		return nil, err
 	}
 	defer recommendCursor.Close(ctx)
 
+	// 处理查询结果
+	r.logDebug("【推荐系统-二阶段】开始处理查询结果并构建推荐列表")
 	var results []interface{}
-	for recommendCursor.Next(ctx) {
+	for i := 0; recommendCursor.Next(ctx); i++ {
+		r.logDebug("【推荐系统-二阶段】处理第%d个推荐项目", i+1)
 		var itemDoc bson.M
 		if err := recommendCursor.Decode(&itemDoc); err != nil {
+			r.logDebug("【推荐系统-二阶段】解码项目失败: %v，跳过该项目", err)
 			continue
 		}
 
 		// 从注释数据中查找对应的播放日期
+		r.logDebug("【推荐系统-二阶段】查找项目对应的播放日期信息")
 		var playDate *time.Time
 		for _, annotation := range annotations {
 			// 检查item_id是否匹配
@@ -872,6 +979,7 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 				if objectID, ok := itemID.(primitive.ObjectID); ok {
 					if objectID.Hex() == annotation.ItemID {
 						playDate = &annotation.PlayDate
+						r.logDebug("【推荐系统-二阶段】找到匹配的播放记录，日期: %v", annotation.PlayDate)
 						break
 					}
 				}
@@ -879,31 +987,40 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 		}
 
 		// 计算推荐分数，传入播放日期用于时间衰减计算
+		r.logDebug("【推荐系统-二阶段】计算推荐分数")
 		score := r.calculateRecommendationScore(itemDoc, tagNameToCount, algorithmType, playDate)
+		r.logDebug("【推荐系统-二阶段】推荐分数计算完成: %f", score)
 
 		// 设置推荐理由和算法
+		r.logDebug("【推荐系统-二阶段】根据算法类型设置推荐理由和算法信息")
 		reason := "基于内容相似性推荐"
 		algorithm := "ContentSimilarityAlgorithm"
 		basis := []string{"tag_similarity"}
 
 		switch algorithmType {
 		case "personalized":
+			r.logDebug("【推荐系统-二阶段】选择个性化推荐算法")
 			reason = "基于用户行为推荐"
 			algorithm = "UserBehaviorAlgorithm"
 			basis = []string{"play_count", "rating", "starred", "play_complete_count", "play_date"}
 		case "popular":
+			r.logDebug("【推荐系统-二阶段】选择热门度推荐算法")
 			reason = "基于热门度推荐"
 			algorithm = "PopularityAlgorithm"
 			basis = []string{"play_count"}
+		default:
+			r.logDebug("【推荐系统-二阶段】使用默认的内容相似性推荐算法")
 		}
 
-		// 关键修复：确保在调用推荐依据函数之前，数据是有效的
 		// 收集推荐依据信息
+		r.logDebug("【推荐系统-二阶段】收集推荐依据信息")
 		annotationBasis := r.getAnnotationBasisFromAnnotations(annotations, 5)
 		tagBasis := r.getTagBasisFromWordCloud(wordCloudTags, 10)
 		relatedItems := r.getRelatedItemsFromWordCloud(wordCloudTags, 5)
+		r.logDebug("【推荐系统-二阶段】成功收集%d个注释依据，%d个标签依据，%d个相关项目", len(annotationBasis), len(tagBasis), len(relatedItems))
 
-		// 创建推荐结果 - 确保传入正确的依据数据
+		// 创建推荐结果
+		r.logDebug("【推荐系统-二阶段】创建推荐结果对象")
 		result, err := r.createRecommendationResult(
 			itemDoc,
 			recommendType,
@@ -916,30 +1033,30 @@ func (r *recommendRepository) getUnifiedRecommendationWorkflow(
 				"offset":         strconv.Itoa(recommendOffset),
 				"algorithm_type": algorithmType,
 			},
-			basis, // 根据算法类型设置不同的 basis 参数
+			basis,
 			annotationBasis,
 			tagBasis,
 			relatedItems,
 		)
 		if err != nil {
+			r.logInfo("【推荐系统-二阶段】创建推荐结果失败: %v，跳过该项目", err)
 			continue
 		}
 
 		results = append(results, result)
+		r.logDebug("【推荐系统-二阶段】成功添加推荐结果")
 	}
 
-	if r.logShow {
-		fmt.Printf("生成了%d个推荐结果\n", len(results))
-	}
+	// 记录推荐结果数量
+	r.logInfo("【推荐系统-二阶段】成功生成%d个推荐结果", len(results))
 
 	// 如果没有生成推荐结果，使用降级策略
 	if len(results) == 0 {
-		if r.logShow {
-			fmt.Printf("没有生成推荐结果，使用降级策略\n")
-		}
+		r.logInfo("【推荐系统-二阶段】没有生成足够的推荐结果，启动降级策略")
 		return r.getItemsWithoutAnnotations(ctx, targetCollection, recommendType, 0, limit, recommendOffset, randomSeed)
 	}
 
+	r.logInfo("【推荐系统-二阶段】推荐流程完成，返回推荐结果")
 	return results, nil
 }
 
@@ -1244,11 +1361,16 @@ func (r *recommendRepository) getItemsWithoutAnnotations(
 	recommendOffsetInt int,
 	randomSeed int64,
 ) ([]interface{}, error) {
+	// 降级策略执行 - 随机推荐
+	r.logInfo("[推荐系统-降级策略] 开始执行无注释数据的降级推荐策略")
+
 	// 设置随机种子
 	rand.Seed(randomSeed)
+	r.logDebug("[推荐系统-降级策略] 设置随机种子: %d", randomSeed)
 
 	// 直接从目标集合获取数据，使用随机推荐
 	itemColl := r.db.Collection(targetCollection)
+	r.logDebug("[推荐系统-降级策略] 从集合 %s 获取随机推荐数据", targetCollection)
 
 	// 构建聚合管道
 	pipeline := []bson.D{
@@ -1257,21 +1379,27 @@ func (r *recommendRepository) getItemsWithoutAnnotations(
 		{{"$limit", endInt - startInt}},
 	}
 
+	r.logDebug("[推荐系统-降级策略] 执行随机采样查询，limit: %d, offset: %d", endInt-startInt, recommendOffsetInt)
 	cursor, err := itemColl.Aggregate(ctx, pipeline)
 	if err != nil {
+		r.logInfo("[推荐系统-降级策略] 随机推荐查询失败: %v", err)
 		return nil, fmt.Errorf("直接查询失败: %w", err)
 	}
 	defer cursor.Close(ctx)
 
 	var results []interface{}
-	for cursor.Next(ctx) {
+	r.logDebug("[推荐系统-降级策略] 开始处理随机推荐结果")
+	for i := 0; cursor.Next(ctx); i++ {
+		r.logDebug("[推荐系统-降级策略] 处理第%d个随机推荐项目", i+1)
 		var itemDoc bson.M
 		if err := cursor.Decode(&itemDoc); err != nil {
+			r.logDebug("[推荐系统-降级策略] 解码随机推荐项目失败: %v，跳过", err)
 			continue
 		}
 
 		// 默认分数
 		score := 0.3 + rand.Float64()*0.4
+		r.logDebug("[推荐系统-降级策略] 生成随机推荐分数: %f", score)
 
 		// 创建推荐结果（降级策略中没有播放日期信息，传入nil）
 		result, err := r.createRecommendationResult(itemDoc, recommendType, score, "热门推荐", 0, 0, false,
@@ -1287,11 +1415,15 @@ func (r *recommendRepository) getItemsWithoutAnnotations(
 			[]scene_audio_db_models.WordCloudRecommendation{})
 
 		if err != nil {
+			r.logInfo("[推荐系统-降级策略] 创建随机推荐结果失败: %v，跳过", err)
 			continue
 		}
 		results = append(results, result)
+
+		r.logDebug("[推荐系统-降级策略] 成功添加随机推荐结果")
 	}
 
+	r.logInfo("[推荐系统-降级策略] 降级推荐完成，返回%d个随机推荐结果", len(results))
 	return results, nil
 }
 
@@ -1431,6 +1563,11 @@ func (r *recommendRepository) ExtractTags(ctx context.Context, items []bson.M) (
 				itemTexts = append(itemTexts, strings.ToLower(artistStr))
 			}
 		}
+		if albumArtist, ok := item["album_artist"]; ok {
+			if albumArtistStr, ok := albumArtist.(string); ok && albumArtistStr != "" {
+				itemTexts = append(itemTexts, strings.ToLower(albumArtistStr))
+			}
+		}
 		if fileName, ok := item["file_name"]; ok {
 			if fileNameStr, ok := fileName.(string); ok && fileNameStr != "" {
 				itemTexts = append(itemTexts, strings.ToLower(fileNameStr))
@@ -1535,7 +1672,7 @@ func (r *recommendRepository) CalculateSimilarity(itemText, tagName string) bool
 func (r *recommendRepository) handleError(operation string, err error) error {
 	if err != nil {
 		// 记录错误日志
-		fmt.Printf("[%s] 错误: %v\n", operation, err)
+		fmt.Printf("[%s] [ERROR] [%s] 错误: %v\n", time.Now().Format("2006-01-02 15:04:05"), operation, err)
 		// 返回包装后的错误
 		return fmt.Errorf("%s失败: %w", operation, err)
 	}
@@ -1545,7 +1682,12 @@ func (r *recommendRepository) handleError(operation string, err error) error {
 // logInfo 统一信息日志函数
 func (r *recommendRepository) logInfo(message string, args ...interface{}) {
 	if r.logShow {
-		fmt.Printf("[INFO] "+message+"\n", args...)
+		// 准备参数：先添加时间戳，再添加其他参数
+		allArgs := make([]interface{}, 0, len(args)+1)
+		allArgs = append(allArgs, time.Now().Format("2006-01-02 15:04:05"))
+		allArgs = append(allArgs, args...)
+		// 使用正确的格式化方式
+		fmt.Printf("[%s] [INFO] "+message+"\n", allArgs...)
 	}
 }
 
@@ -1560,7 +1702,12 @@ func (r *recommendRepository) RankResults(items []bson.M, tagNameToCount map[str
 func (r *recommendRepository) logDebug(message string, args ...interface{}) {
 	// 在生产环境中可能需要根据日志级别来决定是否输出
 	if r.logShow {
-		fmt.Printf("[DEBUG] "+message+"\n", args...)
+		// 准备参数：先添加时间戳，再添加其他参数
+		allArgs := make([]interface{}, 0, len(args)+1)
+		allArgs = append(allArgs, time.Now().Format("2006-01-02 15:04:05"))
+		allArgs = append(allArgs, args...)
+		// 使用正确的格式化方式
+		fmt.Printf("[%s] [DEBUG] "+message+"\n", allArgs...)
 	}
 }
 
@@ -1578,8 +1725,9 @@ func (r *recommendRepository) GetAnnotations(
 ) ([]scene_audio_db_models.AnnotationMetadata, error) {
 	annotationColl := r.db.Collection(domain.CollectionFileEntityAudioSceneAnnotation)
 
-	// 记录开始处理的日志
-	r.logDebug("开始获取%s类型的注释数据，算法类型: %s", itemType, algorithmType)
+	// 记录开始处理的日志 - 标记为第一阶段开始
+	r.logInfo("【推荐系统-第一阶段】开始获取用户行为数据，itemType=%s, algorithmType=%s", itemType, algorithmType)
+	r.logDebug("[第一阶段-步骤1] 准备从集合%s查询注释数据", domain.CollectionFileEntityAudioSceneAnnotation)
 
 	// 构建查询条件，根据算法类型调整策略
 	var matchCondition bson.D
@@ -1600,6 +1748,7 @@ func (r *recommendRepository) GetAnnotations(
 	var annotationPipeline []bson.D
 
 	// 首先检查播放次数为30次以上的数据数量，以动态调整limit值
+	r.logDebug("【推荐系统-第一阶段】开始计算满足条件的高频播放数据数量")
 	countMatchCondition := bson.D{
 		{"$and", []bson.D{
 			matchCondition,
@@ -1609,8 +1758,8 @@ func (r *recommendRepository) GetAnnotations(
 
 	// 计算播放次数>=30的文档数量
 	count, err := annotationColl.CountDocuments(ctx, countMatchCondition)
-	if err != nil {
-		return nil, fmt.Errorf("计算播放次数>=30的数据失败: %w", err)
+	if err := r.handleError("【推荐系统-第一阶段】计算高频播放数据数量", err); err != nil {
+		return nil, err
 	}
 
 	// 根据播放次数>=30的数据数量动态设置limit值
@@ -1619,11 +1768,13 @@ func (r *recommendRepository) GetAnnotations(
 		limitValue = int(count)
 	}
 
-	r.logDebug("根据播放次数动态调整limit值: %d (原始计数: %d)", limitValue, count)
+	r.logInfo("【推荐系统-第一阶段】根据高频播放数据动态调整limit值: %d (原始计数: %d)", limitValue, count)
 
+	r.logInfo("【推荐系统-第一阶段】根据算法类型'%s'构建推荐策略", algorithmType)
 	switch algorithmType {
 	case "personalized":
 		// 个性化推荐：根据播放次数、最近播放时间、喜欢状态、收藏星级综合排序
+		r.logDebug("【推荐系统-第一阶段】采用个性化推荐算法 - 综合考虑用户播放行为、评分、收藏状态")
 		annotationPipeline = []bson.D{
 			{{"$match", matchCondition}},
 			{{"$addFields", bson.D{
@@ -1657,6 +1808,7 @@ func (r *recommendRepository) GetAnnotations(
 		}
 	case "popular":
 		// 热门推荐：主要根据播放次数排序
+		r.logDebug("【推荐系统-第一阶段】采用热门推荐算法 - 基于内容流行度排序")
 		annotationPipeline = []bson.D{
 			{{"$match", matchCondition}},
 			{{"$sort", bson.D{{"play_count", -1}}}},
@@ -1665,6 +1817,7 @@ func (r *recommendRepository) GetAnnotations(
 	default:
 		// 通用推荐：结合随机性和用户行为数据
 		// 30%随机性 + 70%基于用户行为的智能选取
+		r.logDebug("【推荐系统-第一阶段】采用通用推荐算法 - 平衡随机性和用户行为数据")
 		annotationPipeline = []bson.D{
 			{{"$match", matchCondition}},
 			{{"$addFields", bson.D{
@@ -1697,20 +1850,21 @@ func (r *recommendRepository) GetAnnotations(
 		}
 	}
 
+	r.logDebug("【推荐系统-第一阶段】执行用户行为数据聚合查询，应用推荐算法")
 	annotationCursor, err := annotationColl.Aggregate(ctx, annotationPipeline)
-	if err := r.handleError("注释数据查询", err); err != nil {
+	if err := r.handleError("【推荐系统-第一阶段】执行用户行为数据聚合查询", err); err != nil {
 		return nil, err
 	}
 	defer annotationCursor.Close(ctx)
 
 	var annotations []scene_audio_db_models.AnnotationMetadata
 	if err := annotationCursor.All(ctx, &annotations); err != nil {
-		if err := r.handleError("解析注释数据", err); err != nil {
+		if err := r.handleError("【推荐系统-第一阶段】解析用户行为数据", err); err != nil {
 			return nil, err
 		}
 	}
 
-	r.logDebug("成功获取到%d个注释数据", len(annotations))
+	r.logInfo("【推荐系统-第一阶段】成功获取到%d条用户行为数据，已完成数据采集", len(annotations))
 	return annotations, nil
 }
 
@@ -1720,8 +1874,9 @@ func (r *recommendRepository) GetItems(
 	targetCollection string,
 	annotations []scene_audio_db_models.AnnotationMetadata,
 ) ([]bson.M, error) {
-	// 记录开始处理的日志
-	r.logDebug("开始处理%d个注释数据", len(annotations))
+	// 记录开始处理的日志 - 标记为第二阶段开始
+	r.logInfo("【推荐系统-第二阶段】开始基于用户行为数据进行内容匹配，共处理%d条行为数据", len(annotations))
+	r.logDebug("【推荐系统-第二阶段-步骤1】准备从行为数据中提取项目ID")
 
 	// 收集item_id用于后续查询
 	var itemIds []string
@@ -1732,6 +1887,7 @@ func (r *recommendRepository) GetItems(
 	}
 
 	// 将字符串类型的item_id转换为ObjectID
+	r.logDebug("【推荐系统-第二阶段-步骤2】将行为数据中的项目ID转换为ObjectID格式")
 	var itemObjectIds []primitive.ObjectID
 	var invalidItemIds []string
 	for _, itemId := range itemIds {
@@ -1748,12 +1904,12 @@ func (r *recommendRepository) GetItems(
 		if endIdx > 5 {
 			endIdx = 5
 		}
-		r.logInfo("发现%d个无效的item_id: %v", len(invalidItemIds), invalidItemIds[:endIdx])
+		r.logInfo("【推荐系统-第二阶段】发现%d个无效的item_id: %v", len(invalidItemIds), invalidItemIds[:endIdx])
 	}
 
 	// 查询对应的项目信息
 	itemColl := r.db.Collection(targetCollection)
-	r.logDebug("准备从集合%s查询%d个项目", targetCollection, len(itemObjectIds))
+	r.logInfo("【推荐系统-第二阶段-步骤3】准备从集合%s查询%d个项目", targetCollection, len(itemObjectIds))
 
 	itemPipeline := []bson.D{
 		// 匹配项目ID
@@ -1763,20 +1919,21 @@ func (r *recommendRepository) GetItems(
 		// 限制数量
 		{{"$limit", 200}}, // 增加到200个以获取更多样化的数据
 	}
+	r.logDebug("【推荐系统-第二阶段】构建数据查询管道 - 项目ID匹配、随机采样、数量限制")
 
 	itemCursor, err := itemColl.Aggregate(ctx, itemPipeline)
-	if err := r.handleError("项目数据查询", err); err != nil {
+	if err := r.handleError("【推荐系统-第二阶段】执行项目数据聚合查询", err); err != nil {
 		return nil, err
 	}
 	defer itemCursor.Close(ctx)
 
 	var items []bson.M
 	if err := itemCursor.All(ctx, &items); err != nil {
-		if err := r.handleError("解析项目数据", err); err != nil {
+		if err := r.handleError("【推荐系统-第二阶段】解析项目数据", err); err != nil {
 			return nil, err
 		}
 	}
 
-	r.logDebug("成功获取到%d个项目数据", len(items))
+	r.logInfo("【推荐系统-第二阶段】成功获取到%d个目标项目数据，完成数据关联和内容匹配", len(items))
 	return items, nil
 }
