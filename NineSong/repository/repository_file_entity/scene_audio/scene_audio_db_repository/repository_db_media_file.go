@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -38,15 +39,52 @@ type mediaFileRepository struct {
 }
 
 func NewMediaFileRepository(db mongo.Database, collection string) scene_audio_db_interface.MediaFileRepository {
-	jieba := gojieba.NewJieba()
-	stopWords := domain_util.LoadCombinedStopWords()
+	if runtime.GOOS == "windows" {
+		jieba := gojieba.NewJieba()
+		stopWords := domain_util.LoadCombinedStopWords()
 
-	return &mediaFileRepository{
-		db:         db,
-		collection: collection,
-		jieba:      jieba,
-		stopWords:  stopWords,
+		return &mediaFileRepository{
+			db:         db,
+			collection: collection,
+			jieba:      jieba,
+			stopWords:  stopWords,
+		}
+	} else {
+		// MacOS Build
+		dictPath := os.Getenv("JIEBA_DICT_PATH")
+		if dictPath == "" {
+			dictPath = "/app/jieba-dict"
+		}
+
+		log.Printf("正在使用jieba词典路径: %s", dictPath)
+
+		jieba := gojieba.NewJieba(
+			dictPath+"/jieba.dict.utf8",
+			dictPath+"/hmm_model.utf8",
+			dictPath+"/user.dict.utf8",
+			dictPath+"/idf.utf8",
+			dictPath+"/stop_words.utf8",
+		)
+
+		stopWords := domain_util.LoadCombinedStopWords()
+
+		return &mediaFileRepository{
+			db:         db,
+			collection: collection,
+			jieba:      jieba,
+			stopWords:  stopWords,
+		}
 	}
+	// MacOS Run
+	//jieba := gojieba.NewJieba()
+	//stopWords := domain_util.LoadCombinedStopWords()
+	//
+	//return &mediaFileRepository{
+	//	db:         db,
+	//	collection: collection,
+	//	jieba:      jieba,
+	//	stopWords:  stopWords,
+	//}
 }
 
 func (r *mediaFileRepository) GetAllGenre(ctx context.Context) ([]scene_audio_db_models.WordCloudMetadata, error) {
