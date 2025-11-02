@@ -129,13 +129,12 @@ func (r *recommendRepository) GetGeneralRecommendations(
 	}
 
 	// 检查缓存（除非明确要求跳过缓存）
+	cacheKey := fmt.Sprintf("%s_%d_%s_%s", recommendType, limit, randomSeed, recommendOffset)
 	if !refresh {
-		cacheKey := fmt.Sprintf("%s_%d_%s_%s", recommendType, limit, randomSeed, recommendOffset)
 		r.recCacheMutex.RLock()
 		if r.generalRecCache != nil && time.Now().Before(r.recCacheExpiry) {
 			if cachedResults, exists := r.generalRecCache[cacheKey]; exists {
 				r.recCacheMutex.RUnlock()
-				r.logInfo("【推荐系统-通用推荐】使用缓存结果，缓存键: %s", cacheKey)
 				return cachedResults, nil
 			}
 		}
@@ -153,22 +152,27 @@ func (r *recommendRepository) GetGeneralRecommendations(
 		return nil, fmt.Errorf("未找到推荐数据")
 	}
 
-	// 更新缓存（除非明确要求跳过缓存）
-	if !refresh {
-		r.recCacheMutex.Lock()
-		if r.generalRecCache == nil {
-			r.generalRecCache = make(map[string][]interface{})
-		}
-		// 限制缓存大小，最多保留100个缓存项
-		if len(r.generalRecCache) >= 100 {
-			// 清除所有缓存项以简化实现
-			r.generalRecCache = make(map[string][]interface{})
-		}
-		cacheKey := fmt.Sprintf("%s_%d_%s_%s", recommendType, limit, randomSeed, recommendOffset)
-		r.generalRecCache[cacheKey] = results
-		r.recCacheExpiry = time.Now().Add(2 * time.Minute) // 缓存2分钟
-		r.recCacheMutex.Unlock()
+	// 更新缓存（无论refresh为何值，只要获取了新数据就应该更新缓存）
+	r.recCacheMutex.Lock()
+	if r.generalRecCache == nil {
+		r.generalRecCache = make(map[string][]interface{})
 	}
+	// 限制缓存大小，最多保留100个缓存项
+	if len(r.generalRecCache) >= 100 {
+		// 清除所有缓存项以简化实现
+		r.generalRecCache = make(map[string][]interface{})
+	}
+	cacheKey = fmt.Sprintf("%s_%d_%s_%s", recommendType, limit, randomSeed, recommendOffset)
+	r.generalRecCache[cacheKey] = results
+	r.recCacheExpiry = time.Now().Add(2 * time.Minute) // 缓存2分钟
+	r.recCacheMutex.Unlock()
+
+	// 确保缓存更新成功
+	r.recCacheMutex.RLock()
+	if _, exists := r.generalRecCache[cacheKey]; !exists {
+		r.logInfo("更新缓存失败，缓存键: %s", cacheKey)
+	}
+	r.recCacheMutex.RUnlock()
 
 	return results, nil
 }
@@ -219,13 +223,17 @@ func (r *recommendRepository) GetPersonalizedRecommendations(
 	seed := time.Now().UnixNano()
 
 	// 检查缓存（除非明确要求跳过缓存）
+	// 处理userId为空的情况，确保缓存键一致性
+	cacheKeyUserId := userId
+	if cacheKeyUserId == "" {
+		cacheKeyUserId = "0"
+	}
+	cacheKey := fmt.Sprintf("%s_%s_%d", cacheKeyUserId, recommendType, limit)
 	if !refresh {
-		cacheKey := fmt.Sprintf("%s_%s_%d", userId, recommendType, limit)
 		r.recCacheMutex.RLock()
 		if r.personalizedRecCache != nil && time.Now().Before(r.recCacheExpiry) {
 			if cachedResults, exists := r.personalizedRecCache[cacheKey]; exists {
 				r.recCacheMutex.RUnlock()
-				r.logInfo("【推荐系统-个性化推荐】使用缓存结果，缓存键: %s", cacheKey)
 				return cachedResults, nil
 			}
 		}
@@ -248,22 +256,28 @@ func (r *recommendRepository) GetPersonalizedRecommendations(
 		results = results[:limit]
 	}
 
-	// 更新缓存（除非明确要求跳过缓存）
-	if !refresh {
-		r.recCacheMutex.Lock()
-		if r.personalizedRecCache == nil {
-			r.personalizedRecCache = make(map[string][]interface{})
-		}
-		// 限制缓存大小，最多保留100个缓存项
-		if len(r.personalizedRecCache) >= 100 {
-			// 清除所有缓存项以简化实现
-			r.personalizedRecCache = make(map[string][]interface{})
-		}
-		cacheKey := fmt.Sprintf("%s_%s_%d", userId, recommendType, limit)
-		r.personalizedRecCache[cacheKey] = results
-		r.recCacheExpiry = time.Now().Add(2 * time.Minute) // 缓存2分钟
-		r.recCacheMutex.Unlock()
+	// 更新缓存（无论refresh为何值，只要获取了新数据就应该更新缓存）
+	r.recCacheMutex.Lock()
+	if r.personalizedRecCache == nil {
+		r.personalizedRecCache = make(map[string][]interface{})
 	}
+	// 限制缓存大小，最多保留100个缓存项
+	if len(r.personalizedRecCache) >= 100 {
+		// 清除所有缓存项以简化实现
+		r.personalizedRecCache = make(map[string][]interface{})
+	}
+	// 使用之前定义的cacheKey，确保一致性
+	r.personalizedRecCache[cacheKey] = results
+	r.recCacheExpiry = time.Now().Add(2 * time.Minute) // 缓存2分钟
+	r.recCacheMutex.Unlock()
+
+	// 确保缓存更新成功
+	r.recCacheMutex.RLock()
+	_, exists := r.personalizedRecCache[cacheKey]
+	if !exists {
+		r.logInfo("更新缓存失败")
+	}
+	r.recCacheMutex.RUnlock()
 
 	return results, nil
 }
@@ -390,6 +404,9 @@ func (r *recommendRepository) getRecommendationsFromAnnotations(
 		return r.getItemsWithoutAnnotations(ctx, targetCollection, recommendType, 0, limit, 0, time.Now().UnixNano())
 	}
 
+	// 更新缓存（对于个性化和热门推荐，也需要更新缓存）
+	// 注意：这个方法被getUnifiedRecommendationWorkflow调用，而getUnifiedRecommendationWorkflow已经被三个主方法调用
+	// 所以我们不需要在这里直接更新缓存，而是依赖调用者来更新缓存
 	return results, nil
 }
 
@@ -438,13 +455,12 @@ func (r *recommendRepository) GetPopularRecommendations(
 	seed := time.Now().UnixNano()
 
 	// 检查缓存（除非明确要求跳过缓存）
+	cacheKey := fmt.Sprintf("%s_%d", recommendType, limit)
 	if !refresh {
-		cacheKey := fmt.Sprintf("%s_%d", recommendType, limit)
 		r.recCacheMutex.RLock()
 		if r.popularRecCache != nil && time.Now().Before(r.recCacheExpiry) {
 			if cachedResults, exists := r.popularRecCache[cacheKey]; exists {
 				r.recCacheMutex.RUnlock()
-				r.logInfo("【推荐系统-热门推荐】使用缓存结果，缓存键: %s", cacheKey)
 				return cachedResults, nil
 			}
 		}
@@ -462,22 +478,27 @@ func (r *recommendRepository) GetPopularRecommendations(
 		return nil, fmt.Errorf("未找到热门推荐数据")
 	}
 
-	// 更新缓存（除非明确要求跳过缓存）
-	if !refresh {
-		r.recCacheMutex.Lock()
-		if r.popularRecCache == nil {
-			r.popularRecCache = make(map[string][]interface{})
-		}
-		// 限制缓存大小，最多保留100个缓存项
-		if len(r.popularRecCache) >= 100 {
-			// 清除所有缓存项以简化实现
-			r.popularRecCache = make(map[string][]interface{})
-		}
-		cacheKey := fmt.Sprintf("%s_%d", recommendType, limit)
-		r.popularRecCache[cacheKey] = results
-		r.recCacheExpiry = time.Now().Add(2 * time.Minute) // 缓存2分钟
-		r.recCacheMutex.Unlock()
+	// 更新缓存（无论refresh为何值，只要获取了新数据就应该更新缓存）
+	r.recCacheMutex.Lock()
+	if r.popularRecCache == nil {
+		r.popularRecCache = make(map[string][]interface{})
 	}
+	// 限制缓存大小，最多保留100个缓存项
+	if len(r.popularRecCache) >= 100 {
+		// 清除所有缓存项以简化实现
+		r.popularRecCache = make(map[string][]interface{})
+	}
+	// 使用之前定义的cacheKey，确保一致性
+	r.popularRecCache[cacheKey] = results
+	r.recCacheExpiry = time.Now().Add(2 * time.Minute) // 缓存2分钟
+	r.recCacheMutex.Unlock()
+
+	// 确保缓存更新成功
+	r.recCacheMutex.RLock()
+	if _, exists := r.popularRecCache[cacheKey]; !exists {
+		r.logInfo("更新缓存失败，缓存键: %s", cacheKey)
+	}
+	r.recCacheMutex.RUnlock()
 
 	return results, nil
 }
@@ -1776,7 +1797,9 @@ func (r *recommendRepository) CalculateSimilarity(itemText, tagName string) bool
 func (r *recommendRepository) handleError(operation string, err error) error {
 	if err != nil {
 		// 记录错误日志
-		fmt.Printf("[%s] [ERROR] [%s] 错误: %v\n", time.Now().Format("2006-01-02 15:04:05"), operation, err)
+		if r.logShow {
+			fmt.Printf("[%s] [ERROR] [%s] 错误: %v\n", time.Now().Format("2006-01-02 15:04:05"), operation, err)
+		}
 		// 返回包装后的错误
 		return fmt.Errorf("%s失败: %w", operation, err)
 	}
