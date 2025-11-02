@@ -39,7 +39,7 @@ type mediaFileRepository struct {
 }
 
 func NewMediaFileRepository(db mongo.Database, collection string) scene_audio_db_interface.MediaFileRepository {
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
 		jieba := gojieba.NewJieba()
 		stopWords := domain_util.LoadCombinedStopWords()
 
@@ -75,16 +75,6 @@ func NewMediaFileRepository(db mongo.Database, collection string) scene_audio_db
 			stopWords:  stopWords,
 		}
 	}
-	// MacOS Run
-	//jieba := gojieba.NewJieba()
-	//stopWords := domain_util.LoadCombinedStopWords()
-	//
-	//return &mediaFileRepository{
-	//	db:         db,
-	//	collection: collection,
-	//	jieba:      jieba,
-	//	stopWords:  stopWords,
-	//}
 }
 
 func (r *mediaFileRepository) GetAllGenre(ctx context.Context) ([]scene_audio_db_models.WordCloudMetadata, error) {
@@ -347,7 +337,7 @@ func (r *mediaFileRepository) GetRecommendedByKeywords(
 	var files []struct {
 		ID    primitive.ObjectID `bson:"_id"`
 		Title string             `bson:"title"`
-		Score int                `bson:"relevance_score"`
+		Score float64            `bson:"relevance_score"`
 	}
 	if err := cursor.All(ctx, &files); err != nil {
 		return nil, fmt.Errorf("推荐结果解析失败: %w", err)
@@ -360,7 +350,7 @@ func (r *mediaFileRepository) GetRecommendedByKeywords(
 			ID:    f.ID,
 			Type:  "media_file",
 			Name:  f.Title,
-			Score: float64(f.Score), // 保留原始评分
+			Score: f.Score, // 保留原始评分
 		}
 	}
 	return results, nil

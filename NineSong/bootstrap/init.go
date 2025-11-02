@@ -4,19 +4,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_app/domain_app_config"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
-	"golang.org/x/crypto/bcrypt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_app/domain_app_config"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_auth"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_system"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -474,7 +475,7 @@ func (si *Initializer) initAppConfigs(ctx context.Context) error {
 	for _, cfg := range initConfigs {
 		_, err := coll.InsertOne(ctx, cfg)
 		if err != nil {
-			return fmt.Errorf("应用配置初始化失败: %w \n", err)
+			return fmt.Errorf("应用配置 초기화 실패: %w \n", err)
 		}
 	}
 	return nil
@@ -511,7 +512,7 @@ func (si *Initializer) initAppAudioConfigs(ctx context.Context) error {
 	for _, cfg := range initConfigs {
 		_, err := coll.InsertOne(ctx, cfg)
 		if err != nil {
-			return fmt.Errorf("应用配置初始化失败: %w \n", err)
+			return fmt.Errorf("应用配置 초기화 실패: %w \n", err)
 		}
 	}
 	return nil
@@ -539,7 +540,7 @@ func (si *Initializer) initAppUIConfigs(ctx context.Context) error {
 	for _, cfg := range initConfigs {
 		_, err := coll.InsertOne(ctx, cfg)
 		if err != nil {
-			return fmt.Errorf("应用配置初始化失败: %w \n", err)
+			return fmt.Errorf("应用配置 초기화 실패: %w \n", err)
 		}
 	}
 	return nil
@@ -584,7 +585,7 @@ func (si *Initializer) initAppPlaylistIDConfigs(ctx context.Context) error {
 	for _, cfg := range initConfigs {
 		_, err := coll.InsertOne(ctx, cfg)
 		if err != nil {
-			return fmt.Errorf("应用配置初始化失败: %w \n", err)
+			return fmt.Errorf("应用配置 초기화 실패: %w \n", err)
 		}
 	}
 	return nil
@@ -600,18 +601,18 @@ func (si *Initializer) initFileEntityAudioTempMetadata(ctx context.Context) erro
 		return err
 	}
 
-	// 使用统一的路径基准
+	// 사용统战의 경로 기준
 	var basePath string
 	switch runtime.GOOS {
 	case "windows":
-		// 使用公共文档目录更合理
+		// 사용 공용 문서 디렉토리가 더 합리적
 		basePath = filepath.Join(os.Getenv("PUBLIC"), "Documents", "NineSong", "MetaData")
-	default: // Linux, macOS, Docker等
-		// 兼容Docker中常用的/app目录结构
+	default: // Linux, macOS, Docker 등
+		// Docker에서 자주 사용하는 /app 디렉토리 구조와 호환
 		if _, err := os.Stat("/app"); err == nil {
 			basePath = "/app/MetaData"
 		} else {
-			// 使用用户主目录下的自定义目录
+			// 사용자 홈 디렉토리 아래의 사용자 정의 디렉토리
 			basePath = filepath.Join(homeDir, "NineSong", "MetaData")
 		}
 	}
@@ -634,10 +635,10 @@ func (si *Initializer) initFileEntityAudioTempMetadata(ctx context.Context) erro
 		},
 	}
 
-	// 批量插入优化
+	// 일괄 삽입 최적화
 	models := make([]interface{}, len(initConfigs))
 	for i, cfg := range initConfigs {
-		// 确保目录实际存在
+		// 실제 디렉토리가 존재하는지 확인
 		if err := os.MkdirAll(cfg.FolderPath, 0755); err != nil {
 			fmt.Printf("Failed to create directory %s: %v \n", cfg.FolderPath, err)
 		}

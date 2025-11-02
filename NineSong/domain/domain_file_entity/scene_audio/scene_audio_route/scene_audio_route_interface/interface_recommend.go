@@ -12,6 +12,7 @@ type RecommendRouteRepository interface {
 		randomSeed string,
 		recommendOffset string,
 		logShow bool,
+		refresh bool,
 	) ([]interface{}, error)
 
 	GetPersonalizedRecommendations(
@@ -20,6 +21,7 @@ type RecommendRouteRepository interface {
 		recommendType string,
 		limit int,
 		logShow bool,
+		refresh bool,
 	) ([]interface{}, error)
 
 	GetPopularRecommendations(
@@ -27,5 +29,6 @@ type RecommendRouteRepository interface {
 		recommendType string,
 		limit int,
 		logShow bool,
+		refresh bool,
 	) ([]interface{}, error)
 }

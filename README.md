@@ -33,7 +33,8 @@ Compared to other music servers (such as Navidrome, Jellyfin, Emby, Plex, Subson
 - More complete TAG import and management:
 - - [x] support for importing complete TAGs from more types of music files (including m4a、cue(wav、ape、flac));
 - Personalized music recommendations based on user usage data: 
-- - [x] Phase 1 (June): Add tag cloud and recommend music based on user interests.
+- - [x] Phase 1 : Add tag cloud and recommend music based on user interests.
+- - [x] Phase 2 : Use lightweight recommendation algorithms based on usage data.
 ## Subsequent updates (Music Scene):
 - More comprehensive music library management:
 - - [ ] support for dual-page browsing mode (unlimited virtual list, paged list);
@@ -51,9 +52,8 @@ Compared to other music servers (such as Navidrome, Jellyfin, Emby, Plex, Subson
 - Integrated free public welfare music TAG API: 
 - - [ ] allowing users to obtain online TAGs for songs and choose whether to synchronize TAG data.
 - Personalized music recommendations based on user usage data: 
-- - [ ] Phase 2 (August): Use lightweight recommendation algorithms based on usage data.
-- - [ ] Phase 3 (October): Build a music knowledge graph by analyzing music metadata to achieve smarter recommendations.
-- - [ ] Phase 4 (December): Combine the knowledge graph with LLM (DeepSeek) for advanced music recommendations.
+- - [ ] Phase 3 : Build a music knowledge graph by analyzing music metadata to achieve smarter recommendations.
+- - [ ] Phase 4 : Combine the knowledge graph with LLM (DeepSeek) for advanced music recommendations.
 
 ## How to Deploy Docker:
 You first need to download the compressed file from the [releases](https://github.com/Super-Badmen-Viper/NineSong/releases/)  
@@ -88,8 +88,7 @@ Because considering that the image upgrade cannot affect the database data, if y
   - NSMusicS交流群（1）：（已满500人，请入2群）
   - NSMusicS交流群（2）：610551734
 - Other | None
-- 请注意，所有聊天组仅用于日常沟通、功能请求、需求报告和错误报告，只要您态度端正并支持九歌，在我力所能及的情况下，您的需求我都将尽力满足，但是这需要功能需求排期开发，但是您也可以通过赞助等等开源贡献方式来加快你的需求实现。
-- 请不要在聊天组与我进行技术辩论或问答，不然我会给你踢出群聊，技术辩论或问答是非常不礼貌的行为，尤其是在我和你不熟、且你没有参与开源贡献的情况下。
+
 ## local debug run
  - modify: .env
    - DB_HOST=localhost
@@ -105,16 +104,6 @@ Because considering that the image upgrade cannot affect the database data, if y
      - run: docker-compose-mongodb.yaml
  - go install github.com/air-verse/air@latest
  - run: air
-   
-## docker build run
- - modify: .env
-   - DB_HOST=mongodb
-   - DB_USER=jiuge01
-   - DB_PASS=jiuge01
- - modify: docker-compose.yaml
-   - web: volumes
-   - mongodb: volumes
- - run: docker-compose.yaml
 
 ## postman run
 Import postman.json file: NineSong API.postman_collection.json

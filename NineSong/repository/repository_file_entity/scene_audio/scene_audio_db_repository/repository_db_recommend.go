@@ -49,7 +49,15 @@ type recommendRepository struct {
 	wordCloudCache map[string][]scene_audio_db_models.WordCloudMetadata
 	cacheMutex     sync.RWMutex
 	cacheExpiry    time.Time
-	logShow        bool // 控制是否输出日志
+
+	// 为三个推荐接口添加缓存
+	generalRecCache      map[string][]interface{}
+	personalizedRecCache map[string][]interface{}
+	popularRecCache      map[string][]interface{}
+	recCacheMutex        sync.RWMutex
+	recCacheExpiry       time.Time
+
+	logShow bool // 控制是否输出日志
 }
 
 // RecommendationPipeline 推荐流程管道
@@ -76,6 +84,7 @@ func (r *recommendRepository) GetGeneralRecommendations(
 	randomSeed string,
 	recommendOffset string,
 	logShow bool,
+	refresh bool,
 ) ([]interface{}, error) {
 	// 设置日志输出控制
 	r.logShow = logShow
@@ -119,6 +128,20 @@ func (r *recommendRepository) GetGeneralRecommendations(
 		targetCollection = domain.CollectionFileEntityAudioSceneMediaFile
 	}
 
+	// 检查缓存（除非明确要求跳过缓存）
+	if !refresh {
+		cacheKey := fmt.Sprintf("%s_%d_%s_%s", recommendType, limit, randomSeed, recommendOffset)
+		r.recCacheMutex.RLock()
+		if r.generalRecCache != nil && time.Now().Before(r.recCacheExpiry) {
+			if cachedResults, exists := r.generalRecCache[cacheKey]; exists {
+				r.recCacheMutex.RUnlock()
+				r.logInfo("【推荐系统-通用推荐】使用缓存结果，缓存键: %s", cacheKey)
+				return cachedResults, nil
+			}
+		}
+		r.recCacheMutex.RUnlock()
+	}
+
 	// 使用统一的推荐流程
 	results, err := r.getUnifiedRecommendationWorkflow(ctx, itemType, targetCollection, recommendType, limit, recommendOffsetInt, "general", seed, logShow)
 	if err != nil {
@@ -128,6 +151,23 @@ func (r *recommendRepository) GetGeneralRecommendations(
 	// 如果结果为空，返回错误
 	if len(results) == 0 {
 		return nil, fmt.Errorf("未找到推荐数据")
+	}
+
+	// 更新缓存（除非明确要求跳过缓存）
+	if !refresh {
+		r.recCacheMutex.Lock()
+		if r.generalRecCache == nil {
+			r.generalRecCache = make(map[string][]interface{})
+		}
+		// 限制缓存大小，最多保留100个缓存项
+		if len(r.generalRecCache) >= 100 {
+			// 清除所有缓存项以简化实现
+			r.generalRecCache = make(map[string][]interface{})
+		}
+		cacheKey := fmt.Sprintf("%s_%d_%s_%s", recommendType, limit, randomSeed, recommendOffset)
+		r.generalRecCache[cacheKey] = results
+		r.recCacheExpiry = time.Now().Add(2 * time.Minute) // 缓存2分钟
+		r.recCacheMutex.Unlock()
 	}
 
 	return results, nil
@@ -140,6 +180,7 @@ func (r *recommendRepository) GetPersonalizedRecommendations(
 	recommendType string,
 	limit int,
 	logShow bool,
+	refresh bool,
 ) ([]interface{}, error) {
 	// 设置日志输出控制
 	r.logShow = logShow
@@ -177,6 +218,20 @@ func (r *recommendRepository) GetPersonalizedRecommendations(
 	// 使用当前时间作为随机种子
 	seed := time.Now().UnixNano()
 
+	// 检查缓存（除非明确要求跳过缓存）
+	if !refresh {
+		cacheKey := fmt.Sprintf("%s_%s_%d", userId, recommendType, limit)
+		r.recCacheMutex.RLock()
+		if r.personalizedRecCache != nil && time.Now().Before(r.recCacheExpiry) {
+			if cachedResults, exists := r.personalizedRecCache[cacheKey]; exists {
+				r.recCacheMutex.RUnlock()
+				r.logInfo("【推荐系统-个性化推荐】使用缓存结果，缓存键: %s", cacheKey)
+				return cachedResults, nil
+			}
+		}
+		r.recCacheMutex.RUnlock()
+	}
+
 	// 使用统一的推荐流程，但可以加入个性化策略
 	results, err := r.getUnifiedRecommendationWorkflow(ctx, itemType, targetCollection, recommendType, limit, 0, "personalized", seed, logShow)
 	if err != nil {
@@ -191,6 +246,23 @@ func (r *recommendRepository) GetPersonalizedRecommendations(
 	// 截取前limit个结果
 	if len(results) > limit {
 		results = results[:limit]
+	}
+
+	// 更新缓存（除非明确要求跳过缓存）
+	if !refresh {
+		r.recCacheMutex.Lock()
+		if r.personalizedRecCache == nil {
+			r.personalizedRecCache = make(map[string][]interface{})
+		}
+		// 限制缓存大小，最多保留100个缓存项
+		if len(r.personalizedRecCache) >= 100 {
+			// 清除所有缓存项以简化实现
+			r.personalizedRecCache = make(map[string][]interface{})
+		}
+		cacheKey := fmt.Sprintf("%s_%s_%d", userId, recommendType, limit)
+		r.personalizedRecCache[cacheKey] = results
+		r.recCacheExpiry = time.Now().Add(2 * time.Minute) // 缓存2分钟
+		r.recCacheMutex.Unlock()
 	}
 
 	return results, nil
@@ -327,6 +399,7 @@ func (r *recommendRepository) GetPopularRecommendations(
 	recommendType string,
 	limit int,
 	logShow bool,
+	refresh bool,
 ) ([]interface{}, error) {
 	// 设置日志输出控制
 	r.logShow = logShow
@@ -364,6 +437,20 @@ func (r *recommendRepository) GetPopularRecommendations(
 	// 使用当前时间作为随机种子
 	seed := time.Now().UnixNano()
 
+	// 检查缓存（除非明确要求跳过缓存）
+	if !refresh {
+		cacheKey := fmt.Sprintf("%s_%d", recommendType, limit)
+		r.recCacheMutex.RLock()
+		if r.popularRecCache != nil && time.Now().Before(r.recCacheExpiry) {
+			if cachedResults, exists := r.popularRecCache[cacheKey]; exists {
+				r.recCacheMutex.RUnlock()
+				r.logInfo("【推荐系统-热门推荐】使用缓存结果，缓存键: %s", cacheKey)
+				return cachedResults, nil
+			}
+		}
+		r.recCacheMutex.RUnlock()
+	}
+
 	// 使用统一的推荐流程，但可以加入热门度策略
 	results, err := r.getUnifiedRecommendationWorkflow(ctx, itemType, targetCollection, recommendType, limit, 0, "popular", seed, logShow)
 	if err != nil {
@@ -373,6 +460,23 @@ func (r *recommendRepository) GetPopularRecommendations(
 	// 如果结果为空，返回错误
 	if len(results) == 0 {
 		return nil, fmt.Errorf("未找到热门推荐数据")
+	}
+
+	// 更新缓存（除非明确要求跳过缓存）
+	if !refresh {
+		r.recCacheMutex.Lock()
+		if r.popularRecCache == nil {
+			r.popularRecCache = make(map[string][]interface{})
+		}
+		// 限制缓存大小，最多保留100个缓存项
+		if len(r.popularRecCache) >= 100 {
+			// 清除所有缓存项以简化实现
+			r.popularRecCache = make(map[string][]interface{})
+		}
+		cacheKey := fmt.Sprintf("%s_%d", recommendType, limit)
+		r.popularRecCache[cacheKey] = results
+		r.recCacheExpiry = time.Now().Add(2 * time.Minute) // 缓存2分钟
+		r.recCacheMutex.Unlock()
 	}
 
 	return results, nil

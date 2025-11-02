@@ -13,8 +13,10 @@ type RecommendController struct {
 	RecommendUsecase scene_audio_route_interface.RecommendRouteRepository
 }
 
-func NewRecommendController(uc scene_audio_route_interface.RecommendRouteRepository) *RecommendController {
-	return &RecommendController{RecommendUsecase: uc}
+func NewRecommendController(repo scene_audio_route_interface.RecommendRouteRepository) *RecommendController {
+	return &RecommendController{
+		RecommendUsecase: repo,
+	}
 }
 
 func (c *RecommendController) GetGeneralRecommendations(ctx *gin.Context) {
@@ -24,12 +26,14 @@ func (c *RecommendController) GetGeneralRecommendations(ctx *gin.Context) {
 		RandomSeed    string `form:"random_seed" binding:"required"`
 		Offset        string `form:"recommend_offset" binding:"required"`
 		LogShow       string `form:"log_show"` // 控制是否输出日志
+		Refresh       string `form:"refresh"`  // 控制是否跳过缓存
 	}{
 		RecommendType: ctx.Query("recommend_type"),
 		Limit:         ctx.Query("limit"),
 		RandomSeed:    ctx.Query("random_seed"),
 		Offset:        ctx.Query("recommend_offset"),
 		LogShow:       ctx.Query("log_show"),
+		Refresh:       ctx.Query("refresh"),
 	}
 
 	// 验证limit参数
@@ -57,6 +61,12 @@ func (c *RecommendController) GetGeneralRecommendations(ctx *gin.Context) {
 		logShow = false
 	}
 
+	// 解析refresh参数，默认为false（使用缓存）
+	refresh := false
+	if params.Refresh == "true" {
+		refresh = true
+	}
+
 	recommendResults, err := c.RecommendUsecase.GetGeneralRecommendations(
 		ctx.Request.Context(),
 		params.RecommendType,
@@ -64,6 +74,7 @@ func (c *RecommendController) GetGeneralRecommendations(ctx *gin.Context) {
 		params.RandomSeed,
 		params.Offset,
 		logShow,
+		refresh,
 	)
 
 	if err != nil {
@@ -86,11 +97,13 @@ func (c *RecommendController) GetPersonalizedRecommendations(ctx *gin.Context) {
 		RecommendType string `form:"recommend_type" binding:"required,oneof=artist album media media_cue"`
 		Limit         string `form:"limit" binding:"required"`
 		LogShow       string `form:"log_show"` // 控制是否输出日志
+		Refresh       string `form:"refresh"`  // 控制是否跳过缓存
 	}{
 		UserId:        ctx.Query("user_id"),
 		RecommendType: ctx.Query("recommend_type"),
 		Limit:         ctx.Query("limit"),
 		LogShow:       ctx.Query("log_show"),
+		Refresh:       ctx.Query("refresh"),
 	}
 
 	// 验证limit参数
@@ -111,12 +124,19 @@ func (c *RecommendController) GetPersonalizedRecommendations(ctx *gin.Context) {
 		logShow = false
 	}
 
+	// 解析refresh参数，默认为false（使用缓存）
+	refresh := false
+	if params.Refresh == "true" {
+		refresh = true
+	}
+
 	recommendResults, err := c.RecommendUsecase.GetPersonalizedRecommendations(
 		ctx.Request.Context(),
 		params.UserId,
 		params.RecommendType,
 		limit,
 		logShow,
+		refresh,
 	)
 
 	if err != nil {
@@ -138,10 +158,12 @@ func (c *RecommendController) GetPopularRecommendations(ctx *gin.Context) {
 		RecommendType string `form:"recommend_type" binding:"required,oneof=artist album media media_cue"`
 		Limit         string `form:"limit" binding:"required"`
 		LogShow       string `form:"log_show"` // 控制是否输出日志
+		Refresh       string `form:"refresh"`  // 控制是否跳过缓存
 	}{
 		RecommendType: ctx.Query("recommend_type"),
 		Limit:         ctx.Query("limit"),
 		LogShow:       ctx.Query("log_show"),
+		Refresh:       ctx.Query("refresh"),
 	}
 
 	// 验证limit参数
@@ -162,11 +184,18 @@ func (c *RecommendController) GetPopularRecommendations(ctx *gin.Context) {
 		logShow = false
 	}
 
+	// 解析refresh参数，默认为false（使用缓存）
+	refresh := false
+	if params.Refresh == "true" {
+		refresh = true
+	}
+
 	recommendResults, err := c.RecommendUsecase.GetPopularRecommendations(
 		ctx.Request.Context(),
 		params.RecommendType,
 		limit,
 		logShow,
+		refresh,
 	)
 
 	if err != nil {
