@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  frontend:
+    image: xiangch007/nsmusics:latest
+    container_name: ${APP_CONTAINER_NAME}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - NGINX_PORT=${APP_PORT}
+      - BACKEND_SERVICE=${WEB_CONTAINER_NAME}:${SERVER_PORT}
+    ports:
+      - "${APP_PORT}:${APP_PORT}"
+    volumes:
+      - ./.env:/app/.env:ro
+    depends_on:
+      - backend
+    mem_limit: 512m
+
+  backend:
+    image: xiangch007/ninesong:latest
+    container_name: ${WEB_CONTAINER_NAME}
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    volumes:
+      - ./.env:/app/.env:ro
+      - ${MEDIA_DATA_HOST_PATH}:/data/library
+      - metavolume:/app/MetaData  # 新增：持久化挂载 MetaData 目录 [6,8](@ref)
+    depends_on:
+      - mongodb
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+
+  mongodb:
+    image: mongo:6.0
+    container_name: ${MONGO_CONTAINER_NAME}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${DB_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${DB_PASS}
+    ports:
+      - "${DB_PORT}:${DB_PORT}"
+    volumes:
+      - dbdata:/data/db
+    mem_limit: 512m
+
+volumes:
+  dbdata: # MongoDB 的持久化卷
+  metavolume:  # backend 的 MetaData 目录持久化卷

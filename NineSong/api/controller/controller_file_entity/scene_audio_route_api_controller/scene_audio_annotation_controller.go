@@ -2,6 +2,7 @@ package scene_audio_route_api_controller
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/controller"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
@@ -24,7 +25,7 @@ type BaseAnnotationRequest struct {
 
 type UpdateRatingRequest struct {
 	BaseAnnotationRequest
-	Rating int `form:"rating" binding:"required,min=0,max=5"`
+	Rating int `form:"rating" json:"rating" binding:"required,min=0,max=5"`
 }
 
 func (c *AnnotationController) UpdateStarred(ctx *gin.Context) {
@@ -60,13 +61,46 @@ func (c *AnnotationController) UpdateUnStarred(ctx *gin.Context) {
 }
 
 func (c *AnnotationController) UpdateRating(ctx *gin.Context) {
-	var req UpdateRatingRequest
-	if err := ctx.ShouldBind(&req); err != nil {
-		controller.ErrorResponse(ctx, http.StatusBadRequest, "INVALID_PARAMS", err.Error())
+	// 从查询参数和表单数据中获取值
+	itemID := ctx.Query("item_id")
+	itemType := ctx.Query("item_type")
+	ratingStr := ctx.Query("rating")
+
+	// 验证必需参数
+	if itemID == "" {
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "INVALID_PARAMS", "item_id is required")
+		return
+	}
+	if itemType == "" {
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "INVALID_PARAMS", "item_type is required")
+		return
+	}
+	if ratingStr == "" {
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "INVALID_PARAMS", "rating is required")
 		return
 	}
 
-	result, err := c.usecase.UpdateRating(ctx, req.ItemID, req.ItemType, req.Rating)
+	// 验证 item_type
+	validTypes := map[string]bool{"artist": true, "album": true, "media": true, "media_cue": true}
+	if !validTypes[itemType] {
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "INVALID_PARAMS", "invalid item_type, must be artist/album/media/media_cue")
+		return
+	}
+
+	// 转换 rating 为整数
+	rating, err := strconv.Atoi(ratingStr)
+	if err != nil {
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "INVALID_PARAMS", "rating must be a valid integer")
+		return
+	}
+
+	// 验证 rating 范围
+	if rating < 0 || rating > 5 {
+		controller.ErrorResponse(ctx, http.StatusBadRequest, "INVALID_PARAMS", "rating must be between 0-5")
+		return
+	}
+
+	result, err := c.usecase.UpdateRating(ctx, itemID, itemType, rating)
 	if err != nil {
 		controller.ErrorResponse(ctx, http.StatusInternalServerError, "UPDATE_FAILED", err.Error())
 		return
