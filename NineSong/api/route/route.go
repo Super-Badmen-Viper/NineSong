@@ -53,10 +53,10 @@ func RouterPrivate(env *bootstrap.Env, timeout time.Duration, db mongo.Database,
 	route_app_config.NewAppServerConfigRouter(timeout, db, protectedRouter)
 	// app library
 	route_app_library.NewAppMediaFileLibraryRouter(timeout, db, protectedRouter)
-	// folder entity
-	scene_audio_db_api_route.NewFolderEntityRouter(timeout, db, protectedRouter)
-	// file entity
-	scene_audio_db_api_route.NewFileEntityRouter(timeout, db, protectedRouter)
+	// file entity (创建fileUsecase供后续使用)
+	fileUsecase := scene_audio_db_api_route.NewFileEntityRouter(timeout, db, protectedRouter)
+	// folder entity (传入fileUsecase用于触发全局扫描)
+	scene_audio_db_api_route.NewFolderEntityRouter(timeout, db, protectedRouter, fileUsecase)
 	// scene audio
 	scene_audio_route_api_route.NewArtistRouter(timeout, db, protectedRouter)
 	scene_audio_route_api_route.NewAlbumRouter(timeout, db, protectedRouter)

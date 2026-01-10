@@ -3,6 +3,9 @@ package scene_audio_db_repository
 import (
 	"context"
 	"fmt"
+	"log"
+	"strings"
+
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_interface"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
@@ -10,8 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	driver "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
-	"strings"
 )
 
 type artistRepository struct {
@@ -292,6 +293,20 @@ func (r *artistRepository) UpdateCounter(
 	return result.ModifiedCount, nil
 }
 
+func (r *artistRepository) SetCounter(
+	ctx context.Context,
+	artistID primitive.ObjectID,
+	field string,
+	value int,
+) error {
+	coll := r.db.Collection(r.collection)
+
+	update := bson.M{"$set": bson.M{field: value}}
+
+	_, err := coll.UpdateByID(ctx, artistID, update)
+	return err
+}
+
 func (r *artistRepository) GetByMbzID(ctx context.Context, mbzID string) (*scene_audio_db_models.ArtistMetadata, error) {
 	coll := r.db.Collection(r.collection)
 	result := coll.FindOne(ctx, bson.M{"mbz_artist_id": mbzID})
@@ -425,4 +440,32 @@ func (r *artistRepository) InspectGuestMediaCueCountByArtist(
 	operand int,
 ) (int, error) {
 	return r.inspectCounter(ctx, artistID, "guest_cue_count", operand)
+}
+
+func (r *artistRepository) UpdateArtistAlbums(ctx context.Context, artistID primitive.ObjectID, albumIDs []scene_audio_db_models.ArtistIDPair) error {
+	coll := r.db.Collection(r.collection)
+
+	_, err := coll.UpdateOne(
+		ctx,
+		bson.M{"_id": artistID},
+		bson.M{"$set": bson.M{"all_artist_ids": albumIDs}},
+	)
+	if err != nil {
+		return fmt.Errorf("更新艺术家专辑关联失败: %w", err)
+	}
+	return nil
+}
+
+func (r *artistRepository) UpdateArtistGuestAlbums(ctx context.Context, artistID primitive.ObjectID, albumIDs []scene_audio_db_models.ArtistIDPair) error {
+	coll := r.db.Collection(r.collection)
+
+	_, err := coll.UpdateOne(
+		ctx,
+		bson.M{"_id": artistID},
+		bson.M{"$set": bson.M{"guest_all_artist_ids": albumIDs}},
+	)
+	if err != nil {
+		return fmt.Errorf("更新艺术家合作专辑关联失败: %w", err)
+	}
+	return nil
 }

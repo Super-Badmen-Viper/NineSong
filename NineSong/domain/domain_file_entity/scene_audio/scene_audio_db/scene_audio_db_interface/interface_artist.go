@@ -2,6 +2,7 @@ package scene_audio_db_interface
 
 import (
 	"context"
+
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -23,6 +24,10 @@ type ArtistRepository interface {
 	DeleteAllInvalid(ctx context.Context) (int64, error)
 	DeleteAll(ctx context.Context) (int64, error)
 
+	// 艺术家-专辑关联管理
+	UpdateArtistAlbums(ctx context.Context, artistID primitive.ObjectID, albumIDs []scene_audio_db_models.ArtistIDPair) error
+	UpdateArtistGuestAlbums(ctx context.Context, artistID primitive.ObjectID, albumIDs []scene_audio_db_models.ArtistIDPair) error
+
 	// 查询
 	GetByID(ctx context.Context, id primitive.ObjectID) (*scene_audio_db_models.ArtistMetadata, error)
 	GetByName(ctx context.Context, name string) (*scene_audio_db_models.ArtistMetadata, error)
@@ -32,6 +37,7 @@ type ArtistRepository interface {
 	ResetALLField(ctx context.Context) (int64, error)
 	ResetField(ctx context.Context, field string) (int64, error)
 	UpdateCounter(ctx context.Context, artistID primitive.ObjectID, field string, increment int) (int64, error)
+	SetCounter(ctx context.Context, artistID primitive.ObjectID, field string, value int) error
 
 	GetByMbzID(ctx context.Context, mbzID string) (*scene_audio_db_models.ArtistMetadata, error)
 

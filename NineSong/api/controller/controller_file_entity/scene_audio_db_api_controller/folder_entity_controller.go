@@ -114,7 +114,10 @@ func (ctrl *LibraryController) DeleteLibrary(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	c.JSON(http.StatusOK, gin.H{
+		"deleted":   true,
+		"libraryId": id,
+	})
 }
 
 func (ctrl *LibraryController) GetLibraries(c *gin.Context) {

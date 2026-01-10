@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func NewFileEntityRouter(timeout time.Duration, db mongo.Database, group *gin.RouterGroup) {
+func NewFileEntityRouter(timeout time.Duration, db mongo.Database, group *gin.RouterGroup) *usecase_file_entity.FileUsecase {
 	// 初始化仓库
 	fileRepo := repository_file_entity.NewFileRepo(db, domain.CollectionFileEntityFileInfo)
 	folderRepo := repository_file_entity.NewFolderRepo(db, domain.CollectionFileEntityFolderInfo)
@@ -49,6 +49,8 @@ func NewFileEntityRouter(timeout time.Duration, db mongo.Database, group *gin.Ro
 	group.Use(requestLogger())
 	group.POST("/scan", ctrl.ScanDirectory)
 	group.GET("/scan_progress", ctrl.GetScanProgress)
+
+	return uc
 }
 
 func requestLogger() gin.HandlerFunc {

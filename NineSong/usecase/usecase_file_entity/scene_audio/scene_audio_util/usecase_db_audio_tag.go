@@ -88,9 +88,11 @@ func (e *AudioMetadataExtractorTag) enrichFileMetadata(path string, fm *domain_f
 	fm.FileType = domain_file_entity.Audio
 
 	if fm.CreatedAt.IsZero() {
-		fm.CreatedAt = time.Now().UTC()
+		// 使用文件修改时间作为创建时间（如果创建时间为零）
+		fm.CreatedAt = info.ModTime().UTC()
 	}
-	fm.UpdatedAt = time.Now().UTC()
+	// 统一使用文件修改时间作为更新时间，与taglib实现保持一致
+	fm.UpdatedAt = info.ModTime().UTC()
 
 	return nil
 }

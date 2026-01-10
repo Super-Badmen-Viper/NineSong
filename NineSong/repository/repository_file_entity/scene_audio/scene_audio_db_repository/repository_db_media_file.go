@@ -477,44 +477,18 @@ func (r *mediaFileRepository) DeleteAllInvalid(
 		Count    int64
 	}, 0)
 
-	// 场景1：全量删除（无folderPath过滤）
+	// 场景1：当filePaths为空时，不执行删除操作，避免误删所有文件
 	if len(filePaths) == 0 {
-		// 直接删除所有文档
-		delResult, err := coll.DeleteMany(ctx, bson.M{})
-		if err != nil {
-			return 0, deletedArtists, fmt.Errorf("全量删除失败: %w", err)
-		}
-
-		// 查询所有艺术家ID及其计数（需单独统计）
-		artistCounts := make(map[primitive.ObjectID]int64)
-		cur, err := coll.Find(ctx, bson.M{}, options.Find().SetProjection(bson.M{"artist_id": 1}))
-		if err == nil {
-			defer cur.Close(ctx)
-			for cur.Next(ctx) {
-				var doc struct {
-					ArtistID primitive.ObjectID `bson:"artist_id"`
-				}
-				if err := cur.Decode(&doc); err == nil {
-					artistCounts[doc.ArtistID]++
-				}
-			}
-		}
-
-		// 构建艺术家统计
-		for artistID, count := range artistCounts {
-			deletedArtists = append(deletedArtists, struct {
-				ArtistID primitive.ObjectID
-				Count    int64
-			}{ArtistID: artistID, Count: count})
-		}
-
-		return delResult, deletedArtists, nil
+		log.Printf("DeleteAllInvalid: filePaths为空，跳过删除操作")
+		return 0, deletedArtists, nil
 	}
 
-	validFilePaths := make(map[string]struct{})
+	// 构建全局有效文件路径集合，使用正斜杠规范化
+	validFilePaths := make(map[string]bool)
 	for _, path := range filePaths {
-		cleanPath := filepath.Clean(path)
-		validFilePaths[cleanPath] = struct{}{}
+		// 规范化文件路径，使用正斜杠格式，与数据库中存储的格式一致
+		normalizedPath := filepath.ToSlash(filepath.Clean(path))
+		validFilePaths[normalizedPath] = true
 	}
 
 	cur, err := coll.Find(ctx, bson.M{}, options.Find().SetProjection(bson.M{"_id": 1, "path": 1, "artist_id": 1}))
@@ -536,8 +510,25 @@ func (r *mediaFileRepository) DeleteAllInvalid(
 			continue
 		}
 
-		cleanPath := filepath.Clean(doc.Path)
-		if _, valid := validFilePaths[cleanPath]; !valid {
+		// 检查文件路径是否在有效文件路径集合中，或者是否实际存在
+		isValid := false
+
+		// 检查文件是否在有效文件路径集合中
+		if validFilePaths[doc.Path] {
+			isValid = true
+		} else {
+			// 检查文件是否实际存在于文件系统中
+			absPath := doc.Path
+			// 将正斜杠转换为反斜杠，适配Windows系统
+			absPath = strings.ReplaceAll(absPath, "/", "\\")
+			if _, err := os.Stat(absPath); err == nil {
+				// 文件实际存在，是有效文件
+				isValid = true
+			}
+		}
+
+		// 如果文件既不在有效文件路径集合中，也不存在于文件系统中，才是无效文件
+		if !isValid {
 			toDelete = append(toDelete, doc.ID)
 			artistToIDs[doc.ArtistID] = append(artistToIDs[doc.ArtistID], doc.ID)
 		}
@@ -606,6 +597,31 @@ func (r *mediaFileRepository) DeleteByFolder(ctx context.Context, folderPath str
 	return result, nil
 }
 
+// DeleteAll 删除所有媒体文件
+func (r *mediaFileRepository) DeleteAll(ctx context.Context) (int64, error) {
+	coll := r.db.Collection(r.collection)
+	result, err := coll.DeleteMany(ctx, bson.M{})
+	if err != nil {
+		return 0, fmt.Errorf("删除所有媒体文件失败: %w", err)
+	}
+	return result, nil
+}
+
+func (r *mediaFileRepository) GetAll(ctx context.Context) ([]*scene_audio_db_models.MediaFileMetadata, error) {
+	coll := r.db.Collection(r.collection)
+	cursor, err := coll.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, fmt.Errorf("获取所有媒体文件失败: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var files []*scene_audio_db_models.MediaFileMetadata
+	if err := cursor.All(ctx, &files); err != nil {
+		return nil, fmt.Errorf("解析媒体文件失败: %w", err)
+	}
+	return files, nil
+}
+
 func (r *mediaFileRepository) GetByID(ctx context.Context, id primitive.ObjectID) (*scene_audio_db_models.MediaFileMetadata, error) {
 	coll := r.db.Collection(r.collection)
 	result := coll.FindOne(ctx, bson.M{"_id": id})
@@ -637,18 +653,17 @@ func (r *mediaFileRepository) GetByPath(ctx context.Context, path string) (*scen
 func (r *mediaFileRepository) GetByFolder(ctx context.Context, folderPath string) ([]string, error) {
 	coll := r.db.Collection(r.collection)
 
-	// 标准化路径格式（确保以反斜杠结尾）
-	normalizedFolderPath := strings.Replace(folderPath, "/", "\\", -1)
-	if !strings.HasSuffix(normalizedFolderPath, "\\") {
-		normalizedFolderPath += "\\"
+	// 规范化文件夹路径，使用正斜杠格式
+	normalizedFolderPath := filepath.ToSlash(folderPath)
+	if !strings.HasSuffix(normalizedFolderPath, "/") {
+		normalizedFolderPath += "/"
 	}
 
-	// 构建精确匹配library_path的正则表达式
-	regexPattern := regexp.QuoteMeta(normalizedFolderPath)
+	// 使用path字段进行前缀查询
 	filter := bson.M{
-		"library_path": bson.M{
-			"$regex":   "^" + regexPattern,
-			"$options": "i", // 不区分大小写
+		"path": bson.M{
+			"$regex":   "^" + regexp.QuoteMeta(normalizedFolderPath),
+			"$options": "i",
 		},
 	}
 
@@ -671,10 +686,150 @@ func (r *mediaFileRepository) GetByFolder(ctx context.Context, folderPath string
 			log.Printf("解码路径失败: %v", err)
 			continue
 		}
-		results = append(results, item.Path)
+		// 规范化路径，确保使用正斜杠格式
+		normalizedPath := filepath.ToSlash(item.Path)
+		results = append(results, normalizedPath)
 	}
 
 	return results, nil
+}
+
+func (r *mediaFileRepository) GetFilesWithMissingMetadata(ctx context.Context, folderPath string, folderType int) ([]*scene_audio_db_models.MediaFileMetadata, error) {
+	coll := r.db.Collection(r.collection)
+
+	// 1. 获取数据库中所有文件的最新更新时间
+	var latestUpdatedAt time.Time
+	// 按updated_at降序排序，获取第一条记录
+	findOpts := options.Find().SetSort(bson.D{{"updated_at", -1}}).SetProjection(bson.D{{"updated_at", 1}}).SetLimit(1)
+	var latestRecord struct {
+		UpdatedAt time.Time `bson:"updated_at"`
+	}
+	cursor, err := coll.Find(ctx, bson.M{}, findOpts)
+	if err != nil {
+		if errors.Is(err, driver.ErrNoDocuments) {
+			// 数据库中没有记录，返回空列表
+			return []*scene_audio_db_models.MediaFileMetadata{}, nil
+		} else {
+			return nil, fmt.Errorf("查询最新更新时间失败: %w", err)
+		}
+	} else {
+		// 遍历游标获取第一条记录
+		if cursor.Next(ctx) {
+			if err := cursor.Decode(&latestRecord); err != nil {
+				return nil, fmt.Errorf("解码最新更新时间失败: %w", err)
+			}
+			latestUpdatedAt = latestRecord.UpdatedAt
+		} else {
+			// 数据库中没有记录，返回空列表
+			return []*scene_audio_db_models.MediaFileMetadata{}, nil
+		}
+		cursor.Close(ctx)
+	}
+
+	log.Printf("DEBUG - 数据库最新更新时间: %v", latestUpdatedAt)
+
+	// 2. 遍历文件夹，收集所有符合类型的文件及其修改时间
+	fileModTimeMap := make(map[string]time.Time)
+
+	// 根据folderType确定要处理的文件扩展名
+	var allowedExts map[string]bool
+	switch folderType {
+	case 1: // 音频文件夹
+		allowedExts = map[string]bool{".mp3": true, ".flac": true, ".wav": true, ".ape": true, ".m4a": true, ".ogg": true, ".aac": true, ".wma": true, ".opus": true, ".alac": true}
+	case 2: // 视频文件夹
+		allowedExts = map[string]bool{".mp4": true, ".avi": true, ".mkv": true, ".mov": true, ".wmv": true, ".flv": true, ".webm": true}
+	case 3: // 图像文件夹
+		allowedExts = map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".gif": true, ".bmp": true, ".webp": true, ".tiff": true}
+	case 4: // 文档文件夹
+		allowedExts = map[string]bool{".txt": true, ".pdf": true, ".doc": true, ".docx": true, ".xls": true, ".xlsx": true, ".ppt": true, ".pptx": true, ".md": true}
+	default: // 默认只处理音频文件
+		allowedExts = map[string]bool{".mp3": true, ".flac": true, ".wav": true, ".ape": true, ".m4a": true, ".ogg": true, ".aac": true}
+	}
+
+	err = filepath.Walk(folderPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			log.Printf("访问路径 %s 出错: %v", path, err)
+			return nil // 跳过错误继续遍历
+		}
+		if info.IsDir() {
+			return nil
+		}
+
+		// 只处理符合类型的文件
+		ext := strings.ToLower(filepath.Ext(path))
+		if allowedExts[ext] {
+			// 规范化文件路径，转换为正斜杠格式，与数据库存储格式一致
+			normalizedPath := filepath.ToSlash(filepath.Clean(path))
+			// 将文件修改时间转换为UTC时间，与数据库存储格式一致
+			fileModTime := info.ModTime().UTC()
+			// 只收集修改时间大于数据库最新更新时间的文件
+			if fileModTime.After(latestUpdatedAt) {
+				fileModTimeMap[normalizedPath] = fileModTime
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("遍历文件夹失败: %w", err)
+	}
+
+	log.Printf("DEBUG - 发现需要更新的文件数量: %d", len(fileModTimeMap))
+
+	// 如果没有需要更新的文件，直接返回
+	if len(fileModTimeMap) == 0 {
+		return []*scene_audio_db_models.MediaFileMetadata{}, nil
+	}
+
+	// 3. 从数据库中获取这些文件的更新时间，进一步验证
+	filePaths := make([]string, 0, len(fileModTimeMap))
+	for path := range fileModTimeMap {
+		filePaths = append(filePaths, path)
+	}
+
+	// 查询数据库中这些文件的更新时间
+	filter := bson.M{
+		"path": bson.M{"$in": filePaths},
+	}
+	findOpts = options.Find().SetProjection(bson.M{"path": 1, "updated_at": 1})
+
+	cursor, err = coll.Find(ctx, filter, findOpts)
+	if err != nil {
+		return nil, fmt.Errorf("查询文件更新时间失败: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	// 构建数据库文件更新时间映射
+	dbModTimeMap := make(map[string]time.Time)
+	for cursor.Next(ctx) {
+		var item struct {
+			Path      string    `bson:"path"`
+			UpdatedAt time.Time `bson:"updated_at"`
+		}
+		if err := cursor.Decode(&item); err != nil {
+			log.Printf("解码文件更新时间失败: %v", err)
+			continue
+		}
+		// 确保数据库中的路径也使用正斜杠格式
+		normalizedPath := filepath.ToSlash(item.Path)
+		dbModTimeMap[normalizedPath] = item.UpdatedAt
+	}
+
+	// 4. 比对时间，找出真正需要更新的文件
+	var filesToUpdate []*scene_audio_db_models.MediaFileMetadata
+	// 添加1秒的时间误差范围，处理不同系统间的时间精度差异
+	timeError := 1 * time.Second
+	for path, fileModTime := range fileModTimeMap {
+		if dbModTime, exists := dbModTimeMap[path]; !exists || fileModTime.After(dbModTime.Add(timeError)) {
+			// 文件不存在于数据库或文件修改时间大于数据库更新时间（考虑1秒误差），需要更新元数据
+			filesToUpdate = append(filesToUpdate, &scene_audio_db_models.MediaFileMetadata{
+				Path: path,
+			})
+		}
+	}
+
+	log.Printf("DEBUG - 最终需要更新的文件数量: %d", len(filesToUpdate))
+
+	return filesToUpdate, nil
 }
 
 func (r *mediaFileRepository) UpdateByID(ctx context.Context, id primitive.ObjectID, update bson.M) (bool, error) {
@@ -772,61 +927,90 @@ func (r *mediaFileRepository) inspectMedia(
 	collection string,
 	clean bool, // 是否清理无效路径
 ) (int, error) {
-	// 构建全局有效路径集合
-	validSet := make(map[string]struct{})
+	// 构建全局有效目录集合，使用正斜杠规范化
+	validDirectories := make([]string, 0, len(validFilePaths))
 	for _, path := range validFilePaths {
-		cleanPath := filepath.Clean(path)
-		validSet[cleanPath] = struct{}{}
+		// 规范化文件路径，使用正斜杠格式，与数据库中存储的格式一致
+		normalizedPath := filepath.ToSlash(filepath.Clean(path))
+		// 确保目录路径以斜杠结尾
+		if !strings.HasSuffix(normalizedPath, "/") {
+			normalizedPath += "/"
+		}
+		validDirectories = append(validDirectories, normalizedPath)
 	}
 
-	// 没有有效路径时直接返回
-	if len(validSet) == 0 {
-		return -1, nil
+	// 没有有效路径时返回0，表示没有无效文件，避免误删
+	if len(validDirectories) == 0 {
+		log.Printf("inspectMedia: validFilePaths为空，返回0表示没有无效文件")
+		return 0, nil
 	}
 
 	coll := r.db.Collection(collection)
 
-	// 精确查询条件（双重过滤）
-	invalidDocsFilter := bson.M{
-		"$and": []bson.M{
-			filter,                                   // 原始过滤条件
-			{"path": bson.M{"$nin": validFilePaths}}, // 路径不在全局有效列表中
-		},
-	}
-
-	// 直接获取需要删除的文档ID
-	cur, err := coll.Find(
+	// 批量获取数据库中所有文件的路径（仅获取ID和Path字段）
+	allFilesCur, err := coll.Find(
 		ctx,
-		invalidDocsFilter,
+		filter,
 		options.Find().SetProjection(bson.M{"_id": 1, "path": 1}),
 	)
 	if err != nil {
-		return 0, fmt.Errorf("查询无效文档失败: %w", err)
+		return 0, fmt.Errorf("查询所有文档失败: %w", err)
 	}
-	defer cur.Close(ctx)
+	defer allFilesCur.Close(ctx)
 
-	// 批量收集无效文档ID
+	// 批量收集无效文档ID和路径
 	var toDelete []primitive.ObjectID
 	var invalidPaths []string
-	for cur.Next(ctx) {
+
+	// 检查文件路径是否位于有效目录下
+	for allFilesCur.Next(ctx) {
 		var doc struct {
 			ID   primitive.ObjectID `bson:"_id"`
 			Path string             `bson:"path"`
 		}
-		if err := cur.Decode(&doc); err != nil {
+		if err := allFilesCur.Decode(&doc); err != nil {
 			continue
 		}
-		if clean {
-			toDelete = append(toDelete, doc.ID)
+
+		// 检查文件路径是否位于任何一个有效目录下
+		isValid := false
+		for _, dir := range validDirectories {
+			if strings.HasPrefix(doc.Path, dir) {
+				// 文件路径位于有效目录下，是有效文件
+				isValid = true
+				break
+			}
 		}
-		invalidPaths = append(invalidPaths, doc.Path)
+
+		// 如果文件路径不位于任何有效目录下，检查文件是否实际存在
+		if !isValid {
+			// 文件可能不在有效目录下，但可能是通过其他方式添加的有效文件
+			// 进行最终验证：检查文件是否实际存在于文件系统中
+			absPath := doc.Path
+			// 将正斜杠转换为反斜杠，适配Windows系统
+			absPath = strings.ReplaceAll(absPath, "/", "\\")
+			if _, err := os.Stat(absPath); err == nil {
+				// 文件实际存在，是有效文件
+				isValid = true
+			}
+		}
+
+		// 如果文件确实无效，添加到删除列表
+		if !isValid {
+			if clean {
+				toDelete = append(toDelete, doc.ID)
+			}
+			invalidPaths = append(invalidPaths, doc.Path)
+		}
 	}
 
-	// 记录无效路径日志（全局处理）
+	// 只有当确实有无效文件时才记录日志
 	if len(invalidPaths) > 0 {
-		log.Printf("检测到 %d 个无效媒体项: %v...",
+		// 优化日志输出，只在调试模式下输出详细信息
+		// 使用更简洁的日志格式，避免过多信息
+		log.Printf("检测到 %d 个无效媒体项，示例: %v...",
 			len(invalidPaths),
-			invalidPaths[:min(5, len(invalidPaths))])
+			invalidPaths[:min(3, len(invalidPaths))])
 	} else {
 		return 0, nil // 没有无效项
 	}

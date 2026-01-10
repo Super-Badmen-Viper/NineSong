@@ -13,6 +13,8 @@ type TaskProgress struct {
 	Mu             sync.Mutex
 	Initialized    bool
 	Status         string
+	// 增加扫描阶段字段，用于跟踪当前扫描阶段
+	Stage string
 }
 
 func (tp *TaskProgress) AddTotalFiles(count int) {

@@ -4,6 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"time"
+
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_interface"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
@@ -12,11 +19,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	driver "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
-	"path/filepath"
-	"regexp"
-	"strings"
-	"time"
 )
 
 type mediaFileCueRepository struct {
@@ -126,21 +128,18 @@ func (r *mediaFileCueRepository) DeleteAllInvalid(
 		Count    int64
 	}, 0)
 
-	// 场景1：全量删除（无需folderPath过滤）
+	// 场景1：当filePaths为空时，不执行删除操作，避免误删所有文件
 	if len(filePaths) == 0 {
-		// 直接删除所有文档
-		delResult, err := coll.DeleteMany(ctx, bson.M{})
-		if err != nil {
-			return 0, deletedArtists, fmt.Errorf("全量删除失败: %w", err)
-		}
-		return delResult, deletedArtists, nil
+		log.Printf("DeleteAllInvalid: filePaths为空，跳过删除操作")
+		return 0, deletedArtists, nil
 	}
 
-	// 场景2：路径比对删除（全局处理）
-	validFilePaths := make(map[string]struct{})
-	for _, rawPath := range filePaths {
-		cleanPath := filepath.Clean(rawPath)
-		validFilePaths[cleanPath] = struct{}{}
+	// 构建全局有效文件路径集合，使用正斜杠规范化
+	validFilePaths := make(map[string]bool)
+	for _, path := range filePaths {
+		// 规范化文件路径，使用正斜杠格式，与数据库中存储的格式一致
+		normalizedPath := filepath.ToSlash(filepath.Clean(path))
+		validFilePaths[normalizedPath] = true
 	}
 
 	// 查询所有文档（移除folderPath过滤条件）
@@ -164,8 +163,26 @@ func (r *mediaFileCueRepository) DeleteAllInvalid(
 			continue
 		}
 
-		cleanPath := filepath.Clean(doc.Path)
-		if _, valid := validFilePaths[cleanPath]; !valid {
+		// 检查文件路径是否在有效文件路径集合中，或者是否实际存在
+		isValid := false
+
+		// 检查文件是否在有效文件路径集合中
+		if validFilePaths[doc.Path] {
+			isValid = true
+		} else {
+			// 检查文件是否实际存在于文件系统中
+			absPath := doc.Path
+			// 将正斜杠转换为反斜杠，适配Windows系统
+			absPath = strings.ReplaceAll(absPath, "/", "\\")
+			if _, err := os.Stat(absPath); err == nil {
+				// 文件实际存在，是有效文件
+				isValid = true
+			}
+		}
+
+		// 如果文件既不在有效文件路径集合中，也不存在于文件系统中，才是无效文件
+		if !isValid {
+			// 文件确实不存在，是无效文件，添加到删除列表
 			toDelete = append(toDelete, doc.ID)
 			artistToIDs[doc.ArtistID] = append(artistToIDs[doc.ArtistID], doc.ID)
 		}
@@ -232,6 +249,31 @@ func (r *mediaFileCueRepository) DeleteByFolder(ctx context.Context, folderPath 
 	}
 
 	return result, nil
+}
+
+// DeleteAll 删除所有CUE媒体文件
+func (r *mediaFileCueRepository) DeleteAll(ctx context.Context) (int64, error) {
+	coll := r.db.Collection(r.collection)
+	result, err := coll.DeleteMany(ctx, bson.M{})
+	if err != nil {
+		return 0, fmt.Errorf("删除所有CUE媒体文件失败: %w", err)
+	}
+	return result, nil
+}
+
+func (r *mediaFileCueRepository) GetAll(ctx context.Context) ([]*scene_audio_db_models.MediaFileCueMetadata, error) {
+	coll := r.db.Collection(r.collection)
+	cursor, err := coll.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, fmt.Errorf("获取所有CUE媒体文件失败: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var files []*scene_audio_db_models.MediaFileCueMetadata
+	if err := cursor.All(ctx, &files); err != nil {
+		return nil, fmt.Errorf("解析CUE媒体文件失败: %w", err)
+	}
+	return files, nil
 }
 
 // GetByID 根据ID获取CUE文件 (保持原样)
@@ -417,41 +459,66 @@ func (r *mediaFileCueRepository) inspectMediaCue(
 	filePaths []string,
 	clean bool, // 是否清理无效路径
 ) (int, error) {
-	// 构建全局有效路径集合
-	pathSet := make(map[string]struct{})
+	// 构建全局有效文件路径集合，使用正斜杠规范化
+	validFilePaths := make(map[string]bool)
 	for _, path := range filePaths {
-		cleanPath := filepath.Clean(path)
-		pathSet[cleanPath] = struct{}{}
+		// 规范化文件路径，使用正斜杠格式，与数据库中存储的格式一致
+		normalizedPath := filepath.ToSlash(filepath.Clean(path))
+		validFilePaths[normalizedPath] = true
 	}
 
-	// 没有有效路径时直接返回
-	if len(pathSet) == 0 {
-		return -1, nil
+	// 没有有效路径时返回0，表示没有无效文件，避免误删
+	if len(validFilePaths) == 0 {
+		log.Printf("inspectMediaCue: filePaths为空，返回0表示没有无效文件")
+		return 0, nil
 	}
 
 	coll := r.db.Collection(r.collection)
 
-	// 查询所有可能的文档（移除folderPath过滤）
-	cur, err := coll.Find(ctx, filter, options.Find().SetProjection(bson.M{"_id": 1, "path": 1}))
+	// 批量获取数据库中所有CUE文件的路径（仅获取ID和Path字段）
+	allFilesCur, err := coll.Find(
+		ctx,
+		filter,
+		options.Find().SetProjection(bson.M{"_id": 1, "path": 1}),
+	)
 	if err != nil {
-		return 0, fmt.Errorf("查询失败: %w", err)
+		return 0, fmt.Errorf("查询所有CUE文档失败: %w", err)
 	}
-	defer cur.Close(ctx)
+	defer allFilesCur.Close(ctx)
 
+	// 批量收集无效文档ID和路径
 	var toDelete []primitive.ObjectID
 	var invalidPaths []string
 
-	for cur.Next(ctx) {
+	// 检查文件路径是否有效
+	for allFilesCur.Next(ctx) {
 		var doc struct {
 			ID   primitive.ObjectID `bson:"_id"`
 			Path string             `bson:"path"`
 		}
-		if err := cur.Decode(&doc); err != nil {
+		if err := allFilesCur.Decode(&doc); err != nil {
 			continue // 跳过错误项
 		}
 
-		cleanPath := filepath.Clean(doc.Path)
-		if _, exists := pathSet[cleanPath]; !exists {
+		// 检查文件路径是否在有效文件路径集合中，或者是否实际存在
+		isValid := false
+
+		// 检查文件是否在有效文件路径集合中
+		if validFilePaths[doc.Path] {
+			isValid = true
+		} else {
+			// 检查文件是否实际存在于文件系统中
+			absPath := doc.Path
+			// 将正斜杠转换为反斜杠，适配Windows系统
+			absPath = strings.ReplaceAll(absPath, "/", "\\")
+			if _, err := os.Stat(absPath); err == nil {
+				// 文件实际存在，是有效文件
+				isValid = true
+			}
+		}
+
+		// 如果文件确实无效，添加到删除列表
+		if !isValid {
 			if clean {
 				toDelete = append(toDelete, doc.ID)
 			}
@@ -459,11 +526,12 @@ func (r *mediaFileCueRepository) inspectMediaCue(
 		}
 	}
 
-	// 记录无效路径日志
+	// 只有当确实有无效文件时才记录日志
 	if len(invalidPaths) > 0 {
-		log.Printf("检测到 %d 个无效媒体项: %v...",
+		// 优化日志输出，使用更简洁的格式，避免过多信息
+		log.Printf("检测到 %d 个无效CUE媒体项，示例: %v...",
 			len(invalidPaths),
-			invalidPaths[:min(5, len(invalidPaths))])
+			invalidPaths[:min(3, len(invalidPaths))])
 	} else {
 		return 0, nil // 没有无效项
 	}

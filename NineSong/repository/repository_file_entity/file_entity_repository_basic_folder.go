@@ -139,16 +139,14 @@ func (r *folderRepo) FindLibrary(
 ) (*domain_file_entity.LibraryFolderMetadata, error) {
 	collection := r.db.Collection(r.collection)
 
-	// 标准化路径处理
 	normalizedPath := strings.TrimSuffix(
 		filepath.ToSlash(filepath.Clean(folderPath)), "/")
 	fmt.Printf("DEBUG - 查询路径: 原始='%s' 标准化='%s'\n", folderPath, normalizedPath)
 	fmt.Printf("DEBUG - 查询文件类型: %v\n", folderType)
 
-	// 构建精确匹配查询条件[1,2](@ref)
 	query := bson.M{
 		"folder_path": normalizedPath,
-		"folder_type": folderType, // 使用$all确保包含所有指定文件类型
+		"folder_type": folderType,
 	}
 
 	var folder domain_file_entity.LibraryFolderMetadata

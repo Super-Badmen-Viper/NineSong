@@ -22,8 +22,10 @@ type MediaFileCueRepository interface {
 		Count    int64
 	}, error)
 	DeleteByFolder(ctx context.Context, folderPath string) (int64, error)
+	DeleteAll(ctx context.Context) (int64, error)
 
 	// 查询
+	GetAll(ctx context.Context) ([]*scene_audio_db_models.MediaFileCueMetadata, error)
 	GetByID(ctx context.Context, id primitive.ObjectID) (*scene_audio_db_models.MediaFileCueMetadata, error)
 	GetByPath(ctx context.Context, path string) (*scene_audio_db_models.MediaFileCueMetadata, error)
 	GetByFolder(ctx context.Context, folderPath string) ([]string, error)

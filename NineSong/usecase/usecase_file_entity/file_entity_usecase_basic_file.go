@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_interface"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -111,6 +113,15 @@ type FileUsecase struct {
 		refactoring float32
 	}
 	audioProcessingUsecase *scene_audio.AudioProcessingUsecase
+	libraryDeleteUsecase   *scene_audio.LibraryDeleteUsecase
+	healthCheckUsecase     *scene_audio.LibraryHealthCheckUsecase
+}
+
+// SetScanManager 设置扫描管理器
+func (uc *FileUsecase) SetScanManager(scanManager *ScanManager) {
+	uc.scanMutex.Lock()
+	defer uc.scanMutex.Unlock()
+	uc.scanManager = scanManager
 }
 
 func NewFileUsecase(
@@ -129,7 +140,7 @@ func NewFileUsecase(
 	wordCloudRepo scene_audio_db_interface.WordCloudDBRepository,
 	lyricsFileRepo scene_audio_db_interface.LyricsFileRepository,
 ) *FileUsecase {
-	workerCount := runtime.NumCPU()
+	workerCount := runtime.NumCPU() * 4
 
 	audioProcessingUsecase := scene_audio.NewAudioProcessingUsecase(
 		db,
@@ -146,6 +157,22 @@ func NewFileUsecase(
 		lyricsFileRepo,
 	)
 
+	libraryDeleteUsecase := scene_audio.NewLibraryDeleteUsecase(
+		mediaRepo,
+		mediaCueRepo,
+		artistRepo,
+		albumRepo,
+		lyricsFileRepo,
+		wordCloudRepo,
+	)
+
+	healthCheckUsecase := scene_audio.NewLibraryHealthCheckUsecase(
+		artistRepo,
+		albumRepo,
+		mediaRepo,
+		mediaCueRepo,
+	)
+
 	return &FileUsecase{
 		db:                     db,
 		fileRepo:               fileRepo,
@@ -157,6 +184,8 @@ func NewFileUsecase(
 		scanManager:            NewScanManager(),                           // 初始化扫描管理器
 		activeTasks:            make(map[string]*domain_util.TaskProgress), // 新增初始化
 		audioProcessingUsecase: audioProcessingUsecase,
+		libraryDeleteUsecase:   libraryDeleteUsecase,
+		healthCheckUsecase:     healthCheckUsecase,
 	}
 }
 
@@ -164,46 +193,56 @@ func (uc *FileUsecase) GetScanProgress() (float32, time.Time, int, map[string]st
 	uc.scanMutex.RLock()
 	defer uc.scanMutex.RUnlock()
 
-	if len(uc.activeTasks) == 0 {
-		return 0, uc.lastScanStart, 0, nil
-	}
-
 	totalProgress := float32(0)
 	taskCount := 0
 	taskStatuses := make(map[string]string)
 
 	uc.activeTasksMu.RLock()
-	defer uc.activeTasksMu.RUnlock()
 
-	for id, task := range uc.activeTasks {
-		taskStatuses[id] = task.Status
+	// 检查是否有活跃任务
+	if len(uc.activeTasks) > 0 {
+		for id, task := range uc.activeTasks {
+			taskStatuses[id] = task.Status
 
-		if task.Status == "preparing" {
-			totalProgress += 0.01 // 准备中状态返回1%
+			if task.Status == "preparing" {
+				totalProgress += 0.01 // 准备中状态返回1%
+				taskCount++
+				continue
+			}
+
+			if !task.Initialized {
+				totalProgress += 0.01
+				taskCount++
+				continue
+			}
+
+			processed := atomic.LoadInt32(&task.ProcessedFiles)
+			total := task.TotalFiles
+
+			if total == 0 {
+				continue
+			}
+
+			taskProgress := float32(processed) / float32(total)
+
+			// 如果状态是 completed，直接返回 100%
+			if task.Status == "completed" {
+				taskProgress = 1.0
+			}
+
+			totalProgress += taskProgress
 			taskCount++
-			continue
 		}
+	} else {
+		uc.activeTasksMu.RUnlock()
 
-		if !task.Initialized {
-			totalProgress += 0.01
-			taskCount++
-			continue
+		if time.Since(uc.lastScanStart) < 5*time.Second {
+			return 0.99, uc.lastScanStart, 0, taskStatuses
 		}
-
-		walked := atomic.LoadInt32(&task.WalkedFiles)
-		processed := atomic.LoadInt32(&task.ProcessedFiles)
-		total := atomic.LoadInt32(&task.TotalFiles)
-
-		if total == 0 {
-			continue
-		}
-
-		traversalRatio := float32(walked) / float32(2*total)
-		processingRatio := float32(processed) / float32(total)
-		taskProgress := (traversalRatio + processingRatio) * 0.5
-		totalProgress += taskProgress
-		taskCount++
+		return 0, uc.lastScanStart, 0, taskStatuses
 	}
+
+	uc.activeTasksMu.RUnlock()
 
 	if taskCount == 0 {
 		return 0, uc.lastScanStart, 0, taskStatuses
@@ -323,32 +362,51 @@ func (uc *FileUsecase) ProcessDirectory(
 	// 扫描前删除索引
 	mongo.DropAllIndexes(uc.db)
 
-	// 在函数返回时，减少activeScanCount
-	defer func() {
-		uc.scanMutex.Lock()
-		uc.activeScanCount--
-		uc.scanMutex.Unlock()
-		// 扫描结束后创建索引
-		mongo.CreateIndexes(uc.db)
-	}()
-
 	// 修复：在正确位置初始化任务进度跟踪器
 	taskProg := &domain_util.TaskProgress{
 		ID:     taskID,
 		Status: "preparing", // 初始状态
 	}
 
-	// 注册任务
+	// 注册任务（需要加锁保护）
+	uc.activeTasksMu.Lock()
 	uc.activeTasks[taskID] = taskProg
+	uc.activeTasksMu.Unlock()
+
 	// 开始统计文件数
 	taskProg.Status = "counting_files"
+	uc.activeTasksMu.Lock()
 	uc.activeTasks[taskID] = taskProg
+	uc.activeTasksMu.Unlock()
 
-	// 任务结束时清理
+	// 在函数返回时，减少activeScanCount
 	defer func() {
+		uc.scanMutex.Lock()
+		uc.activeScanCount--
+		uc.scanMutex.Unlock()
+		// 扫描结束后创建索引
+		// 更新任务状态为创建索引
 		uc.activeTasksMu.Lock()
-		delete(uc.activeTasks, taskID)
+		taskProg.Stage = "creating_indexes"
+		taskProg.Status = "processing"
+		uc.activeTasks[taskID] = taskProg
 		uc.activeTasksMu.Unlock()
+
+		mongo.CreateIndexes(uc.db)
+
+		// 索引创建完成后，更新任务状态为完成
+		uc.activeTasksMu.Lock()
+		taskProg.Status = "completed"
+		uc.activeTasks[taskID] = taskProg
+		uc.activeTasksMu.Unlock()
+
+		// 延迟清理任务，确保客户端有足够时间获取完成状态
+		go func() {
+			time.Sleep(2 * time.Second) // 2秒延迟，让客户端获取到完成状态
+			uc.activeTasksMu.Lock()
+			delete(uc.activeTasks, taskID)
+			uc.activeTasksMu.Unlock()
+		}()
 	}()
 
 	var libraryFolders []*domain_file_entity.LibraryFolderMetadata
@@ -382,7 +440,7 @@ func (uc *FileUsecase) ProcessDirectory(
 				libraryFolders = append(libraryFolders, folder)
 			}
 		}
-		if libraryFolders == nil {
+		if libraryFolders == nil && ScanModel == 2 {
 			// 默认扫描所有媒体库目录，当传入路径为空且ScanModel为2时
 			library, err := uc.folderRepo.GetAllByType(ctx, 1)
 			if err != nil {
@@ -391,20 +449,12 @@ func (uc *FileUsecase) ProcessDirectory(
 			}
 			libraryFolders = library
 		}
-	} else if ScanModel == 1 || ScanModel == 3 {
-		if ScanModel == 3 && len(dirPaths) > 0 {
-			folder, err := uc.folderRepo.FindLibrary(ctx, dirPaths[0], folderType)
-			if err != nil {
-				log.Printf("文件夹查询失败: %v", err)
-				return fmt.Errorf("folder query failed: %w", err)
-			}
-			if folder != nil {
-				err = uc.folderRepo.DeleteByID(ctx, folder.ID)
-				if err != nil {
-					return err
-				}
-			}
+
+		// 如果libraryFolders仍为nil，创建空切片，避免后续处理出错
+		if libraryFolders == nil {
+			libraryFolders = make([]*domain_file_entity.LibraryFolderMetadata, 0)
 		}
+	} else if ScanModel == 1 || ScanModel == 3 {
 		// 3. 获取整个媒体库（修复模式使用）
 		library, err := uc.folderRepo.GetAllByType(ctx, 1)
 		if err != nil {
@@ -422,31 +472,112 @@ func (uc *FileUsecase) ProcessDirectory(
 	switch ScanModel {
 	case 0: // 扫描新的和有修改的文件
 		if folderType == 1 {
-			err := uc.audioProcessingUsecase.ProcessMusicDirectory(ctx, libraryFolders, taskProg, true, true, false)
-			if err != nil {
-				return err
+			var filesToProcess []string
+
+			log.Printf("模式0 - 开始扫描新的和有修改的文件")
+
+			var allFilesToUpdate []*scene_audio_db_models.MediaFileMetadata
+			for _, folder := range libraryFolders {
+				log.Printf("模式0 - 正在检查文件夹: %s", folder.FolderPath)
+				filesToUpdate, err := uc.audioProcessingUsecase.GetFilesWithMissingMetadata(ctx, folder.FolderPath, folder.FolderType)
+				if err != nil {
+					log.Printf("模式0 - 查询文件夹 %s 下需要更新的文件失败: %v", folder.FolderPath, err)
+					continue
+				}
+				log.Printf("模式0 - 文件夹 %s 下发现 %d 个需要更新的文件", folder.FolderPath, len(filesToUpdate))
+				allFilesToUpdate = append(allFilesToUpdate, filesToUpdate...)
+			}
+
+			for _, file := range allFilesToUpdate {
+				filesToProcess = append(filesToProcess, file.Path)
+			}
+
+			log.Printf("模式0 - 共发现 %d 个需要更新的文件", len(filesToProcess))
+			if len(filesToProcess) > 0 {
+				log.Printf("模式0 - 开始处理需要更新的文件")
+				err := uc.audioProcessingUsecase.ProcessMusicDirectory(ctx, libraryFolders, taskProg, true, true, false, filesToProcess)
+				if err != nil {
+					log.Printf("模式0 - 处理文件失败: %v", err)
+					return err
+				}
+				log.Printf("模式0 - 完成处理需要更新的文件")
+			} else {
+				log.Printf("模式0 - 没有需要更新的文件，扫描整个目录")
+				err := uc.audioProcessingUsecase.ProcessMusicDirectory(ctx, libraryFolders, taskProg, true, true, false, nil)
+				if err != nil {
+					log.Printf("模式0 - 扫描整个目录失败: %v", err)
+					return err
+				}
+				log.Printf("模式0 - 完成扫描整个目录")
 			}
 		}
 	case 1: // 搜索缺失的元数据
 		if folderType == 1 {
-			err := uc.audioProcessingUsecase.ProcessMusicDirectory(ctx, libraryFolders, taskProg, true, false, false)
-			if err != nil {
-				return err
+			// 实现：比较文件修改时间和数据库更新时间，找出需要更新元数据的文件
+			var filesWithMissingMetadata []*scene_audio_db_models.MediaFileMetadata
+
+			log.Printf("模式1 - 开始搜索缺失的元数据")
+
+			for _, folder := range libraryFolders {
+				log.Printf("模式1 - 正在检查文件夹: %s", folder.FolderPath)
+				// 获取该文件夹下需要更新元数据的文件
+				files, err := uc.audioProcessingUsecase.GetFilesWithMissingMetadata(ctx, folder.FolderPath, folder.FolderType)
+				if err != nil {
+					log.Printf("模式1 - 查询文件夹 %s 下需要更新元数据的文件失败: %v", folder.FolderPath, err)
+					continue
+				}
+				log.Printf("模式1 - 文件夹 %s 下发现 %d 个需要更新元数据的文件", folder.FolderPath, len(files))
+				filesWithMissingMetadata = append(filesWithMissingMetadata, files...)
+			}
+
+			// 提取文件路径
+			var filesToProcess []string
+			for _, file := range filesWithMissingMetadata {
+				filesToProcess = append(filesToProcess, file.Path)
+			}
+
+			// 执行扫描任务
+			log.Printf("模式1 - 共发现 %d 个需要更新元数据的文件", len(filesToProcess))
+			if len(filesToProcess) > 0 {
+				log.Printf("模式1 - 开始处理需要更新元数据的文件")
+				err := uc.audioProcessingUsecase.ProcessMusicDirectory(ctx, libraryFolders, taskProg, true, true, false, filesToProcess)
+				if err != nil {
+					log.Printf("模式1 - 处理需要更新元数据的文件失败: %v", err)
+					return err
+				}
+				log.Printf("模式1 - 完成处理需要更新元数据的文件")
+			} else {
+				log.Printf("模式1 - 没有需要更新元数据的文件")
 			}
 		}
 	case 2: // 覆盖所有元数据
 		if folderType == 1 {
-			err := uc.audioProcessingUsecase.ProcessMusicDirectory(ctx, libraryFolders, taskProg, true, true, true)
+			log.Printf("模式2 - 开始覆盖所有元数据")
+			log.Printf("模式2 - 共处理 %d 个文件夹", len(libraryFolders))
+			log.Printf("模式2 - 注意：此模式会处理所有文件，包括已经存在元数据的文件")
+
+			// 执行扫描任务
+			log.Printf("模式2 - 开始处理所有文件")
+			err := uc.audioProcessingUsecase.ProcessMusicDirectory(ctx, libraryFolders, taskProg, true, true, true, nil)
 			if err != nil {
+				log.Printf("模式2 - 处理文件失败: %v", err)
 				return err
 			}
+			log.Printf("模式2 - 完成覆盖所有元数据")
 		}
-	case 3: // 重构媒体库
+	case 3: // 媒体库健康检查 - 只清理无效的数据库项
 		if folderType == 1 {
-			err := uc.audioProcessingUsecase.ProcessMusicDirectory(ctx, libraryFolders, taskProg, true, true, true)
+			log.Printf("模式3 - 开始媒体库健康检查")
+			log.Printf("模式3 - 共检查 %d 个文件夹", len(libraryFolders))
+			log.Printf("模式3 - 清理无效实体（艺术家、专辑）和重建关联关系")
+
+			// 直接执行健康检查，不进行文件扫描
+			err := uc.healthCheckUsecase.PerformHealthCheck(ctx, libraryFolders, taskProg)
 			if err != nil {
+				log.Printf("模式3 - 媒体库健康检查失败: %v", err)
 				return err
 			}
+			log.Printf("模式3 - 媒体库健康检查完成")
 		}
 	}
 
@@ -462,7 +593,12 @@ func fastCountFilesInFolder(rootPath string) (int, error) {
 			return err
 		}
 		if !info.IsDir() {
-			count++
+			// 快速过滤：只统计音频文件
+			ext := strings.ToLower(filepath.Ext(path))
+			audioExts := map[string]bool{".mp3": true, ".flac": true, ".wav": true, ".ape": true, ".m4a": true, ".ogg": true, ".aac": true, ".wma": true, ".opus": true, ".alac": true}
+			if audioExts[ext] {
+				count++
+			}
 		}
 		return nil
 	})

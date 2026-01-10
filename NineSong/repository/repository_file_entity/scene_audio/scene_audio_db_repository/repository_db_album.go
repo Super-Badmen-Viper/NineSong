@@ -471,6 +471,11 @@ func (r *albumRepository) AlbumCountByArtist(
 	filter := bson.M{
 		"$or": []bson.M{
 			{"artist_id": artistID},
+			{"all_artist_ids": bson.M{
+				"$elemMatch": bson.M{
+					"artist_id": artistID,
+				},
+			}},
 		},
 	}
 

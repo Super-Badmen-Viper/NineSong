@@ -2,6 +2,7 @@ package scene_audio_db_interface
 
 import (
 	"context"
+
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -13,6 +14,7 @@ type MediaFileRepository interface {
 	GetHighFrequencyWords(ctx context.Context, limit int) ([]scene_audio_db_models.WordCloudMetadata, error)
 	GetRecommendedByKeywords(ctx context.Context, keywords []string, limit int) ([]scene_audio_db_models.WordCloudRecommendation, error)
 	GetAllCounts(ctx context.Context) ([]scene_audio_db_models.MediaFileCounts, error)
+	GetAll(ctx context.Context) ([]*scene_audio_db_models.MediaFileMetadata, error)
 
 	// 创建/更新
 	Upsert(ctx context.Context, file *scene_audio_db_models.MediaFileMetadata) (*scene_audio_db_models.MediaFileMetadata, error)
@@ -27,11 +29,13 @@ type MediaFileRepository interface {
 		Count    int64
 	}, error)
 	DeleteByFolder(ctx context.Context, folderPath string) (int64, error)
+	DeleteAll(ctx context.Context) (int64, error)
 
 	// 查询
 	GetByID(ctx context.Context, id primitive.ObjectID) (*scene_audio_db_models.MediaFileMetadata, error)
 	GetByPath(ctx context.Context, path string) (*scene_audio_db_models.MediaFileMetadata, error)
 	GetByFolder(ctx context.Context, folderPath string) ([]string, error)
+	GetFilesWithMissingMetadata(ctx context.Context, folderPath string, folderType int) ([]*scene_audio_db_models.MediaFileMetadata, error)
 
 	MediaCountByArtist(ctx context.Context, artistID string) (int64, error)
 	GuestMediaCountByArtist(ctx context.Context, artistID string) (int64, error)
