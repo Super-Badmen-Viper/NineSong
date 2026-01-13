@@ -440,8 +440,8 @@ func (uc *FileUsecase) ProcessDirectory(
 				libraryFolders = append(libraryFolders, folder)
 			}
 		}
-		if libraryFolders == nil && ScanModel == 2 {
-			// 默认扫描所有媒体库目录，当传入路径为空且ScanModel为2时
+		if (libraryFolders == nil || len(libraryFolders) == 0) && (ScanModel == 0 || ScanModel == 2) {
+			// 默认扫描所有媒体库目录，当传入路径为空且ScanModel为0或2时
 			library, err := uc.folderRepo.GetAllByType(ctx, 1)
 			if err != nil {
 				log.Printf("文件夹查询失败: %v", err)

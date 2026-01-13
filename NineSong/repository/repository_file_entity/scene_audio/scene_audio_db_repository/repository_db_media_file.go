@@ -697,36 +697,41 @@ func (r *mediaFileRepository) GetByFolder(ctx context.Context, folderPath string
 func (r *mediaFileRepository) GetFilesWithMissingMetadata(ctx context.Context, folderPath string, folderType int) ([]*scene_audio_db_models.MediaFileMetadata, error) {
 	coll := r.db.Collection(r.collection)
 
-	// 1. 获取数据库中所有文件的最新更新时间
+	// 1. 获取特定媒体库文件夹下文件的最新更新时间
 	var latestUpdatedAt time.Time
-	// 按updated_at降序排序，获取第一条记录
+	// 按updated_at降序排序，获取该文件夹下的第一条记录
 	findOpts := options.Find().SetSort(bson.D{{"updated_at", -1}}).SetProjection(bson.D{{"updated_at", 1}}).SetLimit(1)
+
+	// 构建过滤条件，只查询指定文件夹下的文件
+	filter := bson.M{
+		"path": bson.M{
+			"$regex":   fmt.Sprintf("^%s", regexp.QuoteMeta(filepath.ToSlash(filepath.Clean(folderPath)))),
+			"$options": "i",
+		},
+	}
+
 	var latestRecord struct {
 		UpdatedAt time.Time `bson:"updated_at"`
 	}
-	cursor, err := coll.Find(ctx, bson.M{}, findOpts)
+	cursor, err := coll.Find(ctx, filter, findOpts)
 	if err != nil {
-		if errors.Is(err, driver.ErrNoDocuments) {
-			// 数据库中没有记录，返回空列表
-			return []*scene_audio_db_models.MediaFileMetadata{}, nil
-		} else {
-			return nil, fmt.Errorf("查询最新更新时间失败: %w", err)
-		}
-	} else {
-		// 遍历游标获取第一条记录
-		if cursor.Next(ctx) {
-			if err := cursor.Decode(&latestRecord); err != nil {
-				return nil, fmt.Errorf("解码最新更新时间失败: %w", err)
-			}
-			latestUpdatedAt = latestRecord.UpdatedAt
-		} else {
-			// 数据库中没有记录，返回空列表
-			return []*scene_audio_db_models.MediaFileMetadata{}, nil
-		}
-		cursor.Close(ctx)
+		return nil, fmt.Errorf("查询最新更新时间失败: %w", err)
 	}
 
-	log.Printf("DEBUG - 数据库最新更新时间: %v", latestUpdatedAt)
+	// 遍历游标获取第一条记录
+	if cursor.Next(ctx) {
+		if err := cursor.Decode(&latestRecord); err != nil {
+			cursor.Close(ctx)
+			return nil, fmt.Errorf("解码最新更新时间失败: %w", err)
+		}
+		latestUpdatedAt = latestRecord.UpdatedAt
+	} else {
+		// 该文件夹下没有记录，设置为时间零值，这样所有文件都会被视为新文件
+		latestUpdatedAt = time.Time{}
+	}
+	cursor.Close(ctx)
+
+	log.Printf("DEBUG - 文件夹 %s 最新更新时间: %v", folderPath, latestUpdatedAt)
 
 	// 2. 遍历文件夹，收集所有符合类型的文件及其修改时间
 	fileModTimeMap := make(map[string]time.Time)
@@ -787,12 +792,12 @@ func (r *mediaFileRepository) GetFilesWithMissingMetadata(ctx context.Context, f
 	}
 
 	// 查询数据库中这些文件的更新时间
-	filter := bson.M{
+	fileFilter := bson.M{
 		"path": bson.M{"$in": filePaths},
 	}
-	findOpts = options.Find().SetProjection(bson.M{"path": 1, "updated_at": 1})
+	findOpts2 := options.Find().SetProjection(bson.M{"path": 1, "updated_at": 1})
 
-	cursor, err = coll.Find(ctx, filter, findOpts)
+	cursor, err = coll.Find(ctx, fileFilter, findOpts2)
 	if err != nil {
 		return nil, fmt.Errorf("查询文件更新时间失败: %w", err)
 	}
