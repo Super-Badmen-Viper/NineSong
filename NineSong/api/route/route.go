@@ -69,4 +69,6 @@ func RouterPrivate(env *bootstrap.Env, timeout time.Duration, db mongo.Database,
 	scene_audio_route_api_route.NewRetrievalRouter(timeout, db, protectedRouter)
 	scene_audio_route_api_route.NewWordCloudRouter(timeout, db, protectedRouter)
 	scene_audio_route_api_route.NewRecommendRouter(timeout, db, protectedRouter)
+	scene_audio_route_api_route.NewMediaLibraryAudioRouter(timeout, db, protectedRouter, fileUsecase)
+	scene_audio_route_api_route.NewMediaLibrarySyncRecordRouter(timeout, db, protectedRouter)
 }

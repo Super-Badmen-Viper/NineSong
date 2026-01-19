@@ -87,4 +87,7 @@ const (
 
 const (
 	CollectionFileEntityAudioSceneTempMetadata = "file_entity_audio_scene_temp_metadata"
+	CollectionSceneAudioDbMediaLibraryAudio = "file_entity_audio_scene_media_library_audio"
+	CollectionMediaLibrarySyncRecord = "file_entity_audio_scene_media_library_sync_record"
+	CollectionChunkedUploadSession = "file_entity_audio_scene_chunked_upload_session"
 )

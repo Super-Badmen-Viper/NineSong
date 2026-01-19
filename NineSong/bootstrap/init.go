@@ -68,6 +68,8 @@ func NewInitializer(env *Env, db mongo.Database) *Initializer {
 			domain.CollectionFileEntityAudioScenePlaylistTrack,
 
 			domain.CollectionFileEntityAudioSceneTempMetadata,
+			domain.CollectionMediaLibrarySyncRecord,
+			domain.CollectionChunkedUploadSession,
 		},
 	}
 }
