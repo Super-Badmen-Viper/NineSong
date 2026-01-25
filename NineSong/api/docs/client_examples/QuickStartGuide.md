@@ -728,6 +728,214 @@ function checkAuthToken() {
 </html>
 ```
 
+## 歌词文件支持
+
+### 支持的歌词格式
+
+系统自动支持以下歌词文件格式：
+- **LRC** (.lrc) - 标准歌词格式，支持时间轴同步
+- **TXT** (.txt) - 纯文本歌词格式
+- **KRC** (.krc) - 酷狗音乐歌词格式
+- **QRC** (.qrc) - QQ音乐歌词格式
+
+### 自动检测歌词文件
+
+系统会在上传音频文件时自动检测同目录下的歌词文件：
+
+```javascript
+// 上传音频文件时，系统会自动检测歌词文件
+async function uploadAudioWithAutoLyrics() {
+  const fileInput = document.getElementById('audioFile');
+  const file = fileInput.files[0];
+  
+  if (!file) {
+    alert('请选择音频文件');
+    return;
+  }
+
+  // 系统会自动检测同目录下的歌词文件
+  // 支持的格式：.lrc, .txt, .krc, .qrc
+  // 检测优先级：lrc > txt > krc > qrc
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('library_id', libraryId);
+  formData.append('uploader_id', uploaderId);
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/media-library-audio/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${AUTH_TOKEN}`
+      },
+      body: formData
+    });
+
+    const result = await response.json();
+    
+    if (response.ok) {
+      console.log('音频文件上传成功');
+      
+      // 检查是否检测到歌词文件
+      if (result.data.result.lyricsDetected) {
+        console.log(`检测到歌词文件: ${result.data.result.lyricsFormat}`);
+        console.log('歌词文件已自动关联');
+      }
+      
+      alert('上传成功！');
+    } else {
+      alert('上传失败: ' + result.message);
+    }
+  } catch (error) {
+    console.error('上传错误:', error);
+    alert('上传失败: ' + error.message);
+  }
+}
+```
+
+### 手动指定歌词文件
+
+如果需要手动上传歌词文件，可以这样做：
+
+```javascript
+// 上传音频文件和歌词文件
+async function uploadAudioWithLyrics() {
+  const audioFile = document.getElementById('audioFile').files[0];
+  const lyricsFile = document.getElementById('lyricsFile').files[0];
+  
+  if (!audioFile) {
+    alert('请选择音频文件');
+    return;
+  }
+
+  // 验证歌词文件格式
+  if (lyricsFile) {
+    const validFormats = ['.lrc', '.txt', '.krc', '.qrc'];
+    const fileExt = '.' + lyricsFile.name.split('.').pop().toLowerCase();
+    
+    if (!validFormats.includes(fileExt)) {
+      alert(`不支持的歌词格式: ${fileExt}\n支持的格式: ${validFormats.join(', ')}`);
+      return;
+    }
+  }
+
+  const formData = new FormData();
+  formData.append('file', audioFile);
+  formData.append('library_id', libraryId);
+  formData.append('uploader_id', uploaderId);
+  
+  // 如果提供了歌词文件，也一起上传
+  if (lyricsFile) {
+    formData.append('lyrics_file', lyricsFile);
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/media-library-audio/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${AUTH_TOKEN}`
+      },
+      body: formData
+    });
+
+    const result = await response.json();
+    
+    if (response.ok) {
+      alert('上传成功！');
+      if (lyricsFile) {
+        console.log('歌词文件已上传并关联');
+      }
+    } else {
+      alert('上传失败: ' + result.message);
+    }
+  } catch (error) {
+    console.error('上传错误:', error);
+    alert('上传失败: ' + error.message);
+  }
+}
+```
+
+### 下载音频文件时获取歌词
+
+```javascript
+// 下载音频文件及其关联的歌词文件
+async function downloadAudioWithLyrics(fileId, audioFileName) {
+  try {
+    // 1. 下载音频文件
+    const audioResponse = await fetch(
+      `${API_BASE_URL}/media-library-audio/download/${fileId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${AUTH_TOKEN}`
+        }
+      }
+    );
+
+    if (!audioResponse.ok) {
+      throw new Error('音频文件下载失败');
+    }
+
+    const audioBlob = await audioResponse.blob();
+    const audioUrl = window.URL.createObjectURL(audioBlob);
+    
+    // 创建音频文件下载链接
+    const audioLink = document.createElement('a');
+    audioLink.href = audioUrl;
+    audioLink.download = audioFileName;
+    audioLink.click();
+    window.URL.revokeObjectURL(audioUrl);
+
+    // 2. 获取文件信息，检查是否有歌词
+    const infoResponse = await fetch(
+      `${API_BASE_URL}/media-library-audio/info/${fileId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${AUTH_TOKEN}`
+        }
+      }
+    );
+
+    if (infoResponse.ok) {
+      const info = await infoResponse.json();
+      
+      // 3. 如果存在歌词文件，下载歌词
+      if (info.data.result.lyricsPath) {
+        const lyricsFormat = info.data.result.lyricsFormat || 'lrc';
+        const lyricsFileName = audioFileName.replace(/\.[^/.]+$/, '') + '.' + lyricsFormat;
+        
+        // 下载歌词文件（如果需要单独下载）
+        console.log(`检测到歌词文件: ${lyricsFormat}`);
+        console.log('歌词文件已随音频文件一起下载');
+      }
+    }
+  } catch (error) {
+    console.error('下载错误:', error);
+    alert('下载失败: ' + error.message);
+  }
+}
+```
+
+### 歌词格式说明
+
+#### LRC格式示例
+```
+[00:12.00]第一句歌词
+[00:15.30]第二句歌词
+[00:18.50]第三句歌词
+```
+
+#### TXT格式示例
+```
+第一句歌词
+第二句歌词
+第三句歌词
+```
+
+#### KRC和QRC格式
+- KRC和QRC是二进制格式，需要专门的解析器
+- 系统会自动识别和处理这些格式
+- 客户端无需特殊处理，系统会保持原始格式
+
 ## 总结
 
 通过本指南，您应该能够：
@@ -737,5 +945,6 @@ function checkAuthToken() {
 3. 添加进度监控功能
 4. 处理常见的错误情况
 5. 使用调试工具进行故障排除
+6. **处理歌词文件（支持LRC、TXT、KRC、QRC格式）**
 
 记住始终在生产环境中使用HTTPS协议，并妥善保管您的认证令牌。如需更多高级功能，请参考完整的API文档。

@@ -8,6 +8,7 @@ import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/repository/repository_file_entity"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/repository/repository_file_entity/scene_audio/scene_audio_db_repository"
+	scene_audio_route_repository "github.com/amitshekhariitbhu/go-backend-clean-architecture/repository/repository_file_entity/scene_audio/scene_audio_route_repository"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/usecase/usecase_file_entity"
 	"github.com/gin-gonic/gin"
 	"time"
@@ -26,6 +27,7 @@ func NewFileEntityRouter(timeout time.Duration, db mongo.Database, group *gin.Ro
 	mediaCueRepo := scene_audio_db_repository.NewMediaFileCueRepository(db, domain.CollectionFileEntityAudioSceneMediaFileCue)
 	mediaWordCloudRepo := scene_audio_db_repository.NewWordCloudRepository(db, domain.CollectionFileEntityAudioSceneMediaFileWordCloud)
 	lyricsFileRepo := scene_audio_db_repository.NewLyricsFileRepository(db, domain.CollectionFileEntityAudioSceneLyricsFile)
+	playlistRepo := scene_audio_route_repository.NewPlaylistRepository(db, domain.CollectionFileEntityAudioScenePlaylist)
 	// 构建用例（新增超时参数）
 	uc := usecase_file_entity.NewFileUsecase(
 		db,
@@ -40,6 +42,7 @@ func NewFileEntityRouter(timeout time.Duration, db mongo.Database, group *gin.Ro
 		mediaCueRepo,
 		mediaWordCloudRepo,
 		lyricsFileRepo,
+		playlistRepo,
 	)
 
 	// 注册控制器

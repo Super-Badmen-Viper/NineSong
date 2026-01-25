@@ -98,7 +98,7 @@ func (r *retrievalRepository) GetCoverArtID(ctx context.Context, fileType string
 
 	// 扩展参数校验
 	allowedTypes := map[string]bool{
-		"media": true, "album": true, "artist": true,
+		"media": true, "album": true, "artist": true, "playlist": true,
 	}
 	if !allowedTypes[fileType] {
 		// 处理back/cover/disc类型的图片路径查询
@@ -141,16 +141,21 @@ func (r *retrievalRepository) GetCoverArtID(ctx context.Context, fileType string
 			return "", fmt.Errorf("cover storage config not found: %w", err)
 		}
 
-		typePath, err := r.checkCoverFile(filepath.Join(tempMeta.FolderPath, fileType, targetID), "cover.jpg")
-		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
+		var typePath string
+		if fileType == "playlist" {
+			// 播放列表封面路径：playlist/playlist_{playlistID}.jpg
+			coverFileName := fmt.Sprintf("playlist_%s.jpg", targetID)
+			typePath, err = r.checkCoverFile(filepath.Join(tempMeta.FolderPath, "playlist"), coverFileName)
+		} else {
+			// 其他类型：{type}/{targetID}/cover.jpg
+			typePath, err = r.checkCoverFile(filepath.Join(tempMeta.FolderPath, fileType, targetID), "cover.jpg")
+			if err != nil && errors.Is(err, os.ErrNotExist) {
 				typePath, err = r.checkCoverFile(filepath.Join(tempMeta.FolderPath, fileType, targetID), "cover.png")
-				if err != nil {
-					return "", fmt.Errorf("cover art not found: %w", err)
-				}
-				return typePath, nil
 			}
-			return "", fmt.Errorf("file system error: %w", err)
+		}
+
+		if err != nil {
+			return "", fmt.Errorf("cover art not found: %w", err)
 		}
 
 		return typePath, nil

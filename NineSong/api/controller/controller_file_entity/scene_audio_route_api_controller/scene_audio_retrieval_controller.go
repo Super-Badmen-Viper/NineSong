@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -121,14 +122,14 @@ func (c *RetrievalController) DownloadHandler(ctx *gin.Context) {
 
 func (c *RetrievalController) CoverArtIDHandler(ctx *gin.Context) {
 	var req struct {
-		Type     string `form:"type" binding:"required,oneof=media album artist"`
+		Type     string `form:"type" binding:"required,oneof=media album artist playlist"`
 		TargetID string `form:"target_id" binding:"required,hexadecimal,len=24"`
 	}
 
 	if err := ctx.ShouldBind(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"code":    "INVALID_PARAMETERS",
-			"message": "参数格式错误: type必须为media或album，target_id必须为24位十六进制",
+			"message": "参数格式错误: type必须为media、album、artist或playlist，target_id必须为24位十六进制",
 		})
 		return
 	}
@@ -319,7 +320,7 @@ func realStreamMediaFile(ctx *gin.Context, path string, mediaFileID string, temp
 	})
 }
 func detectContentType(path string) string {
-	ext := filepath.Ext(path)
+	ext := strings.ToLower(filepath.Ext(path))
 	switch ext {
 	case ".jpg", ".jpeg":
 		return "image/jpeg"
@@ -327,8 +328,12 @@ func detectContentType(path string) string {
 		return "image/png"
 	case ".mp3":
 		return "audio/mpeg"
-	case ".lrc":
+	case ".lrc", ".txt":
 		return "text/plain; charset=utf-8"
+	case ".krc":
+		return "application/x-krc" // 酷狗歌词格式
+	case ".qrc":
+		return "application/x-qrc" // QQ音乐歌词格式
 	default:
 		return "application/octet-stream"
 	}

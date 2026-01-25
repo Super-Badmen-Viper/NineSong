@@ -19,6 +19,7 @@ import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_interface"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -139,6 +140,7 @@ func NewFileUsecase(
 	mediaCueRepo scene_audio_db_interface.MediaFileCueRepository,
 	wordCloudRepo scene_audio_db_interface.WordCloudDBRepository,
 	lyricsFileRepo scene_audio_db_interface.LyricsFileRepository,
+	playlistRepo scene_audio_route_interface.PlaylistRepository,
 ) *FileUsecase {
 	workerCount := runtime.NumCPU() * 4
 
@@ -155,6 +157,7 @@ func NewFileUsecase(
 		mediaCueRepo,
 		wordCloudRepo,
 		lyricsFileRepo,
+		playlistRepo,
 	)
 
 	libraryDeleteUsecase := scene_audio.NewLibraryDeleteUsecase(

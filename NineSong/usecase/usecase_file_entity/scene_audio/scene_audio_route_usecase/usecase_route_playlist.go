@@ -3,24 +3,32 @@ package scene_audio_route_usecase
 import (
 	"context"
 	"errors"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
 	"strings"
 	"time"
 
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
+
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_interface"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type playlistUsecase struct {
-	repo    scene_audio_route_interface.PlaylistRepository
-	timeout time.Duration
+	repo     scene_audio_route_interface.PlaylistRepository
+	tempRepo scene_audio_db_interface.TempRepository
+	timeout  time.Duration
 }
 
-func NewPlaylistUsecase(repo scene_audio_route_interface.PlaylistRepository, timeout time.Duration) scene_audio_route_interface.PlaylistRepository {
+func NewPlaylistUsecase(
+	repo scene_audio_route_interface.PlaylistRepository,
+	tempRepo scene_audio_db_interface.TempRepository,
+	timeout time.Duration,
+) scene_audio_route_interface.PlaylistRepository {
 	return &playlistUsecase{
-		repo:    repo,
-		timeout: timeout,
+		repo:     repo,
+		tempRepo: tempRepo,
+		timeout:  timeout,
 	}
 }
 
@@ -129,4 +137,12 @@ func (uc *playlistUsecase) UpdatePlaylistInfo(
 	}
 
 	return updated, nil
+}
+
+// GetFirstTrackCoverImage 获取播放列表第一首歌的封面图片路径（实现接口要求）
+func (uc *playlistUsecase) GetFirstTrackCoverImage(ctx context.Context, playlistId string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
+	defer cancel()
+
+	return uc.repo.GetFirstTrackCoverImage(ctx, playlistId)
 }

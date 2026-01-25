@@ -31,4 +31,9 @@ type PlaylistRepository interface {
 		playlistId string,
 		playlist scene_audio_route_models.PlaylistMetadata,
 	) (*scene_audio_route_models.PlaylistMetadata, error)
+
+	GetFirstTrackCoverImage(
+		ctx context.Context,
+		playlistId string,
+	) (string, error)
 }

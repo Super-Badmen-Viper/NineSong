@@ -3,9 +3,10 @@ package scene_audio_route_usecase
 import (
 	"context"
 	"errors"
+	"time"
+
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"time"
 )
 
 type retrievalUsecase struct {
@@ -53,7 +54,7 @@ func (uc *retrievalUsecase) GetCoverArtID(ctx context.Context, fileType string, 
 
 	// 扩展参数校验
 	allowedTypes := map[string]bool{
-		"media": true, "album": true, "artist": true,
+		"media": true, "album": true, "artist": true, "playlist": true,
 		"back": true, "cover": true, "disc": true,
 	}
 	if !allowedTypes[fileType] {

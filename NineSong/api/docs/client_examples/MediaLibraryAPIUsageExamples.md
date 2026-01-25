@@ -904,6 +904,311 @@ const unsubscribe = progressManager.addListener((taskId, progressData) => {
 });
 ```
 
+## 歌词文件处理实现
+
+### 支持的歌词格式
+
+系统支持以下歌词文件格式：
+- **LRC** (.lrc) - 标准歌词格式，支持时间轴
+- **TXT** (.txt) - 纯文本歌词格式
+- **KRC** (.krc) - 酷狗音乐歌词格式
+- **QRC** (.qrc) - QQ音乐歌词格式
+
+### 歌词文件自动检测
+
+系统会自动检测音频文件同目录下的歌词文件。以下是实现示例：
+
+```javascript
+class LyricsFileDetector {
+  constructor() {
+    this.supportedFormats = ['.lrc', '.txt', '.krc', '.qrc'];
+  }
+
+  // 检测音频文件同目录下的歌词文件
+  async detectLyricsFile(audioFilePath) {
+    const audioDir = this.getDirectory(audioFilePath);
+    const audioName = this.getFileNameWithoutExtension(audioFilePath);
+    
+    // 按优先级检测歌词文件
+    for (const format of this.supportedFormats) {
+      const lyricsPath = `${audioDir}/${audioName}${format}`;
+      
+      try {
+        const response = await fetch(lyricsPath, { method: 'HEAD' });
+        if (response.ok) {
+          return {
+            path: lyricsPath,
+            format: format,
+            mimeType: this.getMimeType(format)
+          };
+        }
+      } catch (error) {
+        // 文件不存在，继续检测下一个格式
+        continue;
+      }
+    }
+    
+    return null; // 未找到歌词文件
+  }
+
+  // 获取文件目录
+  getDirectory(filePath) {
+    return filePath.substring(0, filePath.lastIndexOf('/'));
+  }
+
+  // 获取不带扩展名的文件名
+  getFileNameWithoutExtension(filePath) {
+    const fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
+    return fileName.substring(0, fileName.lastIndexOf('.'));
+  }
+
+  // 获取MIME类型
+  getMimeType(format) {
+    const mimeTypes = {
+      '.lrc': 'text/plain; charset=utf-8',
+      '.txt': 'text/plain; charset=utf-8',
+      '.krc': 'application/x-krc',
+      '.qrc': 'application/x-qrc'
+    };
+    return mimeTypes[format] || 'text/plain; charset=utf-8';
+  }
+}
+
+// 使用示例
+const detector = new LyricsFileDetector();
+const audioFile = '/path/to/song.mp3';
+const lyricsFile = await detector.detectLyricsFile(audioFile);
+
+if (lyricsFile) {
+  console.log(`找到歌词文件: ${lyricsFile.path}`);
+  console.log(`格式: ${lyricsFile.format}`);
+} else {
+  console.log('未找到歌词文件');
+}
+```
+
+### 上传音频文件时自动处理歌词
+
+```javascript
+class MediaLibraryAPI {
+  // ... 其他方法 ...
+
+  // 上传音频文件（自动检测并上传歌词）
+  async uploadAudioWithLyrics(audioFile, libraryId, uploaderId) {
+    // 1. 上传音频文件
+    const audioResult = await this.uploadAudio(audioFile, libraryId, uploaderId);
+    
+    // 2. 检测歌词文件
+    const detector = new LyricsFileDetector();
+    const lyricsFile = await detector.detectLyricsFile(audioFile.name);
+    
+    if (lyricsFile) {
+      // 3. 读取歌词文件内容
+      const lyricsContent = await this.readFileAsBlob(lyricsFile.path);
+      
+      // 4. 上传歌词文件（如果需要单独上传）
+      // 注意：系统会自动处理，这里仅作示例
+      console.log(`检测到歌词文件: ${lyricsFile.format}`);
+      console.log('歌词文件将自动与音频文件关联');
+    }
+    
+    return audioResult;
+  }
+
+  // 读取文件为Blob
+  async readFileAsBlob(filePath) {
+    const response = await fetch(filePath);
+    return await response.blob();
+  }
+}
+```
+
+### 下载音频文件时获取歌词
+
+```javascript
+class MediaLibraryAPI {
+  // ... 其他方法 ...
+
+  // 下载音频文件及其歌词
+  async downloadAudioWithLyrics(fileId, audioFileName) {
+    // 1. 下载音频文件
+    const audioBlob = await this.downloadAudio(fileId, audioFileName);
+    
+    // 2. 获取文件信息（包含歌词关联信息）
+    const fileInfo = await this.getAudioFileInfo(fileId);
+    
+    // 3. 如果存在歌词文件，下载歌词
+    if (fileInfo.lyricsPath) {
+      const lyricsBlob = await this.downloadLyrics(fileId, fileInfo.lyricsFormat);
+      
+      return {
+        audio: audioBlob,
+        lyrics: lyricsBlob,
+        lyricsFormat: fileInfo.lyricsFormat
+      };
+    }
+    
+    return {
+      audio: audioBlob,
+      lyrics: null
+    };
+  }
+
+  // 下载歌词文件
+  async downloadLyrics(fileId, format) {
+    const response = await fetch(
+      `${this.baseURL}/media-library-audio/${fileId}/lyrics/download`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Accept': this.getLyricsMimeType(format)
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`歌词下载失败: ${response.statusText}`);
+    }
+
+    return await response.blob();
+  }
+
+  // 获取歌词MIME类型
+  getLyricsMimeType(format) {
+    const mimeTypes = {
+      'lrc': 'text/plain; charset=utf-8',
+      'txt': 'text/plain; charset=utf-8',
+      'krc': 'application/x-krc',
+      'qrc': 'application/x-qrc'
+    };
+    return mimeTypes[format] || 'text/plain; charset=utf-8';
+  }
+}
+```
+
+### 歌词格式验证
+
+```javascript
+class LyricsValidator {
+  constructor() {
+    this.supportedFormats = ['.lrc', '.txt', '.krc', '.qrc'];
+    this.maxFileSize = 1024 * 1024; // 1MB
+  }
+
+  // 验证歌词文件
+  validateLyricsFile(file) {
+    const errors = [];
+
+    // 检查文件扩展名
+    const ext = this.getFileExtension(file.name).toLowerCase();
+    if (!this.supportedFormats.includes(ext)) {
+      errors.push(`不支持的歌词格式: ${ext}。支持的格式: ${this.supportedFormats.join(', ')}`);
+    }
+
+    // 检查文件大小
+    if (file.size > this.maxFileSize) {
+      errors.push(`歌词文件过大: ${this.formatFileSize(file.size)}。最大允许: ${this.formatFileSize(this.maxFileSize)}`);
+    }
+
+    // 检查文件是否为空
+    if (file.size === 0) {
+      errors.push('歌词文件不能为空');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors: errors
+    };
+  }
+
+  // 获取文件扩展名
+  getFileExtension(fileName) {
+    const lastDot = fileName.lastIndexOf('.');
+    return lastDot !== -1 ? fileName.substring(lastDot) : '';
+  }
+
+  // 格式化文件大小
+  formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  }
+}
+
+// 使用示例
+const validator = new LyricsValidator();
+const fileInput = document.getElementById('lyricsFile');
+
+fileInput.addEventListener('change', (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    const validation = validator.validateLyricsFile(file);
+    
+    if (validation.isValid) {
+      console.log('歌词文件验证通过');
+    } else {
+      console.error('歌词文件验证失败:', validation.errors);
+      alert(validation.errors.join('\n'));
+    }
+  }
+});
+```
+
+### 歌词文件格式处理示例
+
+```javascript
+// LRC格式解析示例
+class LRCParser {
+  parse(lrcContent) {
+    const lines = lrcContent.split('\n');
+    const lyrics = [];
+
+    for (const line of lines) {
+      // 匹配时间轴标签 [mm:ss.ff]
+      const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2})\]/g;
+      const matches = [...line.matchAll(timeRegex)];
+      
+      if (matches.length > 0) {
+        const text = line.replace(timeRegex, '').trim();
+        
+        for (const match of matches) {
+          const minutes = parseInt(match[1]);
+          const seconds = parseInt(match[2]);
+          const centiseconds = parseInt(match[3]);
+          const time = minutes * 60 + seconds + centiseconds / 100;
+          
+          lyrics.push({
+            time: time,
+            text: text
+          });
+        }
+      }
+    }
+
+    return lyrics.sort((a, b) => a.time - b.time);
+  }
+}
+
+// 使用示例
+const parser = new LRCParser();
+const lrcContent = `
+[00:12.00]第一句歌词
+[00:15.30]第二句歌词
+[00:18.50]第三句歌词
+`;
+
+const parsedLyrics = parser.parse(lrcContent);
+console.log(parsedLyrics);
+// 输出: [
+//   { time: 12.00, text: '第一句歌词' },
+//   { time: 15.30, text: '第二句歌词' },
+//   { time: 18.50, text: '第三句歌词' }
+// ]
+```
+
 ## 总结
 
 本文档提供了多种技术栈的实现方案，开发者可以根据具体需求和技术栈选择合适的实现方式。关键要点包括：
@@ -912,5 +1217,6 @@ const unsubscribe = progressManager.addListener((taskId, progressData) => {
 2. **错误处理**: 实现重试机制和错误恢复
 3. **性能优化**: 根据文件大小和网络状况选择合适的上传策略
 4. **用户体验**: 提供清晰的进度反馈和操作反馈
+5. **歌词文件支持**: 自动检测和处理多种歌词格式（LRC、TXT、KRC、QRC）
 
 这些实现方案可以直接用于生产环境，也可以根据具体需求进行定制化改造。

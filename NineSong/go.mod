@@ -12,7 +12,9 @@ require (
 )
 
 require (
+	github.com/EdlinOrg/prominentcolor v1.0.0
 	github.com/dhowden/tag v0.0.0-20240417053706-3d75831295e8
+	github.com/disintegration/imaging v1.6.2
 	github.com/djherbis/times v1.6.0
 	github.com/go-audio/wav v1.1.0
 	github.com/mozillazg/go-pinyin v0.20.0
@@ -23,7 +25,13 @@ require (
 	golang.org/x/text v0.26.0
 )
 
-require github.com/siongui/gojianfan v0.0.0-20210926212422-2f175ac615de // indirect
+require (
+	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
+	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
+	github.com/oliamb/cutter v0.2.2 // indirect
+	github.com/siongui/gojianfan v0.0.0-20210926212422-2f175ac615de
+	golang.org/x/image v0.0.0-20191009234506-e7c1f5e7dbb8 // indirect
+)
 
 require (
 	github.com/aws/aws-sdk-go v1.55.7 // indirect
@@ -72,7 +80,7 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.18.0 // indirect
-	golang.org/x/net v0.41.0 // indirect
+	golang.org/x/net v0.41.0
 	golang.org/x/sync v0.15.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
