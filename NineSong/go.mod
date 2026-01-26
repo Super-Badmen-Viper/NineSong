@@ -16,12 +16,15 @@ require (
 	github.com/dhowden/tag v0.0.0-20240417053706-3d75831295e8
 	github.com/disintegration/imaging v1.6.2
 	github.com/djherbis/times v1.6.0
+	github.com/fogleman/gg v1.3.0
 	github.com/go-audio/wav v1.1.0
+	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/mozillazg/go-pinyin v0.20.0
 	github.com/tidwall/gjson v1.18.0
 	github.com/u2takey/ffmpeg-go v0.5.0
 	github.com/yanyiwu/gojieba v1.4.6
 	go.senan.xyz/taglib v0.7.1
+	golang.org/x/image v0.18.0
 	golang.org/x/text v0.26.0
 )
 
@@ -30,7 +33,6 @@ require (
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/oliamb/cutter v0.2.2 // indirect
 	github.com/siongui/gojianfan v0.0.0-20210926212422-2f175ac615de
-	golang.org/x/image v0.0.0-20191009234506-e7c1f5e7dbb8 // indirect
 )
 
 require (

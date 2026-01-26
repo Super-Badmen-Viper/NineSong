@@ -36,4 +36,9 @@ type PlaylistRepository interface {
 		ctx context.Context,
 		playlistId string,
 	) (string, error)
+
+	GetTopThreeTrackCoverImages(
+		ctx context.Context,
+		playlistId string,
+	) ([]string, error) // 返回前三个媒体项的封面路径列表
 }

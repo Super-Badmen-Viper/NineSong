@@ -1786,12 +1786,12 @@ func (uc *AudioProcessingUsecase) processMediaLyrics(
 	// 1. 精准定位同名歌词文件（核心优化）
 	audioDir := filepath.Dir(path)
 	audioName := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
-	
+
 	// 支持的歌词格式：lrc, txt, krc, qrc
 	lyricsFormats := []string{".lrc", ".txt", ".krc", ".qrc"}
 	var lyricsPath string
 	var lyricsFormat string
-	
+
 	// 查找第一个存在的歌词文件
 	for _, format := range lyricsFormats {
 		potentialPath := filepath.Join(audioDir, audioName+format)
@@ -2646,8 +2646,12 @@ func (uc *AudioProcessingUsecase) refreshPlaylistCoversAsync(ctx context.Context
 				continue
 			}
 
-			// 强制生成封面（forceGenerate = true）
-			_, err = coverGenerator.GeneratePlaylistCover(refreshCtx, firstTrackCoverPath, playlist.ID, true)
+			// 强制生成封面（总是强制重新生成）
+			_, err = coverGenerator.GeneratePlaylistCover(
+				refreshCtx,
+				firstTrackCoverPath,
+				playlist.ID,
+			)
 			if err != nil {
 				log.Printf("[ERROR] 刷新播放列表封面失败: 生成播放列表 %s 封面失败: %v", playlist.ID.Hex(), err)
 				continue

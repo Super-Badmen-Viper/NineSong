@@ -4,24 +4,37 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
-	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"log"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_interface"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_models"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_util"
+	usercase_audio_util "github.com/amitshekhariitbhu/go-backend-clean-architecture/usecase/usecase_file_entity/scene_audio/scene_audio_util"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type playlistTrackUsecase struct {
-	repo    scene_audio_route_interface.PlaylistTrackRepository
-	timeout time.Duration
+	repo         scene_audio_route_interface.PlaylistTrackRepository
+	playlistRepo scene_audio_route_interface.PlaylistRepository
+	tempRepo     scene_audio_db_interface.TempRepository
+	timeout      time.Duration
 }
 
-func NewPlaylistTrackUsecase(repo scene_audio_route_interface.PlaylistTrackRepository, timeout time.Duration) scene_audio_route_interface.PlaylistTrackRepository {
+func NewPlaylistTrackUsecase(
+	repo scene_audio_route_interface.PlaylistTrackRepository,
+	playlistRepo scene_audio_route_interface.PlaylistRepository,
+	tempRepo scene_audio_db_interface.TempRepository,
+	timeout time.Duration,
+) scene_audio_route_interface.PlaylistTrackRepository {
 	return &playlistTrackUsecase{
-		repo:    repo,
-		timeout: timeout,
+		repo:         repo,
+		playlistRepo: playlistRepo,
+		tempRepo:     tempRepo,
+		timeout:      timeout,
 	}
 }
 
@@ -202,7 +215,73 @@ func (uc *playlistTrackUsecase) AddPlaylistTrackItems(
 		}
 	}
 
-	return uc.repo.AddPlaylistTrackItems(ctx, playlistId, mediaFileIds)
+	// 添加媒体项
+	success, err := uc.repo.AddPlaylistTrackItems(ctx, playlistId, mediaFileIds)
+	if err != nil {
+		return false, err
+	}
+
+	// 只要成功添加了媒体项（无论播放列表是否为空），都触发封面生成
+	if success {
+		// 使用 goroutine 异步等待数据插入完成，然后生成封面
+		go func() {
+			// 等待一小段时间确保数据库插入完成
+			time.Sleep(500 * time.Millisecond)
+			uc.generatePlaylistCoverAsync(context.Background(), playlistId)
+		}()
+	}
+
+	return success, nil
+}
+
+// generatePlaylistCoverAsync 异步生成播放列表封面
+func (uc *playlistTrackUsecase) generatePlaylistCoverAsync(ctx context.Context, playlistId string) {
+	go func() {
+		coverCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
+
+		// 获取封面基础路径
+		coverBasePath, err := uc.tempRepo.GetTempPath(coverCtx, "cover")
+		if err != nil {
+			log.Printf("[ERROR] 生成播放列表封面失败: 获取封面基础路径失败: %v", err)
+			return
+		}
+
+		// 获取第一首歌的封面路径
+		firstTrackCoverPath, err := uc.playlistRepo.GetFirstTrackCoverImage(coverCtx, playlistId)
+		if err != nil {
+			log.Printf("[ERROR] 生成播放列表封面失败: 获取第一首歌封面失败: %v", err)
+			return
+		}
+
+		if firstTrackCoverPath == "" {
+			log.Printf("[WARN] 播放列表 %s 没有第一首歌封面，跳过封面生成", playlistId)
+			return
+		}
+
+		// 创建封面生成器
+		coverGenerator := usercase_audio_util.NewPlaylistCoverGenerator(coverBasePath)
+
+		// 转换 playlistId 为 ObjectID
+		objID, err := primitive.ObjectIDFromHex(playlistId)
+		if err != nil {
+			log.Printf("[ERROR] 生成播放列表封面失败: 无效的播放列表ID: %v", err)
+			return
+		}
+
+		// 生成封面（总是强制重新生成）
+		_, err = coverGenerator.GeneratePlaylistCover(
+			coverCtx,
+			firstTrackCoverPath,
+			objID,
+		)
+		if err != nil {
+			log.Printf("[ERROR] 生成播放列表 %s 封面失败: %v", playlistId, err)
+			return
+		}
+
+		log.Printf("[INFO] 播放列表 %s 封面生成成功", playlistId)
+	}()
 }
 
 func (uc *playlistTrackUsecase) RemovePlaylistTrackItems(
@@ -230,7 +309,23 @@ func (uc *playlistTrackUsecase) RemovePlaylistTrackItems(
 		}
 	}
 
-	return uc.repo.RemovePlaylistTrackItems(ctx, playlistId, mediaFileIds)
+	// 删除媒体项
+	success, err := uc.repo.RemovePlaylistTrackItems(ctx, playlistId, mediaFileIds)
+	if err != nil {
+		return false, err
+	}
+
+	// 只要成功删除了媒体项，都触发封面重新生成
+	if success {
+		// 使用 goroutine 异步等待数据删除完成，然后生成封面
+		go func() {
+			// 等待一小段时间确保数据库删除完成
+			time.Sleep(500 * time.Millisecond)
+			uc.generatePlaylistCoverAsync(context.Background(), playlistId)
+		}()
+	}
+
+	return success, nil
 }
 
 func (uc *playlistTrackUsecase) SortPlaylistTrackItems(
@@ -258,7 +353,23 @@ func (uc *playlistTrackUsecase) SortPlaylistTrackItems(
 		}
 	}
 
-	return uc.repo.SortPlaylistTrackItems(ctx, playlistId, mediaFileIds)
+	// 排序媒体项
+	success, err := uc.repo.SortPlaylistTrackItems(ctx, playlistId, mediaFileIds)
+	if err != nil {
+		return false, err
+	}
+
+	// 只要成功排序了媒体项，都触发封面重新生成
+	if success {
+		// 使用 goroutine 异步等待数据更新完成，然后生成封面
+		go func() {
+			// 等待一小段时间确保数据库更新完成
+			time.Sleep(500 * time.Millisecond)
+			uc.generatePlaylistCoverAsync(context.Background(), playlistId)
+		}()
+	}
+
+	return success, nil
 }
 
 func validateObjectID(field, value string) error {

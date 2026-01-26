@@ -146,3 +146,11 @@ func (uc *playlistUsecase) GetFirstTrackCoverImage(ctx context.Context, playlist
 
 	return uc.repo.GetFirstTrackCoverImage(ctx, playlistId)
 }
+
+// GetTopThreeTrackCoverImages 获取播放列表前三个媒体项的封面图片路径（实现接口要求）
+func (uc *playlistUsecase) GetTopThreeTrackCoverImages(ctx context.Context, playlistId string) ([]string, error) {
+	ctx, cancel := context.WithTimeout(ctx, uc.timeout)
+	defer cancel()
+
+	return uc.repo.GetTopThreeTrackCoverImages(ctx, playlistId)
+}

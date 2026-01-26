@@ -467,3 +467,85 @@ func (p *playlistRepository) GetFirstTrackCoverImage(ctx context.Context, playli
 	// 如果没有找到，返回空字符串
 	return "", nil
 }
+
+// GetTopThreeTrackCoverImages 获取播放列表前三个媒体项的封面图片路径
+func (p *playlistRepository) GetTopThreeTrackCoverImages(ctx context.Context, playlistId string) ([]string, error) {
+	objID, err := primitive.ObjectIDFromHex(playlistId)
+	if err != nil {
+		return nil, errors.New("invalid playlist id format")
+	}
+
+	playlistTrackColl := p.db.Collection(domain.CollectionFileEntityAudioScenePlaylistTrack)
+
+	// 构建聚合管道，获取前三个媒体项（按index排序）
+	pipeline := []bson.D{
+		// 匹配指定播放列表
+		{
+			{Key: "$match", Value: bson.D{
+				{Key: "playlist_id", Value: objID},
+			}},
+		},
+		// 关联媒体文件表
+		{
+			{Key: "$lookup", Value: bson.D{
+				{Key: "from", Value: domain.CollectionFileEntityAudioSceneMediaFile},
+				{Key: "localField", Value: "media_file_id"},
+				{Key: "foreignField", Value: "_id"},
+				{Key: "as", Value: "media_file"},
+			}},
+		},
+		// 展开媒体文件数组
+		{
+			{Key: "$unwind", Value: bson.D{
+				{Key: "path", Value: "$media_file"},
+				{Key: "preserveNullAndEmptyArrays", Value: false},
+			}},
+		},
+		// 按index排序
+		{
+			{Key: "$sort", Value: bson.D{
+				{Key: "index", Value: 1},
+			}},
+		},
+		// 只取前三个
+		{
+			{Key: "$limit", Value: 3},
+		},
+		// 只返回封面URL字段
+		{
+			{Key: "$project", Value: bson.D{
+				{Key: "high_image_url", Value: "$media_file.high_image_url"},
+				{Key: "medium_image_url", Value: "$media_file.medium_image_url"},
+			}},
+		},
+	}
+
+	cursor, err := playlistTrackColl.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("aggregate failed: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var covers []string
+	var result struct {
+		HighImageURL   string `bson:"high_image_url"`
+		MediumImageURL string `bson:"medium_image_url"`
+	}
+
+	for cursor.Next(ctx) {
+		if err := cursor.Decode(&result); err != nil {
+			return nil, fmt.Errorf("decode failed: %w", err)
+		}
+		// 优先使用高清封面，如果没有则使用中等分辨率封面
+		coverPath := result.HighImageURL
+		if coverPath == "" {
+			coverPath = result.MediumImageURL
+		}
+		// 只添加非空的封面路径
+		if coverPath != "" {
+			covers = append(covers, coverPath)
+		}
+	}
+
+	return covers, nil
+}

@@ -26,16 +26,14 @@ func NewPlaylistCoverGenerator(coverBasePath string) *PlaylistCoverGenerator {
 	}
 }
 
-// GeneratePlaylistCover 生成播放列表封面图片
+// GeneratePlaylistCover 生成播放列表封面图片（总是强制重新生成）
 // firstTrackCoverPath: 第一首歌的封面图片路径
 // playlistID: 播放列表ID
-// forceGenerate: 是否强制生成（即使文件已存在）
 // 返回生成的封面图片路径
 func (g *PlaylistCoverGenerator) GeneratePlaylistCover(
 	ctx context.Context,
 	firstTrackCoverPath string,
 	playlistID primitive.ObjectID,
-	forceGenerate bool,
 ) (string, error) {
 	// 如果第一首歌没有封面，返回空字符串
 	if firstTrackCoverPath == "" {
@@ -51,15 +49,6 @@ func (g *PlaylistCoverGenerator) GeneratePlaylistCover(
 	// 生成封面图片路径
 	coverFileName := fmt.Sprintf("playlist_%s.jpg", playlistID.Hex())
 	coverPath := filepath.Join(playlistCoverDir, coverFileName)
-
-	// 如果文件已存在且不是强制生成，则跳过
-	if !forceGenerate {
-		if _, err := os.Stat(coverPath); err == nil {
-			// 文件已存在，返回相对路径
-			relativePath := filepath.Join("playlist", coverFileName)
-			return relativePath, nil
-		}
-	}
 
 	// 读取第一首歌的封面图片
 	srcImg, err := imaging.Open(firstTrackCoverPath)
@@ -87,8 +76,8 @@ func (g *PlaylistCoverGenerator) GeneratePlaylistCover(
 	// 生成渐变封面图片（800x800）
 	coverImg := g.generateGradientCover(colors, 800, 800)
 
-	// 保存封面图片
-	if err := g.saveCoverImage(coverImg, coverPath); err != nil {
+	// 保存封面图片（JPEG质量80，优化压缩）
+	if err := g.saveCoverImageOptimized(coverImg, coverPath); err != nil {
 		return "", fmt.Errorf("保存封面图片失败: %w", err)
 	}
 
@@ -225,8 +214,13 @@ func (g *PlaylistCoverGenerator) saveCoverImage(img image.Image, path string) er
 	}
 	defer file.Close()
 
-	// 使用JPEG格式保存，质量90%
-	return jpeg.Encode(file, img, &jpeg.Options{Quality: 90})
+	// 使用JPEG格式保存，质量80%（平衡清晰度和文件大小）
+	return jpeg.Encode(file, img, &jpeg.Options{Quality: 80})
+}
+
+// saveCoverImageOptimized 保存封面图片（优化压缩，与 saveCoverImage 相同）
+func (g *PlaylistCoverGenerator) saveCoverImageOptimized(img image.Image, path string) error {
+	return g.saveCoverImage(img, path)
 }
 
 // min 返回两个整数中的较小值

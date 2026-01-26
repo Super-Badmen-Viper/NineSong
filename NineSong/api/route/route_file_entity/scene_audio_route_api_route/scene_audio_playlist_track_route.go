@@ -4,6 +4,7 @@ import (
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/api/controller/controller_file_entity/scene_audio_route_api_controller"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/mongo"
+	"github.com/amitshekhariitbhu/go-backend-clean-architecture/repository/repository_file_entity/scene_audio/scene_audio_db_repository"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/repository/repository_file_entity/scene_audio/scene_audio_route_repository"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/usecase/usecase_file_entity/scene_audio/scene_audio_route_usecase"
 	"github.com/gin-gonic/gin"
@@ -16,7 +17,9 @@ func NewPlaylistTrackRouter(
 	group *gin.RouterGroup,
 ) {
 	repo := scene_audio_route_repository.NewPlaylistTrackRepository(db, domain.CollectionFileEntityAudioScenePlaylistTrack)
-	usecase := scene_audio_route_usecase.NewPlaylistTrackUsecase(repo, timeout)
+	playlistRepo := scene_audio_route_repository.NewPlaylistRepository(db, domain.CollectionFileEntityAudioScenePlaylist)
+	tempRepo := scene_audio_db_repository.NewTempRepository(db, domain.CollectionFileEntityAudioSceneTempMetadata)
+	usecase := scene_audio_route_usecase.NewPlaylistTrackUsecase(repo, playlistRepo, tempRepo, timeout)
 	ctrl := scene_audio_route_api_controller.NewPlaylistTrackController(usecase)
 
 	playlistTrackGroup := group.Group("/playlists/tracks")
