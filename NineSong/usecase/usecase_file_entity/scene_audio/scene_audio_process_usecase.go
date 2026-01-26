@@ -1835,7 +1835,58 @@ func (uc *AudioProcessingUsecase) processMediaLyrics(
 		}
 	}
 
-	// 3. 处理内嵌歌词（独立流程）
+	// 3. 扫描同级目录下与音频文件同名的krc和qrc文件并缓存
+	// 支持的逐字歌词格式：krc, qrc
+	wordLyricsFormats := []string{".krc", ".qrc"}
+	for _, format := range wordLyricsFormats {
+		wordLyricsPath := filepath.Join(audioDir, audioName+format)
+		if _, err := os.Stat(wordLyricsPath); err != nil {
+			continue // 文件不存在，跳过
+		}
+
+		formatWithoutDot := strings.TrimPrefix(format, ".")
+
+		// 检查是否已经处理过（通过数据库记录检查）
+		artist, title := sanitizeMetadata(media.Artist, media.Title)
+		existingPath, err := uc.lyricsFileRepo.GetLyricsFilePath(ctx, artist, title, formatWithoutDot)
+		if err == nil && existingPath != "" {
+			// 如果数据库中有记录且文件存在，跳过处理
+			if _, err := os.Stat(existingPath); err == nil {
+				continue
+			}
+		}
+
+		// 生成目标文件名
+		destFileName, err := uc.generateLyricFilename(media, lyricsTempPath, formatWithoutDot)
+		if err != nil {
+			log.Printf("逐字歌词文件名生成失败: %s | %v", wordLyricsPath, err)
+			continue
+		}
+		if destFileName == "" {
+			continue // 跳过情况
+		}
+
+		destPath := filepath.Join(lyricsTempPath, destFileName)
+
+		// 冲突检测（避免覆盖）
+		if _, err := os.Stat(destPath); err == nil {
+			continue
+		}
+
+		// 保存元数据到数据库
+		if _, err := uc.lyricsFileRepo.UpdateLyricsFilePath(ctx, artist, title, formatWithoutDot, destPath); err != nil {
+			log.Printf("逐字歌词路径保存失败: %v", err)
+		}
+
+		// 安全复制文件（加锁防止并发冲突）
+		uc.scanMutex.Lock()
+		if err := uc.copyLyricsFile(wordLyricsPath, destPath); err != nil {
+			log.Printf("逐字歌词复制失败: %s -> %s | %v", wordLyricsPath, destPath, err)
+		}
+		uc.scanMutex.Unlock()
+	}
+
+	// 4. 处理内嵌歌词（独立流程）
 	if media.Lyrics != "" {
 		destFileName, err := uc.generateLyricFilename(media, lyricsTempPath, "embedded")
 		if err != nil {

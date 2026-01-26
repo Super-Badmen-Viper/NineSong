@@ -4,6 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_db/scene_audio_db_models"
 	"github.com/amitshekhariitbhu/go-backend-clean-architecture/domain/domain_file_entity/scene_audio/scene_audio_route/scene_audio_route_interface"
@@ -13,10 +18,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	driver "go.mongodb.org/mongo-driver/mongo"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
 )
 
 type retrievalRepository struct {
@@ -180,6 +181,296 @@ func (r *retrievalRepository) checkCoverFile(basePath string, fileName string) (
 }
 
 func (r *retrievalRepository) GetLyricsLrcMetaData(ctx context.Context, mediaFileId, artist, title, fileType string) (string, error) {
+	// 处理fileType="embedded"的情况：直接从media_file表读取
+	if fileType == "embedded" {
+		if len(mediaFileId) == 0 {
+			return "", errors.New("mediaFileId is required for embedded lyrics")
+		}
+		objID, err := primitive.ObjectIDFromHex(mediaFileId)
+		if err != nil {
+			return "", errors.New("invalid media file id format")
+		}
+
+		collection := r.db.Collection(domain.CollectionFileEntityAudioSceneMediaFile)
+		var result scene_audio_db_models.MediaFileMetadata
+
+		filter := bson.M{"_id": objID}
+		err = collection.FindOne(ctx, filter).Decode(&result)
+		if err != nil {
+			return "", fmt.Errorf("database query failed: %w", err)
+		}
+
+		if result.Lyrics == "" {
+			return "", errors.New("no embedded lyrics found")
+		}
+
+		return result.Lyrics, nil
+	}
+
+	// 如果fileType为空，默认为auto模式
+	if fileType == "" {
+		fileType = "auto"
+	}
+
+	// 处理auto模式的优先级查询
+	if fileType == "auto" {
+		priorityTypes := []string{"krc", "qrc", "lrc"}
+
+		// 如果提供了mediaFileId，优先根据id获取文件路径，然后查找同名文件
+		if len(mediaFileId) > 0 {
+			// 1. 根据mediaFileId获取文件路径，从原始文件夹查找同名文件（krc > qrc > lrc）
+			mediaPath, err := r.getMediaFilePath(ctx, mediaFileId)
+			if err == nil {
+				content, err := r.findLyricsInDirectory(mediaPath, priorityTypes)
+				if err == nil {
+					return content, nil
+				}
+			}
+
+			// 2. 如果原始文件夹找不到，尝试从缓存查询（基于artist和title的模糊匹配）
+			// 先获取媒体文件的artist和title
+			objID, err := primitive.ObjectIDFromHex(mediaFileId)
+			if err == nil {
+				mediaCollection := r.db.Collection(domain.CollectionFileEntityAudioSceneMediaFile)
+				var mediaResult scene_audio_db_models.MediaFileMetadata
+				filter := bson.M{"_id": objID}
+				if err := mediaCollection.FindOne(ctx, filter).Decode(&mediaResult); err == nil {
+					// 使用媒体文件的artist和title从缓存查询（使用模糊匹配）
+					cacheArtist := mediaResult.Artist
+					cacheTitle := mediaResult.Title
+
+					// 使用模糊匹配逻辑查询缓存
+					collection := r.db.Collection(domain.CollectionFileEntityAudioSceneLyricsFile)
+					specialChars := []string{"|", "｜", "/", "//", ",", "，", "&", ";", "; ", "、"}
+
+					removeSpecialChars := func(s string) string {
+						for _, char := range specialChars {
+							s = strings.ReplaceAll(s, char, "")
+						}
+						return s
+					}
+
+					createFTSRegexPattern := func(input string) string {
+						cleaned := removeSpecialChars(input)
+						if cleaned == "" {
+							return ""
+						}
+						t2s := gojianfan.T2S(cleaned)
+						s2t := gojianfan.S2T(cleaned)
+						doubleConvert := gojianfan.S2T(t2s)
+						return regexp.QuoteMeta(cleaned) + "|" +
+							regexp.QuoteMeta(t2s) + "|" +
+							regexp.QuoteMeta(s2t) + "|" +
+							regexp.QuoteMeta(doubleConvert)
+					}
+
+					baseFilter := bson.M{}
+					if cacheArtist == cacheTitle && cacheTitle != "" {
+						pattern := createFTSRegexPattern(cacheTitle)
+						if pattern != "" {
+							baseFilter["title"] = primitive.Regex{
+								Pattern: pattern,
+								Options: "i",
+							}
+						}
+					} else {
+						if cacheArtist != "" {
+							hasSeparator := false
+							for _, char := range specialChars {
+								if strings.Contains(cacheArtist, char) {
+									hasSeparator = true
+									break
+								}
+							}
+
+							if hasSeparator {
+								separatorPattern := regexp.QuoteMeta(strings.Join(specialChars, "|"))
+								re := regexp.MustCompile("[" + separatorPattern + "]+")
+								artists := re.Split(cacheArtist, -1)
+
+								orPatterns := make([]string, 0)
+								for _, a := range artists {
+									if trimmed := strings.TrimSpace(a); trimmed != "" {
+										if pattern := createFTSRegexPattern(trimmed); pattern != "" {
+											orPatterns = append(orPatterns, pattern)
+										}
+									}
+								}
+
+								if len(orPatterns) > 0 {
+									baseFilter["artist"] = primitive.Regex{
+										Pattern: "(" + strings.Join(orPatterns, "|") + ")",
+										Options: "i",
+									}
+								}
+							} else {
+								pattern := createFTSRegexPattern(cacheArtist)
+								if pattern != "" {
+									baseFilter["artist"] = primitive.Regex{
+										Pattern: pattern,
+										Options: "i",
+									}
+								}
+							}
+						}
+
+						if cacheTitle != "" {
+							pattern := createFTSRegexPattern(cacheTitle)
+							if pattern != "" {
+								baseFilter["title"] = primitive.Regex{
+									Pattern: pattern,
+									Options: "i",
+								}
+							}
+						}
+					}
+
+					// 从缓存查询
+					for _, priorityType := range priorityTypes {
+						priorityFilter := bson.M{}
+						for k, v := range baseFilter {
+							priorityFilter[k] = v
+						}
+						priorityFilter["fileType"] = primitive.Regex{
+							Pattern: "^" + regexp.QuoteMeta(priorityType) + "$",
+							Options: "i",
+						}
+
+						var cacheResult scene_audio_db_models.LyricsFileMetadata
+						if err := collection.FindOne(ctx, priorityFilter).Decode(&cacheResult); err == nil {
+							// 检查缓存文件是否存在
+							content, err := os.ReadFile(cacheResult.Path)
+							if err == nil {
+								return string(content), nil
+							}
+						}
+					}
+
+					// 3. 如果缓存也找不到，从media_file表读取Lyrics字段
+					if mediaResult.Lyrics != "" {
+						return mediaResult.Lyrics, nil
+					}
+				}
+			}
+		} else {
+			// 如果没有提供mediaFileId，使用artist和title从缓存查询（原有逻辑）
+			collection := r.db.Collection(domain.CollectionFileEntityAudioSceneLyricsFile)
+			specialChars := []string{"|", "｜", "/", "//", ",", "，", "&", ";", "; ", "、"}
+
+			removeSpecialChars := func(s string) string {
+				for _, char := range specialChars {
+					s = strings.ReplaceAll(s, char, "")
+				}
+				return s
+			}
+
+			createFTSRegexPattern := func(input string) string {
+				cleaned := removeSpecialChars(input)
+				if cleaned == "" {
+					return ""
+				}
+				t2s := gojianfan.T2S(cleaned)
+				s2t := gojianfan.S2T(cleaned)
+				doubleConvert := gojianfan.S2T(t2s)
+				return regexp.QuoteMeta(cleaned) + "|" +
+					regexp.QuoteMeta(t2s) + "|" +
+					regexp.QuoteMeta(s2t) + "|" +
+					regexp.QuoteMeta(doubleConvert)
+			}
+
+			baseFilter := bson.M{}
+			if artist == title && title != "" {
+				pattern := createFTSRegexPattern(title)
+				if pattern != "" {
+					baseFilter["title"] = primitive.Regex{
+						Pattern: pattern,
+						Options: "i",
+					}
+				}
+			} else {
+				if artist != "" {
+					hasSeparator := false
+					for _, char := range specialChars {
+						if strings.Contains(artist, char) {
+							hasSeparator = true
+							break
+						}
+					}
+
+					if hasSeparator {
+						separatorPattern := regexp.QuoteMeta(strings.Join(specialChars, "|"))
+						re := regexp.MustCompile("[" + separatorPattern + "]+")
+						artists := re.Split(artist, -1)
+
+						orPatterns := make([]string, 0)
+						for _, a := range artists {
+							if trimmed := strings.TrimSpace(a); trimmed != "" {
+								if pattern := createFTSRegexPattern(trimmed); pattern != "" {
+									orPatterns = append(orPatterns, pattern)
+								}
+							}
+						}
+
+						if len(orPatterns) > 0 {
+							baseFilter["artist"] = primitive.Regex{
+								Pattern: "(" + strings.Join(orPatterns, "|") + ")",
+								Options: "i",
+							}
+						}
+					} else {
+						pattern := createFTSRegexPattern(artist)
+						if pattern != "" {
+							baseFilter["artist"] = primitive.Regex{
+								Pattern: pattern,
+								Options: "i",
+							}
+						}
+					}
+				}
+
+				if title != "" {
+					pattern := createFTSRegexPattern(title)
+					if pattern != "" {
+						baseFilter["title"] = primitive.Regex{
+							Pattern: pattern,
+							Options: "i",
+						}
+					}
+				}
+			}
+
+			// 尝试从缓存查询
+			for _, priorityType := range priorityTypes {
+				priorityFilter := bson.M{}
+				for k, v := range baseFilter {
+					priorityFilter[k] = v
+				}
+				priorityFilter["fileType"] = primitive.Regex{
+					Pattern: "^" + regexp.QuoteMeta(priorityType) + "$",
+					Options: "i",
+				}
+
+				var priorityResult scene_audio_db_models.LyricsFileMetadata
+				if err := collection.FindOne(ctx, priorityFilter).Decode(&priorityResult); err != nil {
+					if !errors.Is(err, driver.ErrNoDocuments) {
+						// 非"未找到文档"的错误，记录但继续
+					}
+					continue
+				}
+
+				// 检查缓存文件是否存在
+				content, err := os.ReadFile(priorityResult.Path)
+				if err == nil {
+					return string(content), nil
+				}
+			}
+		}
+
+		// 所有优先级都未找到
+		return "", errors.New("no matching lyrics found")
+	}
+
+	// 处理mediaFileId直接查询的情况（原有逻辑）
 	if len(mediaFileId) > 0 {
 		objID, err := primitive.ObjectIDFromHex(mediaFileId)
 		if err != nil {
@@ -291,9 +582,10 @@ func (r *retrievalRepository) GetLyricsLrcMetaData(ctx context.Context, mediaFil
 			}
 		}
 
+		// 处理非auto类型的查询逻辑
 		if fileType != "" {
 			cleanedFileType := removeSpecialChars(fileType)
-			if cleanedFileType != "" {
+			if cleanedFileType != "" && cleanedFileType != "auto" {
 				filter["fileType"] = primitive.Regex{
 					Pattern: "^" + regexp.QuoteMeta(cleanedFileType) + "$",
 					Options: "i",
@@ -301,19 +593,104 @@ func (r *retrievalRepository) GetLyricsLrcMetaData(ctx context.Context, mediaFil
 			}
 		}
 
+		// 从缓存查询
 		if err := collection.FindOne(ctx, filter).Decode(&result); err != nil {
+			// 如果缓存找不到且提供了mediaFileId，尝试从原始文件夹查找
+			if errors.Is(err, driver.ErrNoDocuments) && len(mediaFileId) > 0 {
+				mediaPath, pathErr := r.getMediaFilePath(ctx, mediaFileId)
+				if pathErr == nil {
+					// 根据fileType确定要查找的格式
+					var searchFormats []string
+					if fileType != "" {
+						cleanedFileType := removeSpecialChars(fileType)
+						if cleanedFileType != "" && cleanedFileType != "auto" {
+							searchFormats = []string{cleanedFileType}
+						} else {
+							searchFormats = []string{"lrc"} // 默认查找lrc
+						}
+					} else {
+						searchFormats = []string{"lrc"} // 默认查找lrc
+					}
+
+					content, findErr := r.findLyricsInDirectory(mediaPath, searchFormats)
+					if findErr == nil {
+						return content, nil
+					}
+				}
+			}
+
 			if errors.Is(err, driver.ErrNoDocuments) {
 				return "", errors.New("no matching lyrics found")
 			}
 			return "", fmt.Errorf("lyrics query failed: %w", err)
 		}
 
+		// 检查缓存文件是否存在
 		content, err := os.ReadFile(result.Path)
 		if err != nil {
+			// 缓存文件不存在，如果提供了mediaFileId，尝试从原始文件夹查找
+			if len(mediaFileId) > 0 {
+				mediaPath, pathErr := r.getMediaFilePath(ctx, mediaFileId)
+				if pathErr == nil {
+					var searchFormats []string
+					if fileType != "" {
+						cleanedFileType := removeSpecialChars(fileType)
+						if cleanedFileType != "" && cleanedFileType != "auto" {
+							searchFormats = []string{cleanedFileType}
+						} else {
+							searchFormats = []string{"lrc"}
+						}
+					} else {
+						searchFormats = []string{"lrc"}
+					}
+
+					content, findErr := r.findLyricsInDirectory(mediaPath, searchFormats)
+					if findErr == nil {
+						return content, nil
+					}
+				}
+			}
 			return "", fmt.Errorf("failed to read lyrics file at %s: %w", result.Path, err)
 		}
 		return string(content), nil
 	}
+}
+
+// findLyricsInDirectory 在指定目录查找与音频文件同名的歌词文件
+func (r *retrievalRepository) findLyricsInDirectory(audioPath string, priorityTypes []string) (string, error) {
+	audioDir := filepath.Dir(audioPath)
+	audioName := strings.TrimSuffix(filepath.Base(audioPath), filepath.Ext(audioPath))
+
+	for _, format := range priorityTypes {
+		lyricsPath := filepath.Join(audioDir, audioName+"."+format)
+		if _, err := os.Stat(lyricsPath); err == nil {
+			content, err := os.ReadFile(lyricsPath)
+			if err != nil {
+				continue // 读取失败，继续下一个
+			}
+			return string(content), nil
+		}
+	}
+	return "", errors.New("no lyrics file found in directory")
+}
+
+// getMediaFilePath 根据mediaFileId获取媒体文件路径
+func (r *retrievalRepository) getMediaFilePath(ctx context.Context, mediaFileId string) (string, error) {
+	objID, err := primitive.ObjectIDFromHex(mediaFileId)
+	if err != nil {
+		return "", errors.New("invalid media file id format")
+	}
+
+	collection := r.db.Collection(domain.CollectionFileEntityAudioSceneMediaFile)
+	var result scene_audio_route_models.MediaFileMetadata
+
+	filter := bson.M{"_id": objID}
+	err = collection.FindOne(ctx, filter).Decode(&result)
+	if err != nil {
+		return "", fmt.Errorf("media file not found: %w", err)
+	}
+
+	return result.Path, nil
 }
 
 func (r *retrievalRepository) GetLyricsLrcFile(ctx context.Context, mediaFileId string) (string, error) {
