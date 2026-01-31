@@ -1,3 +1,31 @@
+# ⚠️ IMPORTANT NOTICE: Project Status Change
+
+## 项目状态变更声明 | Project Status Declaration
+
+**NineSong 开源项目即日起停止开源更新，此仓库将永久停留在当前提交。**
+
+由于发现 NineSong 的代码疑似被抄袭引用，经过慎重考虑，我决定：
+
+1. **停止开源**: NineSong 后端服务将不再开源，此仓库永久停留在当前提交
+2. **DockerHub 永久免费**: NineSong 将持续免费上架 DockerHub，所有用户可永久免费使用
+3. **前端应用继续开源**: 基于 React 重构开发的一系列应用（音乐、相册、影视、笔记等）将于 2026 年 4 月左右开始陆续上架，继续开源免费
+4. **后续开发计划继续**: 原计划的多应用场景数据共享全平台架构与一系列 AI 扩展将继续进行开发重构
+5. **多系统适配计划**: 一键可视化安装的 Electron 安装导向包 NineSong-Desktop 将同时适配 Windows、Linux、MacOS 的一键直装，提供更丰富简易的 Docker 部署指令与脚本，以及更便捷的 NineSong-Panel 可视化 Docker 面板
+6. **全平台付费应用**: 基于 Flutter 开发的全平台付费应用 **NSMusicS-Flutter** 即将发布，支持 Android、iOS、Windows、MacOS，将上架 Google Play、App Store、Microsoft Store
+
+**NineSong will no longer be open source from now on, and this repository will be permanently frozen at the current commit.**
+
+Due to suspected code plagiarism, I have decided to:
+
+1. **Stop Open Source**: NineSong backend service will no longer be open source, this repo is frozen at this commit
+2. **DockerHub Forever Free**: NineSong will remain free on DockerHub permanently for all users
+3. **Frontend Apps Stay Open Source**: React-based apps (Music, Gallery, Video, Notes, etc.) will start rolling out around April 2026 and continue to be open source and free
+4. **Development Continues**: The original plan for multi-scenario data sharing cross-platform architecture and AI extensions will continue to be developed and refactored
+5. **Multi-OS Support Plan**: The one-click visual Electron installer package NineSong-Desktop will support Windows, Linux, and MacOS with easy one-click installation, along with richer and simpler Docker deployment commands and scripts, and a more convenient NineSong-Panel visual Docker dashboard
+6. **Cross-Platform Premium App**: The Flutter-based cross-platform premium app **NSMusicS-Flutter** is coming soon, supporting Android, iOS, Windows, and MacOS, and will be available on Google Play, App Store, and Microsoft Store
+
+---
+
 # NineSong Personal Digital Center
 NineSong aims to provide cloud native and AI extended solutions for data sharing in various ToB and ToC businesses,
 for managing various file metadata (local files, cloud storage files) and the business attributes derived from these metadata, 
