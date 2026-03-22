@@ -2,7 +2,7 @@
 
 Language: [English](README.md) | [Chinese](README.zh-CN.md)
 
-NineSong is the server-side foundation behind the NSMusicS ecosystem. In its current public form, this repository serves as a frozen open-source snapshot for the music-scene backend, while the broader product direction continues through refactoring, client expansion, and future frontend work.
+NineSong is the server-side foundation behind the NSMusicS ecosystem. In its current public form, this repository serves as a frozen open-source snapshot for the music-scene backend, while the broader product direction continues toward a personal digital center spanning music, gallery, video, notes, novels, lists, resource management, and more.
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Super-Badmen-Viper/NineSong)
 
@@ -12,7 +12,7 @@ As of March 22, 2026:
 
 - This public repository is intentionally frozen at its current commit.
 - DockerHub distribution remains free for public users.
-- The archived public roadmap described React-based frontend apps for music, gallery, video, notes, and related scenarios as the next open-source application wave, expected to begin around April 2026.
+- The archived public roadmap described React-based frontend apps for music, gallery, video, notes, novels, lists, resource management, and related scenarios as the next open-source application wave, expected to begin around April 2026.
 - The paired NSMusicS Windows client is already live on Microsoft Store.
 - Direct Microsoft Store link: [ms-windows-store://pdp/?productid=9N0RWS2TJXG1](ms-windows-store://pdp/?productid=9N0RWS2TJXG1)
 - A 15-day free trial is currently available on the Windows client.
@@ -28,8 +28,8 @@ NineSong is not positioned as a minimal media server.
 
 - It focuses on richer music-library organization instead of only basic streaming.
 - It emphasizes metadata, tags, search behavior, CUE-related workflows, and recommendation potential.
-- It is designed as a cloud-native backend that can extend from music into broader personal digital center scenarios.
-- It pairs with NSMusicS while also pointing toward gallery, video, notes, documents, and related multi-scenario data workflows.
+- It is designed as a cloud-native backend for a broader personal digital center rather than a single-purpose music product.
+- It pairs with NSMusicS while also pointing toward gallery, video, notes, novels, lists, resource management, documents, and related multi-scenario data workflows.
 
 Core stack in this snapshot:
 
@@ -89,6 +89,6 @@ For the historical deployment flow, local debugging notes, and public API refere
 ## Vision
 
 This public repository is frozen, but the broader ecosystem direction continues.  
-The long-term goal remains a stronger music-first platform that can grow into a wider personal digital center stack across multiple clients, stores, and deployment models.
+The long-term goal remains a full personal digital center across multiple clients, stores, and deployment models, with more application scenarios expected to roll out over time, including but not limited to gallery, video, notes, novels, lists, resource management, and more.
 
 The name NineSong comes from "Nine Song" and is inspired by *Chu Ci* and the legacy of Qu Yuan.
