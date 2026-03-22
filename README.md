@@ -14,7 +14,8 @@ As of March 22, 2026:
 - DockerHub distribution remains free for public users.
 - The archived public roadmap described React-based frontend apps for music, gallery, video, notes, novels, lists, resource management, and related scenarios as the next open-source application wave, expected to begin around April 2026.
 - The paired NSMusicS Windows client is already live on Microsoft Store.
-- Direct Microsoft Store link: [ms-windows-store://pdp/?productid=9N0RWS2TJXG1](ms-windows-store://pdp/?productid=9N0RWS2TJXG1)
+- Microsoft Store web page: [https://apps.microsoft.com/detail/9N0RWS2TJXG1](https://apps.microsoft.com/detail/9N0RWS2TJXG1)
+- Windows Store deep link: `ms-windows-store://pdp/?productid=9N0RWS2TJXG1`
 - A 15-day free trial is currently available on the Windows client.
 - App Store releases for macOS and iOS, plus the Google Play release for Android, remain part of the broader client rollout after the current Windows track.
 - Based on the current ecosystem planning, the refactored NSMusicS client edition is expected around two months later, which currently points to roughly May 2026.
@@ -73,7 +74,8 @@ For the historical deployment flow, local debugging notes, and public API refere
 
 - NSMusicS repository: https://github.com/Super-Badmen-Viper/NSMusicS
 - NineSong releases: https://github.com/Super-Badmen-Viper/NineSong/releases/
-- Microsoft Store client: [ms-windows-store://pdp/?productid=9N0RWS2TJXG1](ms-windows-store://pdp/?productid=9N0RWS2TJXG1)
+- Microsoft Store client web page: [https://apps.microsoft.com/detail/9N0RWS2TJXG1](https://apps.microsoft.com/detail/9N0RWS2TJXG1)
+- Windows Store deep link: `ms-windows-store://pdp/?productid=9N0RWS2TJXG1`
 
 ## Community
 
